@@ -1,0 +1,89 @@
+@startuml
+
+interface "Data" as DATA
+component [Protocol]
+
+package CompressedSource #Yellow {
+    [AudioCompressedQueue]
+    [VideoCompressedQueue]
+}
+
+package "GPlayerIml" {
+  node "AudioThread" {
+    [AudioLoop]
+    [AudioInterceptors]
+  }
+  node "VideoThread" {
+    [VideoLoop]
+    [VideoInterceptors]
+  }
+}
+
+package "GPlayer" {
+  node "AudioRenderThread" {
+    [AudioRenderLoop]
+  }
+  node "VideoRenderThread" {
+    [VideoRenderLoop]
+  }
+}
+
+package DecodedSource #Green {
+    [AudioDecodedQueue]
+    [VideoDecodedQueue]
+}
+
+package "Render" #656565 {
+    node "AudioRender" {
+        [AudioTrack]
+    }
+    node "VideoRender" {
+        [OpenGL]
+    }
+}
+
+[DATA] .up.>[Protocol] : av_init
+[DATA] .up.>[Protocol] : av_feed_audio
+[DATA] .up.>[Protocol] : av_feed_video
+[DATA] .up.>[Protocol] : av_destroy
+
+[Protocol] .up.>[AudioCompressedQueue]
+[Protocol] .up.>[VideoCompressedQueue]
+
+[AudioCompressedQueue] -up-> [AudioLoop]
+[AudioLoop] -left-> [AudioInterceptors]
+[AudioInterceptors] -right-> [AudioLoop]
+
+[VideoCompressedQueue] -up-> [VideoLoop]
+[VideoLoop] -right-> [VideoInterceptors]
+[VideoInterceptors] -left-> [VideoLoop]
+
+[VideoLoop] -up-> [VideoDecodedQueue]
+[AudioLoop] -up-> [AudioDecodedQueue]
+
+[AudioDecodedQueue] -up-> [AudioRenderLoop]
+[VideoDecodedQueue] -up-> [VideoRenderLoop]
+
+[AudioRenderLoop] --> [AudioRenderLoop]
+[VideoRenderLoop] --> [VideoRenderLoop]
+[AudioRenderLoop] -up-> [AudioTrack]
+[VideoRenderLoop] -up-> [OpenGL]
+
+note right of CompressedSource
+  media compressed data
+end note
+
+note bottom of [DATA]
+  This is media source. The media source can be played when the media data upload via interface below.
+  1. av_init(upload the media info)
+  2. av_feed_audio(upload audio data)
+  3. av_feed_video(upload video data)
+  4. av_destroy(media source disconnected)
+  Developer can customize own protocol but need use the interfaces.
+end note
+
+note right of DecodedSource
+  media decoded data
+end note
+
+@enduml

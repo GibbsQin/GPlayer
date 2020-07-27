@@ -1,0 +1,57 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory app:title="Decode option"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            app:key="codec_source"
+            app:title="decode layer"
+            app:iconSpaceReserved="false"
+            app:entries="@array/codec_layer_name"
+            app:entryValues="@array/codec_layer"
+            app:defaultValue="1"
+            app:useSimpleSummaryProvider="true"
+            app:allowDividerAbove="true"/>
+
+        <ListPreference
+            app:dependency="codec_source"
+            app:key="codec_type"
+            app:iconSpaceReserved="false"
+            app:title="decode type"
+            app:entries="@array/codec_type_name"
+            app:entryValues="@array/codec_type"
+            app:useSimpleSummaryProvider="true"
+            app:defaultValue="1"
+            app:allowDividerAbove="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="style"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            app:key="gplayer_style"
+            app:iconSpaceReserved="false"
+            app:title="GPlayer style"
+            app:entries="@array/gplayer_style_name"
+            app:entryValues="@array/gplayer_style"
+            app:useSimpleSummaryProvider="true"
+            app:defaultValue="external"
+            app:allowDividerAbove="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="About"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            app:title="Software introduce"
+            app:iconSpaceReserved="false"
+            app:allowDividerAbove="true">
+            <intent
+                android:action="android.intent.action.MAIN"
+                android:targetPackage="com.gibbs.gplayer"
+                android:targetClass="com.gibbs.sample.IntroduceActivity" />
+        </Preference>
+    </PreferenceCategory>
+
+</PreferenceScreen>

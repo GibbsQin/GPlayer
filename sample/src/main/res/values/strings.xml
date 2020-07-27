@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">GPlayer sample</string>
+    <string name="app_introduce">GPlayer is a multi media player frame base on ffmpeg and mediacodec。GPlayer support software decoding and hardware decoding, then render via AudioTrack and OpenGL。\n\nThe architecture as below</string>
+</resources>

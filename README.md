@@ -1,0 +1,56 @@
+# GPlayer
+
+#### Introduce
+GPlayer is a multi media player frame base on ffmpeg and mediacodec。GPlayer support software decoding and hardware decoding, then render via AudioTrack and OpenGL。
+
+#### Software architecture
+![输入图片说明](https://images.gitee.com/uploads/images/2020/0727/182413_fc543975_5383286.png "components.png")
+
+#### Download
+[![](https://www.jitpack.io/v/GibbsQin/GPlayer.svg)](https://www.jitpack.io/#GibbsQin/GPlayer)
+
+	allprojects {
+		repositories {
+			...
+			maven { url 'https://www.jitpack.io' }
+		}
+	}
+
+	dependencies {
+	        implementation 'com.github.GibbsQin:GPlayer:1.1.7'
+	}
+
+#### Usage
+    <com.gibbs.gplayer.GPlayerView
+        android:id="@+id/gl_surface_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintDimensionRatio="H,16:9"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+    private GPlayerView mVideoView;
+    mVideoView = findViewById(R.id.gl_surface_view);
+    //url is local file path
+    mVideoView.setUrl(MediaSource.SOURCE_TYPE_FILE, url);
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mVideoView != null) {
+            mVideoView.onResume();
+            mVideoView.startPlay();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mVideoView != null) {
+            mVideoView.onPause();
+            mVideoView.stopPlay();
+        }
+    }
+
