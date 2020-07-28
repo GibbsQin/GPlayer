@@ -3,7 +3,7 @@
 [README 中文版](README.zh-CN.md)
 
 #### Introduce
-GPlayer is a multi media player frame base on ffmpeg and mediacodec。GPlayer support software decoding and hardware decoding, then render via AudioTrack and OpenGL。
+GPlayer is a video player frame base on ffmpeg and mediacodec。GPlayer support software decoding and hardware decoding, then render via AudioTrack and OpenGL。
 
 #### Software architecture
 ![](https://images.gitee.com/uploads/images/2020/0727/182413_fc543975_5383286.png "components.png")
