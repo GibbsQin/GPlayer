@@ -31,7 +31,7 @@
             android:label="Movies" />
         <activity
             android:name=".SettingsActivity"
-            android:label="Settings" />
+            android:label="@string/settings" />
         <activity
             android:name=".SimpleGPlayerViewActivity"
             android:label="SimpleGPlayer" />
@@ -40,7 +40,7 @@
             android:label="GLSurface" />
         <activity
             android:name=".IntroduceActivity"
-            android:label="Software introduce" />
+            android:label="@string/software_introduce" />
     </application>
 
 </manifest>

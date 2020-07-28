@@ -1,14 +1,12 @@
 # GPlayer
 
-[README 中文版](README.zh-CN.md)
+#### 介绍
+GPlayer是一款基于 ffmpeg、mediacodec 的Android媒体资源播放器框架。同时支持软解码和硬解码，通过OpenGL和AudioTrack进行渲染。
 
-#### Introduce
-GPlayer is a multi media player frame base on ffmpeg and mediacodec。GPlayer support software decoding and hardware decoding, then render via AudioTrack and OpenGL。
+#### 软件架构
+![](https://images.gitee.com/uploads/images/2020/0728/090047_bf03f1d8_5383286.png "components.png")
 
-#### Software architecture
-![](https://images.gitee.com/uploads/images/2020/0727/182413_fc543975_5383286.png "components.png")
-
-#### Download
+#### 下载
 [![](https://www.jitpack.io/v/GibbsQin/GPlayer.svg)](https://www.jitpack.io/#GibbsQin/GPlayer)
 
 	allprojects {
@@ -19,10 +17,10 @@ GPlayer is a multi media player frame base on ffmpeg and mediacodec。GPlayer su
 	}
 
 	dependencies {
-	        implementation 'com.github.GibbsQin:GPlayer:1.1.8'
+	        implementation 'com.github.GibbsQin:GPlayer:1.1.6'
 	}
 
-#### Usage
+#### 使用
     <com.gibbs.gplayer.GPlayerView
         android:id="@+id/gl_surface_view"
         android:layout_width="0dp"
@@ -35,7 +33,7 @@ GPlayer is a multi media player frame base on ffmpeg and mediacodec。GPlayer su
 
     private GPlayerView mVideoView;
     mVideoView = findViewById(R.id.gl_surface_view);
-    //url is local file path
+    //url为本地文件路径
     mVideoView.setUrl(MediaSource.SOURCE_TYPE_FILE, url);
 
     @Override
@@ -55,4 +53,3 @@ GPlayer is a multi media player frame base on ffmpeg and mediacodec。GPlayer su
             mVideoView.stopPlay();
         }
     }
-

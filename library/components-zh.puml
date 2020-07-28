@@ -1,0 +1,90 @@
+@startuml
+
+interface "Data" as DATA
+component [Protocol]
+
+package CompressedSource #Yellow {
+    [AudioCompressedQueue]
+    [VideoCompressedQueue]
+}
+
+package "GPlayerIml" {
+  node "AudioThread" {
+    [AudioLoop]
+    [AudioInterceptors]
+  }
+  node "VideoThread" {
+    [VideoLoop]
+    [VideoInterceptors]
+  }
+}
+
+package "GPlayer" {
+  node "AudioRenderThread" {
+    [AudioRenderLoop]
+  }
+  node "VideoRenderThread" {
+    [VideoRenderLoop]
+  }
+}
+
+package DecodedSource #Green {
+    [AudioDecodedQueue]
+    [VideoDecodedQueue]
+}
+
+package "Render" #656565 {
+    node "AudioRender" {
+        [AudioTrack]
+    }
+    node "VideoRender" {
+        [OpenGL]
+    }
+}
+
+[DATA] .up.>[Protocol] : av_init
+[DATA] .up.>[Protocol] : av_feed_audio
+[DATA] .up.>[Protocol] : av_feed_video
+[DATA] .up.>[Protocol] : av_destroy
+
+[Protocol] .up.>[AudioCompressedQueue]
+[Protocol] .up.>[VideoCompressedQueue]
+
+[AudioCompressedQueue] -up-> [AudioLoop]
+[AudioLoop] -left-> [AudioInterceptors]
+[AudioInterceptors] -right-> [AudioLoop]
+
+[VideoCompressedQueue] -up-> [VideoLoop]
+[VideoLoop] -right-> [VideoInterceptors]
+[VideoInterceptors] -left-> [VideoLoop]
+
+[VideoLoop] -up-> [VideoDecodedQueue]
+[AudioLoop] -up-> [AudioDecodedQueue]
+
+[AudioDecodedQueue] -up-> [AudioRenderLoop]
+[VideoDecodedQueue] -up-> [VideoRenderLoop]
+
+[AudioRenderLoop] --> [AudioRenderLoop]
+[VideoRenderLoop] --> [VideoRenderLoop]
+[AudioRenderLoop] -up-> [AudioTrack]
+[VideoRenderLoop] -up-> [OpenGL]
+
+note right of CompressedSource
+  媒体压缩数据
+end note
+
+note bottom of [DATA]
+  媒体源文件，只要通过相应的协议，
+  将数据通过以下4个接口上报数据就
+  可以播放：
+  1. av_init(上报媒体头信息)
+  2. av_feed_audio(上报音频数据)
+  3. av_feed_video(上报视频数据)
+  4. av_destroy(结束上报)
+end note
+
+note right of DecodedSource
+  媒体解码数据
+end note
+
+@enduml
