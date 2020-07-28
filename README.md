@@ -19,7 +19,7 @@ GPlayer is a multi media player frame base on ffmpeg and mediacodec。GPlayer su
 	}
 
 	dependencies {
-	        implementation 'com.github.GibbsQin:GPlayer:1.1.8'
+	        implementation 'com.github.GibbsQin:GPlayer:1.1.7'
 	}
 
 #### Usage

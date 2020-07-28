@@ -17,7 +17,7 @@ GPlayer是一款基于 ffmpeg、mediacodec 的Android媒体资源播放器框架
 	}
 
 	dependencies {
-	        implementation 'com.github.GibbsQin:GPlayer:1.1.6'
+	        implementation 'com.github.GibbsQin:GPlayer:1.1.7'
 	}
 
 #### 使用
