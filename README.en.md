@@ -17,7 +17,7 @@ GPlayer is a video player frame base on ffmpeg and mediacodec。GPlayer support 
 	}
 
 	dependencies {
-	        implementation 'com.github.GibbsQin:GPlayer:1.1.8'
+	        implementation 'com.github.GibbsQin:GPlayer:1.1.9'
 	}
 
 #### Usage

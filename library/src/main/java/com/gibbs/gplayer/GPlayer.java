@@ -103,8 +103,8 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     }
 
     @Override
-    public void onSourceStateChanged(SourceState sourceState) {
-        LogUtils.i(TAG, "CoreFlow : onSourceStateChanged " + sourceState);
+    public void onSourceStateChanged(MediaSource.SourceState sourceState) {
+        LogUtils.i(TAG, "onSourceStateChanged " + sourceState);
         switch (sourceState) {
             case Init:
                 onInit();
@@ -113,9 +113,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
                 break;
             case Release:
                 onRelease();
-                break;
-            case Error:
-//                finish(true);
                 break;
         }
     }
@@ -140,7 +137,7 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
             return;
         }
         if (mVideoRender != null && mVideoRender.isAvailable()) {
-            LogUtils.i(TAG, "preparing");
+            LogUtils.e(TAG, "preparing");
             setPlayState(State.PREPARING);
             initAVSource(mMediaSource);
         } else {
@@ -160,11 +157,12 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
      * stop play
      */
     public void finish(boolean force) {
-        LogUtils.i(TAG, "finishing channelId " + mChannelId);
+        LogUtils.i(TAG, "CoreFlow finishing channelId " + mChannelId);
         if (!isPlaying() && !force) {
             return;
         }
         setPlayState(State.FINISHING);
+        mMediaSource.onFinishing();
         nFinish(mChannelId, force);
         if (mAudioPlayThread != null && mAudioPlayThread.isAlive()) {
             try {
@@ -338,11 +336,13 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     }
 
     private void setPlayState(State state) {
-        if (state == mPlayState) {
-            return;
+        synchronized (this) {
+            if (state == mPlayState) {
+                return;
+            }
+            mPlayState = state;
         }
-        LogUtils.i(TAG, "setPlayState state = " + state);
-        mPlayState = state;
+        LogUtils.e(TAG, "CoreFlow setPlayState state = " + state);
         if (mPlayState == State.IDLE) {
             mMediaSource.flushBuffer();
         }

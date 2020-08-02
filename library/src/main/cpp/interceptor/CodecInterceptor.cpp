@@ -39,18 +39,18 @@ int CodecInterceptor::onInit(MediaInfo *header) {
         if (mediaCodecFirst) {
             if (mediaCodecSupport) {
                 audioDecoder = new MediaCodecAudioDecoder();
-                LOGI(TAG, "CoreFlow : new MediaCodecAudioDecoder");
+                LOGI(TAG, "new MediaCodecAudioDecoder");
             } else {
                 audioDecoder = new FfmpegAudioDecoder();
-                LOGI(TAG, "CoreFlow : new FfmpegAudioDecoder");
+                LOGI(TAG, "new FfmpegAudioDecoder");
             }
         } else {
             if (ffmpegSupport) {
                 audioDecoder = new FfmpegAudioDecoder();
-                LOGI(TAG, "CoreFlow : new FfmpegAudioDecoder");
+                LOGI(TAG, "new FfmpegAudioDecoder");
             } else {
                 audioDecoder = new MediaCodecAudioDecoder();
-                LOGI(TAG, "CoreFlow : new MediaCodecAudioDecoder");
+                LOGI(TAG, "new MediaCodecAudioDecoder");
             }
         }
         auto audioDataSize = header->sampleNumPerFrame * header->audioBitWidth * header->audioChannels;
@@ -77,18 +77,18 @@ int CodecInterceptor::onInit(MediaInfo *header) {
         if (mediaCodecFirst) {
             if (mediaCodecSupport) {
                 videoDecoder = new MediaCodecVideoDecoder();
-                LOGI(TAG, "CoreFlow : new MediaCodecVideoDecoder");
+                LOGI(TAG, "new MediaCodecVideoDecoder");
             } else {
                 videoDecoder = new FfmpegVideoDecoder();
-                LOGI(TAG, "CoreFlow : new FfmpegVideoDecoder");
+                LOGI(TAG, "new FfmpegVideoDecoder");
             }
         } else {
             if (ffmpegSupport) {
                 videoDecoder = new FfmpegVideoDecoder();
-                LOGI(TAG, "CoreFlow : new FfmpegVideoDecoder");
+                LOGI(TAG, "new FfmpegVideoDecoder");
             } else {
                 videoDecoder = new MediaCodecVideoDecoder();
-                LOGI(TAG, "CoreFlow : new MediaCodecVideoDecoder");
+                LOGI(TAG, "new MediaCodecVideoDecoder");
             }
         }
         auto videoDataSize = header->videoWidth * header->videoHeight;
@@ -163,7 +163,6 @@ void CodecInterceptor::onRelease() {
         return;
     }
     hasInit = false;
-    LOGI(TAG, "CoreFlow : onRelease");
     if (isAudioAvailable) {
         if (audioDecoder != nullptr) {
             audioDecoder->release();
@@ -197,4 +196,5 @@ void CodecInterceptor::onRelease() {
     }
     videoLock.unlock();
     audioLock.unlock();
+    LOGI(TAG, "CoreFlow : onRelease");
 }

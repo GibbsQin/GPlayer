@@ -11,7 +11,7 @@ import com.gibbs.gplayer.utils.LogUtils;
 import java.util.LinkedList;
 
 public class MediaSourceImp implements MediaSource {
-    private static final String TAG = "MediaSourceImp";
+    private static final String TAG = "MediaSourceImpJ";
 
     private static final boolean VERBOSE = false;
 
@@ -25,7 +25,7 @@ public class MediaSourceImp implements MediaSource {
     private final Object mVideoQueueLock = new Object();
     private boolean mIsSourceEnd;
 
-    private OnSourceStateChangedListener.SourceState mSourceState = null;
+    private SourceState mSourceState = null;
     private OnSourceStateChangedListener mOnSourceStateChangedListener;
     private OnSourceSizeChangedListener mOnSourceSizeChangedListener;
     private OnTimeChangedListener mOnTimeChangedListener;
@@ -58,14 +58,14 @@ public class MediaSourceImp implements MediaSource {
         LogUtils.i(TAG, "CoreFlow : onInit channelId = " + channelId+ ", header = " + header.toString());
         mChannelId = channelId;
         mMediaInfo = header;
-        setSourceState(OnSourceStateChangedListener.SourceState.Init);
+        setSourceState(SourceState.Init);
         mIsSourceEnd = false;
     }
 
     @Override
     public int onReceiveAudio(MediaData inPacket) {
-        if (mSourceState == OnSourceStateChangedListener.SourceState.Init) {
-            setSourceState(OnSourceStateChangedListener.SourceState.Ready);
+        if (mSourceState == SourceState.Init) {
+            setSourceState(SourceState.Ready);
         }
         synchronized (mAudioQueueLock) {
             MediaData dstData = new MediaData(inPacket);
@@ -82,8 +82,8 @@ public class MediaSourceImp implements MediaSource {
 
     @Override
     public int onReceiveVideo(MediaData inPacket) {
-        if (mSourceState == OnSourceStateChangedListener.SourceState.Init) {
-            setSourceState(OnSourceStateChangedListener.SourceState.Ready);
+        if (mSourceState == SourceState.Init) {
+            setSourceState(SourceState.Ready);
         }
         synchronized (mVideoQueueLock) {
             MediaData dstData = new MediaData(inPacket);
@@ -107,10 +107,15 @@ public class MediaSourceImp implements MediaSource {
     @Override
     public void onError(int errorCode, String errorMessage) {
         LogUtils.e(TAG, "onError " + errorCode + " " + errorMessage);
-        setSourceState(OnSourceStateChangedListener.SourceState.Error);
+        setSourceState(SourceState.Error);
         if (mOnErrorListener != null) {
             mOnErrorListener.onError(errorCode, errorMessage);
         }
+    }
+
+    @Override
+    public void onFinishing() {
+        setSourceState(SourceState.Finishing);
     }
 
     @Override
@@ -142,7 +147,7 @@ public class MediaSourceImp implements MediaSource {
         return mFlag;
     }
 
-    private void setSourceState(OnSourceStateChangedListener.SourceState sourceState) {
+    private void setSourceState(SourceState sourceState) {
         synchronized (this) {
             if (mSourceState == sourceState) {
                 return;
@@ -151,7 +156,7 @@ public class MediaSourceImp implements MediaSource {
             if (mOnSourceStateChangedListener != null) {
                 mOnSourceStateChangedListener.onSourceStateChanged(mSourceState);
             }
-            LogUtils.i(TAG, "setSourceState " + mSourceState);
+            LogUtils.i(TAG, "CoreFlow setSourceState " + mSourceState);
         }
     }
 
@@ -235,16 +240,18 @@ public class MediaSourceImp implements MediaSource {
 
     @Override
     public void flushBuffer() {
-        LogUtils.i(TAG, "flushBuffer");
+        LogUtils.i(TAG, "CoreFlow flushBuffer");
         clearAudioQueue();
         clearVideoQueue();
     }
 
     @Override
     public void checkSourceEnd() {
-        if (mIsSourceEnd && mAudioQueue.isEmpty() && mVideoQueue.isEmpty()) {
-            LogUtils.e(TAG, "checkSourceEnd true");
-            setSourceState(OnSourceStateChangedListener.SourceState.Release);
+        boolean isFinishing = (mSourceState == SourceState.Finishing);
+        boolean isEmpty = (mAudioQueue.isEmpty() && mVideoQueue.isEmpty());
+        if (mIsSourceEnd && (isFinishing || isEmpty)) {
+            LogUtils.e(TAG, "CoreFlow checkSourceEnd true");
+            setSourceState(SourceState.Release);
         }
     }
 

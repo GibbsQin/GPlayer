@@ -26,7 +26,6 @@ abstract class BaseVideoRender implements VideoRender {
 
     @Override
     public void init(MediaInfo header) {
-        LogUtils.i(TAG, "CoreFlow : init");
         int rate = header.getInteger(MediaInfo.KEY_FRAME_RATE, 20);
         mFrameIntervalMs = 1000L / rate / 2;
         mMaxFrameIntervalMs = 1000L / rate * 9 / 10;
@@ -35,7 +34,7 @@ abstract class BaseVideoRender implements VideoRender {
 
     @Override
     public void release() {
-        LogUtils.i(TAG, "CoreFlow : release");
+        LogUtils.i(TAG, "release");
     }
 
     @Override

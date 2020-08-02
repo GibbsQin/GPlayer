@@ -72,8 +72,7 @@ int MediaSourceJni::sendAudio2Java(MediaData *outFrame) {
         bool attach = JniHelper::attachCurrentThread();
         jobject jdata;
         jdata = MediaDataJni::createJObject(outFrame);
-        size = JniHelper::callIntMethod(p2pSourceJObj, onReceiveAudioMethodId,
-                                        jdata);
+        size = JniHelper::callIntMethod(p2pSourceJObj, onReceiveAudioMethodId, jdata);
         JniHelper::deleteLocalRef(jdata);
         if (attach) {
             JniHelper::detachCurrentThread();
@@ -88,8 +87,7 @@ int MediaSourceJni::sendVideo2Java(MediaData *outFrame) {
         bool attach = JniHelper::attachCurrentThread();
         jobject jdata;
         jdata = MediaDataJni::createJObject(outFrame);
-        size = JniHelper::callIntMethod(p2pSourceJObj, onReceiveVideoMethodId,
-                                        jdata);
+        size = JniHelper::callIntMethod(p2pSourceJObj, onReceiveVideoMethodId, jdata);
         JniHelper::deleteLocalRef(jdata);
         if (attach) {
             JniHelper::detachCurrentThread();

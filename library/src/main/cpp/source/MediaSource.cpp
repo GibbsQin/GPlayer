@@ -20,7 +20,7 @@ MediaSource::~MediaSource() {
 
 void MediaSource::onInit(MediaInfo *header) {
     mAVHeader = header;
-    LOGI(TAG, "CoreFlow : onInit header videoType:%d, videoWidth:%d, videoHeight:%d, videoFrameRate:%d,\n"
+    LOGI(TAG, "CoreFlow : onInit header videoType:%d, videoWidth:%d, videoHeight:%d, videoFrameRate:%d,"
               "audioType:%d, audioMode:%d, audioBitWidth:%d, audioSampleRate:%d, sampleNumPerFrame:%d",
          header->videoType, header->videoWidth, header->videoHeight, header->videoFrameRate,
          header->audioType, header->audioMode, header->audioBitWidth, header->audioSampleRate,

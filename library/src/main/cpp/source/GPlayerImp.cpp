@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <interceptor/CodecInterceptor.h>
 
-#define TAG "GPlayerImp"
+#define TAG "GPlayerImpC"
 
 GPlayerImp::GPlayerImp(jobject jAVSource) {
     outputSource = new MediaSourceJni(jAVSource);
@@ -123,24 +123,23 @@ void GPlayerImp::processAudioBuffer(int64_t time) {
     }
     MediaData *inPacket;
     int ret = inputSource->readAudioBuffer(&inPacket);
-    if (ret == AV_SOURCE_RELEASE) {
-        onRelease();
-        return;
-    }
     if (ret <= 0) {
+        if (ret == AV_SOURCE_RELEASE) {
+            onRelease();
+        }
         return;
     }
     outputSource->sendAudioPacketSize2Java(ret);
-    MediaData *outBuffer = inPacket;
     int inputResult = -1;
     if (decodeFlag) {
         inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_AUDIO);
+        MediaData *outBuffer;
         ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
         if (ret >= 0) {
             mRemoteAudioQueueSize = outputSource->sendAudio2Java(outBuffer);
         }
     } else {
-        mRemoteAudioQueueSize = outputSource->sendAudio2Java(outBuffer);
+        mRemoteAudioQueueSize = outputSource->sendAudio2Java(inPacket);
     }
     if (inputResult != TRY_AGAIN) {
         free(inPacket->data);
@@ -186,24 +185,23 @@ void GPlayerImp::processVideoBuffer(int64_t time) {
     }
     MediaData *inPacket;
     int ret = inputSource->readVideoBuffer(&inPacket);
-    if (ret == AV_SOURCE_RELEASE) {
-        onRelease();
-        return;
-    }
     if (ret <= 0) {
+        if (ret == AV_SOURCE_RELEASE) {
+            onRelease();
+        }
         return;
     }
     outputSource->sendVideoPacketSize2Java(ret);
-    MediaData *outBuffer = inPacket;
     int inputResult = -1;
     if (decodeFlag) {
         inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_VIDEO);
+        MediaData *outBuffer;
         ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
         if (ret >= 0) {
             mRemoteVideoQueueSize = outputSource->sendVideo2Java(outBuffer);
         }
     } else {
-        mRemoteVideoQueueSize = outputSource->sendVideo2Java(outBuffer);
+        mRemoteVideoQueueSize = outputSource->sendVideo2Java(inPacket);
     }
     if (inputResult != TRY_AGAIN) {
         free(inPacket->data);
@@ -228,16 +226,20 @@ void GPlayerImp::onVideoThreadEnd() {
 }
 
 void GPlayerImp::onAllThreadEnd() {
+    releaseMutex.lock();
     if (isVideoThreadRunning || isAudioThreadRunning) {
+        releaseMutex.unlock();
         return;
     }
     if (isRelease) {
+        releaseMutex.unlock();
         return;
     }
     isRelease = true;
+    releaseMutex.unlock();
     LOGI(TAG, "onAllThreadEnd");
-    outputSource->callJavaReleaseMethod();
     if (decodeFlag) {
         codeInterceptor->onRelease();
     }
+    outputSource->callJavaReleaseMethod();
 }

@@ -49,7 +49,7 @@ abstract class BaseAudioRender implements AudioRender {
 
     @Override
     public void init(MediaInfo mediaInfo) {
-        LogUtils.i(TAG, "CoreFlow : init");
+        LogUtils.i(TAG, "init");
         mSampleRate = mediaInfo.getInteger(MediaInfo.KEY_AUDIO_SAMPLE_RATE, 8000);
         mSampleFormat = mediaInfo.getSampleFormat();
         openAudioTrack(mediaInfo);
@@ -62,7 +62,7 @@ abstract class BaseAudioRender implements AudioRender {
 
     @Override
     public void release() {
-        LogUtils.i(TAG, "CoreFlow : release");
+        LogUtils.i(TAG, "release");
         stopAudioTrack();
     }
 

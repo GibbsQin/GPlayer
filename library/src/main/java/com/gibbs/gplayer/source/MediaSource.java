@@ -22,6 +22,17 @@ public interface MediaSource extends MediaSourceControl {
      */
     int FLAG_MEDIA_CODEC = 0x00000002;
 
+    /**
+     * Init : has received media head info
+     * Ready : playing
+     * Release : media source was release
+     * Error : error occur
+     * Error : media source connection is disconnecting
+     */
+    enum SourceState {
+        Init, Ready, Release, Error, Finishing
+    }
+
     void onInit(int channelId, MediaInfo header);
 
     int onReceiveAudio(MediaData inPacket);
@@ -31,6 +42,8 @@ public interface MediaSource extends MediaSourceControl {
     void onRelease();
 
     void onError(int errorCode, String errorMessage);
+
+    void onFinishing();
 
     void setOnSourceStateChangedListener(OnSourceStateChangedListener listener);
 
