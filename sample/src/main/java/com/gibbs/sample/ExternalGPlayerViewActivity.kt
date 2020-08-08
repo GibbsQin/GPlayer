@@ -15,7 +15,7 @@ import com.gibbs.gplayer.source.OnSourceSizeChangedListener
 import com.gibbs.gplayer.source.OnTimeChangedListener
 import com.gibbs.gplayer.utils.LogUtils
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.android.synthetic.main.activity_gplayer.*
+import kotlinx.android.synthetic.main.activity_external_gplayer.*
 import kotlinx.android.synthetic.main.layout_gplayer_top.*
 
 class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
@@ -24,7 +24,7 @@ class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        setContentView(R.layout.activity_gplayer)
+        setContentView(R.layout.activity_external_gplayer)
         val decodeSource = intent.getBooleanExtra("decodeSource", false)
         val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
         val url = intent.getStringExtra("url")

@@ -11,10 +11,9 @@ android {
         applicationId "com.gibbs.gplayer"
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 6
-        versionName "1.1"
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles 'consumer-rules.pro'
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a'

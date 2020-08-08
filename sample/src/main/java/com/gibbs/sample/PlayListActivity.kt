@@ -18,7 +18,6 @@ import com.bumptech.glide.request.RequestOptions
 import com.gibbs.gplayer.utils.LogUtils
 import com.gibbs.sample.widget.DividerItemDecoration
 import kotlinx.android.synthetic.main.activity_play_list.*
-import java.util.*
 
 class PlayListActivity : BaseActivity() {
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
@@ -31,9 +30,7 @@ class PlayListActivity : BaseActivity() {
         mAdapter = object : RecyclerView.Adapter<VideoItemHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoItemHolder {
                 val view = LayoutInflater.from(this@PlayListActivity).inflate(R.layout.item_video, parent, false)
-                val holder: VideoItemHolder
-                holder = VideoItemHolder(view)
-                return holder
+                return VideoItemHolder(view)
             }
 
             override fun onBindViewHolder(holder: VideoItemHolder, position: Int) {
@@ -44,16 +41,15 @@ class PlayListActivity : BaseActivity() {
                         .load(videoItem.videoPath)
                         .into(holder.videoThumbnail)
                 holder.rootView.setOnClickListener {
-                    val style: String? = SettingsSPUtils.instance.getGPlayerStyle(this@PlayListActivity)
-                    var intent = Intent(this@PlayListActivity, GPlayerActivity::class.java)
-                    when (style) {
-                        "simple" -> intent = Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
-                        "external" -> intent = Intent(this@PlayListActivity, ExternalGPlayerViewActivity::class.java)
-                        "open_gl" -> intent = Intent(this@PlayListActivity, GPlayerActivity::class.java)
+                    val intent : Intent = when (SettingsSPUtils.instance.getGPlayerStyle(this@PlayListActivity)) {
+                        "simple" -> Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
+                        "external" -> Intent(this@PlayListActivity, ExternalGPlayerViewActivity::class.java)
+                        "open_gl" -> Intent(this@PlayListActivity, GLSurfaceGPlayerActivity::class.java)
+                        else -> Intent(this@PlayListActivity, GLSurfaceGPlayerActivity::class.java)
                     }
                     intent.putExtra("url", videoItem.videoPath)
-                    val decodeSource: Boolean = SettingsSPUtils.instance.isDecodeSource(this@PlayListActivity)
-                    val useMediaCodec: Boolean = SettingsSPUtils.instance.isMediaCodec(this@PlayListActivity)
+                    val decodeSource = SettingsSPUtils.instance.isDecodeSource(this@PlayListActivity)
+                    val useMediaCodec = SettingsSPUtils.instance.isMediaCodec(this@PlayListActivity)
                     intent.putExtra("decodeSource", decodeSource)
                     intent.putExtra("useMediaCodec", useMediaCodec)
                     LogUtils.i("PlayListActivity", "decodeSource = $decodeSource, useMediaCodec = $useMediaCodec")
@@ -89,8 +85,8 @@ class PlayListActivity : BaseActivity() {
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        LogUtils.i("PlayListActivity", "onRequestPermissionsResult requestCode = " + requestCode + ", permissions = " +
-                permissions.contentToString() + ", grantResults = " + grantResults.contentToString())
+        LogUtils.i("PlayListActivity", "onRequestPermissionsResult requestCode = $requestCode," +
+                " permissions = ${permissions.contentToString()}, grantResults = ${grantResults.contentToString()}")
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_READ_EXTERNAL_STORAGE_PERMISSION) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {

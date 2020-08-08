@@ -4,13 +4,13 @@ import android.os.Bundle
 import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.source.MediaSource
 import com.gibbs.gplayer.utils.LogUtils
-import kotlinx.android.synthetic.main.activity_gl_surface.*
+import kotlinx.android.synthetic.main.activity_glsurface_gplayer.*
 
-class GPlayerActivity : BaseActivity() {
+class GLSurfaceGPlayerActivity : BaseActivity() {
     private var mGPlayer: GPlayer? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_gl_surface)
+        setContentView(R.layout.activity_glsurface_gplayer)
         val decodeSource = intent.getBooleanExtra("decodeSource", false)
         val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
         val url = intent.getStringExtra("url")

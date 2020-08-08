@@ -10,6 +10,12 @@ import com.gibbs.sample.R
 import kotlinx.android.synthetic.main.layout_playback_seek.view.*
 
 class PlaybackSeekView : LinearLayout {
+    var progress: Int
+        get() = sb_playback_seek.progress
+        set(progressMs) {
+            sb_playback_seek.progress = progressMs
+        }
+
     constructor(context: Context) : super(context) {
         initView(context, null)
     }
@@ -44,12 +50,6 @@ class PlaybackSeekView : LinearLayout {
         tv_duration.text = second2Text(durationMs)
     }
 
-    var progress: Int
-        get() = sb_playback_seek.progress
-        set(progressMs) {
-            sb_playback_seek.progress = progressMs
-        }
-
     private fun second2Text(secondMs: Int): String {
         val second = secondMs / 1000
         val m = second / 60
@@ -57,11 +57,5 @@ class PlaybackSeekView : LinearLayout {
         return String.format("%s:%s", formatTime(m), formatTime(s))
     }
 
-    private fun formatTime(time: Int): String {
-        return if (time < 10) {
-            "0$time"
-        } else {
-            time.toString()
-        }
-    }
+    private fun formatTime(time: Int): String = if (time < 10) "0$time" else time.toString()
 }

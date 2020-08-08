@@ -36,7 +36,7 @@
             android:name=".SimpleGPlayerViewActivity"
             android:label="SimpleGPlayer" />
         <activity
-            android:name=".GPlayerActivity"
+            android:name=".GLSurfaceGPlayerActivity"
             android:label="GLSurface" />
         <activity
             android:name=".IntroduceActivity"
