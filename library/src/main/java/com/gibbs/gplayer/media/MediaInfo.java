@@ -67,6 +67,9 @@ public class MediaInfo {
     //每帧数据里的采样数
     public static final String KEY_AUDIO_SAMPLE_NUM_PERFRAME = "audio-sample-num-perframe";
 
+    // 视频旋转角度
+    public static final String KEY_VIDEO_ROTATE = "video-rotate";
+
 
     //数据字典
     public Map<String, Object> map;

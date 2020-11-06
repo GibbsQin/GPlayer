@@ -7,6 +7,7 @@ import com.gibbs.gplayer.utils.LogUtils;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 /**
  * step to use:<br/>
@@ -21,6 +22,7 @@ class YUVGLProgram {
 
     private final float[] squareVertices = {-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f}; // fullscreen
     private final float[] coordVertices = {0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f};// whole-texture
+    private final float[] coordVertices90 = {1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};// whole-texture, 旋转90度
     private final float[] mvpMatrix = {1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
@@ -307,6 +309,17 @@ class YUVGLProgram {
         for (int i = 0, size = mvpMatrix.length; i < size; i++) {
             mvpMatrix[i] = mvp[i];
         }
+    }
+
+    void updateRotate(int rotate) {
+        float[] coordV = rotate == 90 ? coordVertices90 : coordVertices;
+        if (_coord_buffer == null) {
+            _coord_buffer = ByteBuffer.allocateDirect(coordV.length * 4);
+            _coord_buffer.order(ByteOrder.nativeOrder());
+        }
+        _coord_buffer.asFloatBuffer().put(coordV);
+        _coord_buffer.position(0);
+        LogUtils.i(TAG, "CoreFlow : updateRotate " + rotate + ", " + Arrays.toString(coordV));
     }
 
     private void checkGlError(String op) {

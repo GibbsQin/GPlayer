@@ -91,6 +91,7 @@ public class YUVGLRenderer extends BaseVideoRender {
         int width = header.getInteger(MediaInfo.KEY_WIDTH, 0);
         int height = header.getInteger(MediaInfo.KEY_HEIGHT, 0);
         updateVideoSize(width, height);
+        mYUVGLProgram.updateRotate(header.getInteger(MediaInfo.KEY_VIDEO_ROTATE, 0));
         mInitialized = true;
         LogUtils.d(TAG, "onInit");
     }

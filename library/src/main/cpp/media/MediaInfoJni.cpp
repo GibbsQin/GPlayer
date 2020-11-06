@@ -62,8 +62,11 @@
 // 音频采样率
 #define KEY_AUDIO_SAMPLE_RATE "audio-sample-rate"
 
-//每帧数据里的采样数
+// 每帧数据里的采样数
 #define KEY_AUDIO_SAMPLE_NUM_PERFRAME "audio-sample-num-perframe"
+
+// 视频旋转角度
+#define KEY_VIDEO_ROTATE "video-rotate"
 
 jclass MediaInfoJni::mediaInfoClass = nullptr;
 jmethodID MediaInfoJni::mediaInfoConstructor = nullptr;
@@ -150,6 +153,10 @@ jobject MediaInfoJni::createJobject(MediaInfo *avdata) {
     JniHelper::callVoidMethod(avheaderObj, setIntegerMethodId, key, avdata->sampleNumPerFrame);
     env->DeleteLocalRef(key);
 
+    key = JniHelper::newStringUTF(env, KEY_VIDEO_ROTATE);
+    JniHelper::callVoidMethod(avheaderObj, setIntegerMethodId, key, avdata->videoRotate);
+    env->DeleteLocalRef(key);
+
     return avheaderObj;
 }
 
@@ -198,5 +205,9 @@ void MediaInfoJni::copyToAVHeader(jobject jobj, MediaInfo *mediaInfo) {
 
     key = JniHelper::newStringUTF(env, KEY_AUDIO_SAMPLE_NUM_PERFRAME);
     mediaInfo->sampleNumPerFrame = JniHelper::callIntMethod(jobj, getIntegerMethodId, key, 0);
+    env->DeleteLocalRef(key);
+
+    key = JniHelper::newStringUTF(env, KEY_VIDEO_ROTATE);
+    mediaInfo->videoRotate = JniHelper::callIntMethod(jobj, getIntegerMethodId, key, 0);
     env->DeleteLocalRef(key);
 }

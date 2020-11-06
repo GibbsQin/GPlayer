@@ -42,6 +42,7 @@ typedef struct MediaInfo {
     int videoWidth;         // 视频像素宽度
     int videoHeight;        // 视频像素高度
     int videoFrameRate;     // 视频帧率
+    int videoRotate;        // 视频旋转角度
 } MediaInfo;
 
 typedef struct MediaCallback {

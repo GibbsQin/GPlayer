@@ -141,7 +141,15 @@ void start_demuxing() {
             header->videoWidth = in_codecpar->width;
             header->videoHeight = in_codecpar->height;
             header->videoFrameRate = (in_stream->r_frame_rate.num / in_stream->r_frame_rate.den + 0.5f);
-            logD("r_frame_rate = %d|%d", in_stream->r_frame_rate.num, in_stream->r_frame_rate.den);
+            AVDictionaryEntry *tag = NULL;
+            tag = av_dict_get(in_stream->metadata, "rotate", tag, AV_DICT_IGNORE_SUFFIX);
+            if (tag != NULL) {
+                header->videoRotate = atoi(tag->value);
+            } else {
+                header->videoRotate = 0;
+            }
+            logD("r_frame_rate = %d|%d, rotate = %d", in_stream->r_frame_rate.num,
+                    in_stream->r_frame_rate.den, header->videoRotate);
 #ifdef ENABLE_BIT_STREAM_FILTER
             if (in_codecpar->codec_id == AV_CODEC_ID_HEVC) {
                 video_abs_filter = av_bsf_get_by_name("hevc_mp4toannexb");
@@ -193,10 +201,6 @@ void start_demuxing() {
 
     logD("audio_stream_index = %d, video_stream_index = %d, stream_mapping_size = %d\n",
          audio_stream_index, video_stream_index, stream_mapping_size);
-
-//    AVDictionaryEntry *tag = NULL;
-//    while ((tag = av_dict_get(ifmt_ctx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
-//        logD("metadata %s=%s\n", tag->key, tag->value);
 
     logD("av_init\n");
     readingFrame = true;
