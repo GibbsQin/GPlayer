@@ -5,7 +5,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
-import androidx.constraintlayout.widget.ConstraintLayout
 import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.GPlayer.PlayStateChangedListener
 import com.gibbs.gplayer.media.MediaInfo
@@ -60,10 +59,6 @@ class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
         if (state == GPlayer.State.PLAYING) {
             runOnUiThread {
                 val mediaInfo = gl_surface_view.mediaInfo
-                val width = mediaInfo.getInteger(MediaInfo.KEY_WIDTH, 16)
-                val height = mediaInfo.getInteger(MediaInfo.KEY_HEIGHT, 9)
-                val params = gl_surface_view.layoutParams as ConstraintLayout.LayoutParams
-                params.dimensionRatio = String.format("H, %s:%s", width, height)
                 val durationMs = mediaInfo.getInteger(MediaInfo.KEY_DURATION, 24)
                 video_playback_seek_view.setDuration(durationMs)
             }

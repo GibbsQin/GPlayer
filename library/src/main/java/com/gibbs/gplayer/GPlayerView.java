@@ -2,6 +2,7 @@ package com.gibbs.gplayer;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.ViewGroup;
 
 import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.render.GestureGLSurfaceView;
@@ -11,8 +12,11 @@ import com.gibbs.gplayer.source.OnSourceSizeChangedListener;
 import com.gibbs.gplayer.source.OnTimeChangedListener;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayerView extends GestureGLSurfaceView implements MediaSourceControl {
+public class GPlayerView extends GestureGLSurfaceView implements MediaSourceControl, GPlayer.PlayStateChangedListener {
+    private static final String TAG = "GPlayerView";
+
     private GPlayer mGPlayer;
+    private GPlayer.PlayStateChangedListener mPlayStateChangedListener;
 
     public GPlayerView(Context context) {
         super(context);
@@ -22,12 +26,13 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
         super(context, attrs);
     }
 
-    private void initGPlayer(int type, String url, boolean decode, boolean mediaCodec) {
+    private void initGPlayer(int type, String url, boolean decode, final boolean mediaCodec) {
         if (mGPlayer != null) {
             LogUtils.e("GPlayerView", "initGPlayer has been init");
             return;
         }
         mGPlayer = new GPlayer(this, type, url, decode, mediaCodec);
+        mGPlayer.setPlayStateChangedListener(this);
     }
 
     /**
@@ -50,7 +55,7 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
      * @param listener callback
      */
     public void setPlayStateChangedListener(GPlayer.PlayStateChangedListener listener) {
-        mGPlayer.setPlayStateChangedListener(listener);
+        mPlayStateChangedListener = listener;
     }
 
     /**
@@ -144,5 +149,35 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
     @Override
     public void setOnErrorListener(OnErrorListener listener) {
         mGPlayer.setOnErrorListener(listener);
+    }
+
+    @Override
+    public void onPlayStateChanged(GPlayer.State state) {
+        if (mPlayStateChangedListener != null) {
+            mPlayStateChangedListener.onPlayStateChanged(state);
+        }
+        if (state == GPlayer.State.PLAYING) {
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    resize();
+                }
+            });
+        }
+    }
+
+    private void resize() {
+        MediaInfo mediaInfo = getMediaInfo();
+        int width = mediaInfo.getInteger(MediaInfo.KEY_WIDTH, 16);
+        int height = mediaInfo.getInteger(MediaInfo.KEY_HEIGHT, 9);
+        int rotate = mediaInfo.getInteger(MediaInfo.KEY_VIDEO_ROTATE, 0);
+        ViewGroup.LayoutParams params = getLayoutParams();
+        params.width = getWidth();
+        if (rotate == 90 || rotate == 270) {
+            params.height = (int) (params.width * (width * 1.0f / height));
+        } else {
+            params.height = (int) (params.width * (height * 1.0f / width));
+        }
+        LogUtils.i(TAG, "resize to " + params.width + " " + params.height);
     }
 }
