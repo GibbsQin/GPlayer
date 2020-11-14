@@ -5,11 +5,25 @@
 #include <stdbool.h>
 #include <media/Media.h>
 #include <sys/types.h>
+#include <codec/ffmpeg/libavformat/avformat.h>
+#include "remuxing.h"
 
-typedef int (*is_demuxing)();
+static void av_format_init_audio(AVFormatContext *ifmt_ctx, AVStream *stream);
+
+static void av_format_init_video(AVFormatContext *ifmt_ctx, AVStream *stream);
+
+static void av_format_extradata_audio(AVFormatContext *ifmt_ctx, uint8_t *pInputBuf, uint32_t dwInputDataSize);
+
+static void av_format_extradata_video(AVFormatContext *ifmt_ctx, uint8_t *pInputBuf, uint32_t dwInputDataSize);
+
+static uint32_t av_format_feed_audio(AVFormatContext *ifmt_ctx, AVPacket *packet);
+
+static uint32_t av_format_feed_video(AVFormatContext *ifmt_ctx, AVPacket *packet);
+
+static void av_format_destroy(AVFormatContext *ifmt_ctx);
 
 void start_demuxing(const char *in_filename, const struct MediaCallback media_callback,
-                    const int channelId, is_demuxing loop);
+                    const int channelId, ffmpeg_loop_wait loop);
 
 int create_stream_channel(const char *in_filename, const struct MediaCallback callback);
 
@@ -23,6 +37,8 @@ int stream_loop();
 
 static char *web_url;
 static struct MediaCallback stream_media_callback;
+static struct FfmpegCallback ffmpeg_callback;
+static MediaInfo *mediaInfo;
 static pthread_t stream_thread_id;
 static int streamChannelId;
 static int streamingFrame = false;

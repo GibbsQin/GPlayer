@@ -6,12 +6,21 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <file_utils.h>
+#include "stream_protocol.h"
 
-#define MAX_AV_TIME 2
+static void av_format_init_audio_file(AVFormatContext *ifmt_ctx, AVStream *stream);
 
-#define SLEEP_TIME_US 100000
+static void av_format_init_video_file(AVFormatContext *ifmt_ctx, AVStream *stream);
 
-#define MAX_FRAME_RATE 24
+static void av_format_extradata_audio_file(AVFormatContext *ifmt_ctx, uint8_t *pInputBuf, uint32_t dwInputDataSize);
+
+static void av_format_extradata_video_file(AVFormatContext *ifmt_ctx, uint8_t *pInputBuf, uint32_t dwInputDataSize);
+
+static uint32_t av_format_feed_audio_file(AVFormatContext *ifmt_ctx, AVPacket *packet);
+
+static uint32_t av_format_feed_video_file(AVFormatContext *ifmt_ctx, AVPacket *packet);
+
+static void av_format_destroy_file(AVFormatContext *ifmt_ctx);
 
 int create_file_channel(const char *in_filename, const struct MediaCallback callback);
 
@@ -21,16 +30,14 @@ void start_file_demuxing();
 
 bool is_file_demuxing(int channelId);
 
-void logD(const char *fmt, ...);
+int file_loop();
 
-static char *in_filename;
+static char *file_url;
 static struct MediaCallback file_media_callback;
+static struct FfmpegCallback ffmpeg_callback;
 static pthread_t file_thread_id;
 static int fileChannelId;
 static bool readingFrame;
 static long sleepTimeUs = 0;
-
-static unsigned char mADTSHeader[ADTS_HEADER_SIZE]={0};
-static ADTSContext mADTSContext;
 
 #endif //GPLAYER_FILE_PROTOCOL_H

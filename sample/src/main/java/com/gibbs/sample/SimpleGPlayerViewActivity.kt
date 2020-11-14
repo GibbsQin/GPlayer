@@ -1,7 +1,6 @@
 package com.gibbs.sample
 
 import android.os.Bundle
-import com.gibbs.gplayer.source.MediaSource
 import kotlinx.android.synthetic.main.activity_simple_gplayer.*
 
 class SimpleGPlayerViewActivity : BaseActivity() {
@@ -9,7 +8,7 @@ class SimpleGPlayerViewActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_simple_gplayer)
         val url = intent.getStringExtra("url")
-        gl_surface_view.setUrl(url)
+        gl_surface_view.url = url
     }
 
     override fun onResume() {

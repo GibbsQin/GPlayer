@@ -1,10 +1,6 @@
-//
-// Created by Gibbs on 2020/7/28.
-//
-
 #include "file_utils.h"
 
-int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize) {
+int create_adts_context(ADTSContext *adts, unsigned char *pbuf, int bufsize) {
     int aot;
     int aotext;
     int samfreindex;
@@ -41,17 +37,17 @@ int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize) {
     return 0;
 }
 
-int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, uint32_t size) {
+int insert_adts_head(ADTSContext *adts, unsigned char *buf, uint32_t size) {
     unsigned char byte;
     buf[0] = 0xff;
     buf[1] = 0xf1;
     byte = 0;
-    byte |= (acfg->objecttype & 0x03) << 6;
-    byte |= (acfg->sample_rate_index & 0x0f) << 2;
-    byte |= (acfg->channel_conf & 0x07) >> 2;
+    byte |= (adts->objecttype & 0x03) << 6;
+    byte |= (adts->sample_rate_index & 0x0f) << 2;
+    byte |= (adts->channel_conf & 0x07) >> 2;
     buf[2] = byte;
     byte = 0;
-    byte |= (acfg->channel_conf & 0x07) << 6;
+    byte |= (adts->channel_conf & 0x07) << 6;
     byte |= (ADTS_HEADER_SIZE + size) >> 11;
     buf[3] = byte;
     byte = 0;

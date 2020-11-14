@@ -2,7 +2,6 @@ package com.gibbs.sample
 
 import android.os.Bundle
 import com.gibbs.gplayer.GPlayer
-import com.gibbs.gplayer.source.MediaSource
 import com.gibbs.gplayer.utils.LogUtils
 import kotlinx.android.synthetic.main.activity_glsurface_gplayer.*
 

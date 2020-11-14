@@ -176,6 +176,7 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
         } else {
             params.height = (int) (params.width * (height * 1.0f / width));
         }
+        setLayoutParams(params);
         LogUtils.i(TAG, "resize to " + params.width + " " + params.height);
     }
 }

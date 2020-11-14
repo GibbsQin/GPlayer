@@ -1,7 +1,3 @@
-//
-// Created by Gibbs on 2020/7/28.
-//
-
 #ifndef GPLAYER_FILE_UTILS_H
 #define GPLAYER_FILE_UTILS_H
 
@@ -18,8 +14,8 @@ typedef struct {
     uint32_t channel_conf;
 } ADTSContext;
 
-int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize);
+int create_adts_context(ADTSContext *adts, unsigned char *pbuf, int bufsize);
 
-int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, uint32_t size);
+int insert_adts_head(ADTSContext *adts, unsigned char *buf, uint32_t size);
 
 #endif //GPLAYER_FILE_UTILS_H

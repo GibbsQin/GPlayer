@@ -90,7 +90,9 @@ class PlayListActivity : BaseActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_READ_EXTERNAL_STORAGE_PERMISSION) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mVideoList.addAll(getVideoFromSDCard(this@PlayListActivity))
+                val videoList = getVideoFromSDCard(this@PlayListActivity)
+                getVideoFromWeb(videoList)
+                mVideoList.addAll(videoList)
             }
             mAdapter!!.notifyDataSetChanged()
         }
@@ -101,7 +103,7 @@ class PlayListActivity : BaseActivity() {
     /**
      * 从SD卡得到所有的视频地址
      */
-    private fun getVideoFromSDCard(context: Context): List<VideoItem> {
+    private fun getVideoFromSDCard(context: Context): MutableList<VideoItem> {
         val list: MutableList<VideoItem> = ArrayList()
         val projection = arrayOf(MediaStore.Video.Media.DATA, MediaStore.Video.Media.DISPLAY_NAME)
         val cursor = context.contentResolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
@@ -115,6 +117,10 @@ class PlayListActivity : BaseActivity() {
         }
         cursor.close()
         return list
+    }
+
+    private fun getVideoFromWeb(list : MutableList<VideoItem>) {
+        list.add(VideoItem("http://ivi.bupt.edu.cn/hls/cctv3hd.m3u8", "cctv3"))
     }
 
     private class VideoItem internal constructor(val videoPath: String, val name: String)
