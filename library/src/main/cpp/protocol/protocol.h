@@ -7,7 +7,6 @@
 
 #define PROTOCOL_TYPE_STREAM 0
 #define PROTOCOL_TYPE_FILE 1
-#define PROTOCOL_TYPE_P2P 2
 
 int create_channel(const int type, const char *url, const struct MediaCallback callback);
 

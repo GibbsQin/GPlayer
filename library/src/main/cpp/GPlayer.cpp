@@ -61,13 +61,6 @@ Java_com_gibbs_gplayer_GPlayer_nInitAVSource(JNIEnv *env, jobject clazz, jobject
             LOGI("GPlayerC", "nInitFileSource channelId = %d, url = %s", channelId, fileUrl.c_str());
             pGPlayerImp->getInputSource()->setChannelId(channelId);
             GPlayerMgr::sGPlayerMap[channelId] = pGPlayerImp;
-        } else if (url.find("p2p:") == 0) {
-            string deviceId = url.substr(4, url.length());
-            channelId = create_channel(PROTOCOL_TYPE_P2P, deviceId.c_str(), sMediaCallback);
-            LOGI("GPlayerC", "nInitP2PSource channelId = %d, url = %s", channelId,
-                 deviceId.c_str());
-            pGPlayerImp->getInputSource()->setChannelId(channelId);
-            GPlayerMgr::sGPlayerMap[channelId] = pGPlayerImp;
         } else {
             channelId = create_channel(PROTOCOL_TYPE_STREAM, url.c_str(), sMediaCallback);
             LOGI("GPlayerC", "nInitStreamSource channelId = %d, url = %s", channelId, url.c_str());
@@ -97,8 +90,6 @@ Java_com_gibbs_gplayer_GPlayer_nFinish(JNIEnv *env, jobject thiz, jlong channel_
     if (!url.empty()) {
         if (url.find("file:") == 0) {
             type = PROTOCOL_TYPE_FILE;
-        } else if (url.find("p2p:") == 0) {
-            type = PROTOCOL_TYPE_P2P;
         } else {
             type = PROTOCOL_TYPE_STREAM;
         }

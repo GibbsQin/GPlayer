@@ -2,6 +2,7 @@
 #define GPLAYER_STREAM_PROTOCOL_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <media/Media.h>
 #include <sys/types.h>
 

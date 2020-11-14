@@ -25,7 +25,7 @@ class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
         setContentView(R.layout.activity_external_gplayer)
         val decodeSource = intent.getBooleanExtra("decodeSource", false)
         val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
-        val url = "http://ivi.bupt.edu.cn/hls/cctv3hd.m3u8"
+        val url = intent.getStringExtra("url")
         LogUtils.i(TAG, "url = $url")
         LogUtils.i(TAG, "decodeSource = $decodeSource, useMediaCodec = $useMediaCodec")
         gl_surface_view.setUrl(url, decodeSource, useMediaCodec)
