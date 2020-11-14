@@ -9,7 +9,7 @@ class SimpleGPlayerViewActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_simple_gplayer)
         val url = intent.getStringExtra("url")
-        gl_surface_view.setUrl(MediaSource.SOURCE_TYPE_FILE, url)
+        gl_surface_view.setUrl(url)
     }
 
     override fun onResume() {

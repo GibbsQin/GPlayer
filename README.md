@@ -36,7 +36,7 @@ GPlayer是一款基于 ffmpeg、mediacodec 的Android视频播放器框架。同
     private GPlayerView mVideoView;
     mVideoView = findViewById(R.id.gl_surface_view);
     //url为本地文件路径
-    mVideoView.setUrl(MediaSource.SOURCE_TYPE_FILE, url);
+    mVideoView.setUrl(url);
 
     @Override
     protected void onResume() {

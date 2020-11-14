@@ -16,7 +16,7 @@ class GLSurfaceGPlayerActivity : BaseActivity() {
         val url = intent.getStringExtra("url")
         LogUtils.i(TAG, "url = $url")
         LogUtils.i(TAG, "decodeSource = $decodeSource, useMediaCodec = $useMediaCodec")
-        mGPlayer = GPlayer(gl_surface_view, MediaSource.SOURCE_TYPE_FILE, url, decodeSource, useMediaCodec)
+        mGPlayer = GPlayer(gl_surface_view, url, decodeSource, useMediaCodec)
     }
 
     override fun onResume() {

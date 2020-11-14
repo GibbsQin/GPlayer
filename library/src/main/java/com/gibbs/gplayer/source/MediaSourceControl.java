@@ -21,10 +21,9 @@ public interface MediaSourceControl {
     /**
      * set the file url(only support local file now)
      *
-     * @param type refer to com.gibbs.gplayer.source.MediaSource#SOURCE_TYPE_
      * @param url  file path
      */
-    void setUrl(int type, String url);
+    void setUrl(String url);
 
     /**
      * set media source flag

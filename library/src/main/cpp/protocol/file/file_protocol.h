@@ -17,9 +17,9 @@ int create_file_channel(const char *in_filename, const struct MediaCallback call
 
 int destroy_file_channel(int channelId);
 
-void start_demuxing();
+void start_file_demuxing();
 
-bool is_demuxing(int channelId);
+bool is_file_demuxing(int channelId);
 
 void logD(const char *fmt, ...);
 

@@ -41,7 +41,7 @@ int create_file_channel(const char *url, const struct MediaCallback callback) {
     memcpy(in_filename, url, strlen(url));
     in_filename[strlen(url)] = '\0';
     file_media_callback = callback;
-    int ret = pthread_create(&file_thread_id, NULL, (void *) start_demuxing, NULL);
+    int ret = pthread_create(&file_thread_id, NULL, (void *) start_file_demuxing, NULL);
     if (ret != 0) {
         logD("create thread error");
         return -1;
@@ -61,7 +61,7 @@ int destroy_file_channel(int channelId) {
     return 0;
 }
 
-void start_demuxing() {
+void start_file_demuxing() {
     AVFormatContext *ifmt_ctx = NULL;
 #ifdef ENABLE_BIT_STREAM_FILTER
     AVBSFContext *audio_abs_ctx = NULL;
@@ -358,7 +358,7 @@ void start_demuxing() {
     logD("ending");
 }
 
-bool is_demuxing(int channelId) {
+bool is_file_demuxing(int channelId) {
     return readingFrame;
 }
 

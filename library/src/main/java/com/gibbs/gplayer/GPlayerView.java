@@ -26,12 +26,12 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
         super(context, attrs);
     }
 
-    private void initGPlayer(int type, String url, boolean decode, final boolean mediaCodec) {
+    private void initGPlayer(String url, boolean decode, final boolean mediaCodec) {
         if (mGPlayer != null) {
             LogUtils.e("GPlayerView", "initGPlayer has been init");
             return;
         }
-        mGPlayer = new GPlayer(this, type, url, decode, mediaCodec);
+        mGPlayer = new GPlayer(this, url, decode, mediaCodec);
         mGPlayer.setPlayStateChangedListener(this);
     }
 
@@ -81,24 +81,22 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
     /**
      * set the file url(only support local file now)
      *
-     * @param type refer to com.gibbs.gplayer.source.MediaSource#SOURCE_TYPE_
      * @param url  file path
      */
     @Override
-    public void setUrl(int type, String url) {
-        setUrl(type, url, true, false);
+    public void setUrl(String url) {
+        setUrl(url, true, false);
     }
 
     /**
      * set the file url(only support local file now)
      *
-     * @param type       refer to com.gibbs.gplayer.source.MediaSource#SOURCE_TYPE_
      * @param url        file path
      * @param decode     true : decode the packet on jni layer，false : decode the packet on java layer
      * @param mediaCodec true : use mediacodec，false : use ffmpeg. valid when decode is true
      */
-    public void setUrl(int type, String url, boolean decode, boolean mediaCodec) {
-        initGPlayer(type, url, decode, mediaCodec);
+    public void setUrl(String url, boolean decode, boolean mediaCodec) {
+        initGPlayer(url, decode, mediaCodec);
     }
 
     /**

@@ -5,15 +5,6 @@ import com.gibbs.gplayer.media.MediaInfo;
 
 public interface MediaSource extends MediaSourceControl {
     /**
-     * the url is a local file
-     */
-    int SOURCE_TYPE_FILE = 0;
-    /**
-     * not support now
-     */
-    int SOURCE_TYPE_P2P = 1;
-
-    /**
      * decode the media data on jni layer
      */
     int FLAG_DECODE = 0x00000001;

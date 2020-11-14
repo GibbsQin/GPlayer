@@ -57,16 +57,16 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
 
     private PlayStateChangedListener mPlayStateChangedListener;
 
-    public GPlayer(GLSurfaceView view, int type, String url) {
-        this(view, new MediaSourceImp(type, url));
+    public GPlayer(GLSurfaceView view, String url) {
+        this(view, new MediaSourceImp(url));
     }
 
-    public GPlayer(GLSurfaceView view, int type, String url, boolean decode) {
-        this(view, new MediaSourceImp(type, url, decode));
+    public GPlayer(GLSurfaceView view, String url, boolean decode) {
+        this(view, new MediaSourceImp(url, decode));
     }
 
-    public GPlayer(GLSurfaceView view, int type, String url, boolean decode, boolean mediaCodec) {
-        this(view, new MediaSourceImp(type, url, decode, mediaCodec));
+    public GPlayer(GLSurfaceView view, String url, boolean decode, boolean mediaCodec) {
+        this(view, new MediaSourceImp(url, decode, mediaCodec));
     }
 
     public GPlayer(GLSurfaceView view, MediaSource source) {
@@ -231,12 +231,11 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     /**
      * set the file url(only support local file now)
      *
-     * @param type refer to com.gibbs.gplayer.source.MediaSource#SOURCE_TYPE_
      * @param url  file path
      */
     @Override
-    public void setUrl(int type, String url) {
-        mMediaSource.setUrl(type, url);
+    public void setUrl(String url) {
+        mMediaSource.setUrl(url);
     }
 
     /**

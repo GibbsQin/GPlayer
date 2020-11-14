@@ -34,7 +34,7 @@ GPlayer is a video player frame base on ffmpeg and mediacodec。GPlayer support 
     private GPlayerView mVideoView;
     mVideoView = findViewById(R.id.gl_surface_view);
     //url is local file path
-    mVideoView.setUrl(MediaSource.SOURCE_TYPE_FILE, url);
+    mVideoView.setUrl(url);
 
     @Override
     protected void onResume() {

@@ -8,7 +8,6 @@ import androidx.appcompat.app.AlertDialog
 import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.GPlayer.PlayStateChangedListener
 import com.gibbs.gplayer.media.MediaInfo
-import com.gibbs.gplayer.source.MediaSource
 import com.gibbs.gplayer.source.OnErrorListener
 import com.gibbs.gplayer.source.OnSourceSizeChangedListener
 import com.gibbs.gplayer.source.OnTimeChangedListener
@@ -26,10 +25,10 @@ class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
         setContentView(R.layout.activity_external_gplayer)
         val decodeSource = intent.getBooleanExtra("decodeSource", false)
         val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
-        val url = intent.getStringExtra("url")
+        val url = "http://ivi.bupt.edu.cn/hls/cctv3hd.m3u8"
         LogUtils.i(TAG, "url = $url")
         LogUtils.i(TAG, "decodeSource = $decodeSource, useMediaCodec = $useMediaCodec")
-        gl_surface_view.setUrl(MediaSource.SOURCE_TYPE_FILE, url, decodeSource, useMediaCodec)
+        gl_surface_view.setUrl(url, decodeSource, useMediaCodec)
         gl_surface_view.setPlayStateChangedListener(this)
         gl_surface_view.setOnErrorListener(this)
         gl_surface_view.setOnTimeChangedListener(this)

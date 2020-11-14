@@ -31,16 +31,16 @@ public class MediaSourceImp implements MediaSource {
     private OnTimeChangedListener mOnTimeChangedListener;
     private OnErrorListener mOnErrorListener;
 
-    public MediaSourceImp(int type, String url) {
-        this(type, url, false);
+    public MediaSourceImp(String url) {
+        this(url, false);
     }
 
-    public MediaSourceImp(int type, String url, boolean decode) {
-        this(type, url, decode, false);
+    public MediaSourceImp(String url, boolean decode) {
+        this(url, decode, false);
     }
 
-    public MediaSourceImp(int type, String url, boolean decode, boolean mediaCodec) {
-        setUrl(type, url);
+    public MediaSourceImp(String url, boolean decode, boolean mediaCodec) {
+        setUrl(url);
         mAudioQueue = new LinkedList<>();
         mVideoQueue = new LinkedList<>();
         if (decode) {
@@ -124,16 +124,16 @@ public class MediaSourceImp implements MediaSource {
     }
 
     @Override
-    public void setUrl(int type, String url) {
+    public void setUrl(String url) {
         if (TextUtils.isEmpty(url)) {
             return;
         }
-        if (SOURCE_TYPE_FILE == type) {
+        if (url.startsWith("/")) {
             mUrl = "file:" + url;
-        } else if (SOURCE_TYPE_P2P == type) {
+        } else if (url.startsWith("p2p")) {
             mUrl = "p2p:" + url;
         } else {
-            mUrl = "file:" + url;
+            mUrl = url;
         }
     }
 
