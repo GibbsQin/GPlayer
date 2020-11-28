@@ -1,7 +1,6 @@
 
 #include "base/Log.h"
 #include "FfmpegAudioDecoder.h"
-#include "CodecUtils.h"
 
 FfmpegAudioDecoder::FfmpegAudioDecoder() {
     isInitSuccess = false;
@@ -25,7 +24,7 @@ void FfmpegAudioDecoder::init(MediaInfo *header) {
 
     av_register_all();
 
-    auto codecId = (AVCodecID) CodecUtils::codecType2CodecId(mHeader->audioType);
+    auto codecId = (AVCodecID) mHeader->audioType;
     mCodec = avcodec_find_decoder(codecId);
 #ifdef ENABLE_PARSER
     mParser = av_parser_init(mCodec->id);
@@ -33,9 +32,9 @@ void FfmpegAudioDecoder::init(MediaInfo *header) {
     mCodecContext = avcodec_alloc_context3(mCodec);
     mCodecContext->codec_type = AVMEDIA_TYPE_AUDIO;
     //采样数据的宽度
-    mCodecContext->sample_fmt = CodecUtils::getSampleFormat(header);
+    mCodecContext->sample_fmt = static_cast<AVSampleFormat>(header->audioBitWidth);
     mCodecContext->sample_rate = mHeader->audioSampleRate; //音频采样率
-    mCodecContext->channel_layout = CodecUtils::getChannelLayout(header);//声道格式（单声道、双声道）
+    mCodecContext->channel_layout = header->audioMode;//声道格式（单声道、双声道）
     mCodecContext->channels = av_get_channel_layout_nb_channels(mCodecContext->channel_layout);//声道数
     mCodecContext->frame_size = mHeader->sampleNumPerFrame;
 

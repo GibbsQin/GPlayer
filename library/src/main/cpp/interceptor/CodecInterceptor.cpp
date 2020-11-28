@@ -4,11 +4,13 @@
 
 #include <codec/FfmpegAudioDecoder.h>
 #include <codec/FfmpegVideoDecoder.h>
-#include <codec/CodecUtils.h>
 #include <base/Log.h>
 #include <codec/MediaCodecVideoDecoder.h>
 #include <codec/MediaCodecAudioDecoder.h>
 #include "CodecInterceptor.h"
+extern "C" {
+#include <protocol/avformat_def.h>
+}
 
 #define TAG "CodecInterceptor"
 
@@ -30,8 +32,8 @@ int CodecInterceptor::onInit(MediaInfo *header) {
         return -1;
     }
     hasInit = true;
-    bool ffmpegSupport = CodecUtils::codecType2CodecId(header->audioType) > 0;
-    bool mediaCodecSupport = (!CodecUtils::codecType2Mime(header->audioType).empty());
+    bool ffmpegSupport = header->audioType > CODEC_START && header->audioType < CODEC_END;
+    bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->audioType);
     LOGI(TAG, "CoreFlow : onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
             ffmpegSupport, mediaCodecSupport, mediaCodecFirst);
     isAudioAvailable = (ffmpegSupport || mediaCodecSupport);
@@ -70,8 +72,8 @@ int CodecInterceptor::onInit(MediaInfo *header) {
         audioOutFrame.size2 = 0;
     }
 
-    ffmpegSupport = CodecUtils::codecType2CodecId(header->videoType) > 0;
-    mediaCodecSupport = (!CodecUtils::codecType2Mime(header->videoType).empty());
+    ffmpegSupport = header->videoType > CODEC_START && header->videoType < CODEC_END;
+    mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->videoType);
     isVideoAvailable = (ffmpegSupport || mediaCodecSupport);
     if (isVideoAvailable) {
         if (mediaCodecFirst) {

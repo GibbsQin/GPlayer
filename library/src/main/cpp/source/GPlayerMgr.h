@@ -18,6 +18,8 @@ public:
 
     static void av_destroy(int channelId);
 
+    static void av_error(int channelId, int code, char *msg);
+
     static std::map<long, GPlayerImp *> sGPlayerMap;
 
     static void deleteFromMap(int channelId);

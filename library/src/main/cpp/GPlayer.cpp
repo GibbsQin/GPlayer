@@ -9,6 +9,7 @@
 
 extern "C" {
 #include <protocol/protocol.h>
+#include <protocol/avformat_def.h>
 #include <codec/ffmpeg/libavcodec/jni.h>
 }
 
@@ -31,6 +32,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     sMediaCallback.av_feed_audio = &(GPlayerMgr::av_feed_audio);
     sMediaCallback.av_feed_video = &(GPlayerMgr::av_feed_video);
     sMediaCallback.av_destroy = &(GPlayerMgr::av_destroy);
+    sMediaCallback.av_error = &(GPlayerMgr::av_error);
 
     MediaInfoJni::initClassAndMethodJni();
     MediaDataJni::initClassAndMethodJni();
@@ -106,4 +108,11 @@ JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_GPlayer_nDestroyAVSource(JNIEnv *env, jobject clazz, jlong channel_id) {
     LOGI("GPlayerC", "nDestroyAVSource channelId : %lld", channel_id);
     GPlayerMgr::deleteFromMap(channel_id);
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_gibbs_gplayer_codec_C_getMimeByCodecType(JNIEnv *env, jclass clazz, jint type) {
+    char* mime = getMimeByCodeID((CODEC_TYPE) type);
+    return JniHelper::newStringUTF(env, mime);
 }

@@ -56,6 +56,13 @@ void GPlayerMgr::av_destroy(int channelId) {
     }
 }
 
+void GPlayerMgr::av_error(int channelId, int code, char *msg) {
+    GPlayerImp *targetPlayer = sGPlayerMap[channelId];
+    if (targetPlayer != nullptr && targetPlayer->getOutputSource()) {
+        targetPlayer->getOutputSource()->callJavaErrorMethod(code, msg);
+    }
+}
+
 void GPlayerMgr::deleteFromMap(int channelId) {
     GPlayerImp *targetPlayer = GPlayerMgr::sGPlayerMap[channelId];
     delete targetPlayer;

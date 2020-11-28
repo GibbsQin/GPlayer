@@ -1,6 +1,5 @@
 #include <base/Log.h>
 #include "FfmpegVideoDecoder.h"
-#include "CodecUtils.h"
 
 FfmpegVideoDecoder::FfmpegVideoDecoder() {
     isInitSuccess = false;
@@ -18,7 +17,7 @@ void FfmpegVideoDecoder::init(MediaInfo *header) {
 
     av_register_all();
 
-    auto codecId = (AVCodecID) CodecUtils::codecType2CodecId(mHeader.videoType);
+    auto codecId = (AVCodecID) mHeader.videoType;
     mCodec = avcodec_find_decoder(codecId);
     mCodecContext = avcodec_alloc_context3(mCodec);
     mCodecContext->codec_id = codecId;

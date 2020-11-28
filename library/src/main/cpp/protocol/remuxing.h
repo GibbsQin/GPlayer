@@ -14,9 +14,7 @@
 typedef int (*ffmpeg_loop_wait)();
 
 typedef struct FfmpegCallback {
-    void (*av_format_init_audio)(AVFormatContext *ifmt_ctx, AVStream *stream);
-
-    void (*av_format_init_video)(AVFormatContext *ifmt_ctx, AVStream *stream);
+    void (*av_format_init)(AVFormatContext *ifmt_ctx, AVStream *audioStream, AVStream *videoStream);
 
     void (*av_format_extradata_audio)(AVFormatContext *ifmt_ctx, uint8_t *pInputBuf, uint32_t dwInputDataSize);
 
@@ -27,6 +25,8 @@ typedef struct FfmpegCallback {
     uint32_t (*av_format_feed_video)(AVFormatContext *ifmt_ctx, AVPacket *packet);
 
     void (*av_format_destroy)(AVFormatContext *ifmt_ctx);
+
+    void (*av_format_error)(int code, char *msg);
 } FfmpegCallback;
 
 uint64_t ffmpeg_pts2timeus(AVRational time_base, int64_t pts);

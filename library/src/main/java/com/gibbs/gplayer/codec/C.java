@@ -40,25 +40,16 @@ public class C {
         8000,  0x0B
     };
 
+    native static String getMimeByCodecType(int codecType);
 
     static String getVideoMineByAVHeader(MediaInfo mediaInfo) throws IllegalArgumentException {
         int videoType = mediaInfo.getInteger(MediaInfo.KEY_VIDEO_TYPE, MediaConstant.VIDEO_TYPE_H264);
-        if (videoType == MediaConstant.VIDEO_TYPE_H264) {
-            return MediaFormat.MIMETYPE_VIDEO_AVC;
-        } else if (videoType == MediaConstant.VIDEO_TYPE_H265) {
-            return MediaFormat.MIMETYPE_VIDEO_HEVC;
-        }
-
-        return null;
+        return getMimeByCodecType(videoType);
     }
 
     static String getAudioMineByAVHeader(MediaInfo mediaInfo) throws IllegalArgumentException {
         int audioType = mediaInfo.getInteger(MediaInfo.KEY_AUDIO_TYPE, MediaConstant.AUDIO_TYPE_AAC);
-        if (audioType == MediaConstant.AUDIO_TYPE_AAC) {
-            return MediaFormat.MIMETYPE_AUDIO_AAC;
-        }
-
-        return null;
+        return getMimeByCodecType(audioType);
     }
 
     static int getAudioProfile(MediaInfo mediaInfo) {

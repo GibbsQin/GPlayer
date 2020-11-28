@@ -1,0 +1,16 @@
+{
+  "links": [
+    {
+      "name": "cctv1_2",
+      "url": "http://cctvalih5ca.v.myalicdn.com/live/cctv1_2/index.m3u8"
+    },
+    {
+      "name": "cctv5_2",
+      "url": "http://cctvalih5ca.v.myalicdn.com/live/cctv5_2/index.m3u8"
+    },
+    {
+      "name": "cctv13_2",
+      "url": "http://cctvalih5ca.v.myalicdn.com/live/cctv13_2/index.m3u8"
+    }
+  ]
+}

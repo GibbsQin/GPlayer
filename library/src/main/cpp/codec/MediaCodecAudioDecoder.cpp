@@ -5,7 +5,9 @@
 #include <cstring>
 #include <base/Log.h>
 #include "MediaCodecAudioDecoder.h"
-#include "CodecUtils.h"
+extern "C" {
+#include <protocol/avformat_def.h>
+}
 
 #define TAG "MediaCodecAudioDecoder"
 
@@ -14,7 +16,7 @@ MediaCodecAudioDecoder::MediaCodecAudioDecoder() = default;
 MediaCodecAudioDecoder::~MediaCodecAudioDecoder() = default;
 
 void MediaCodecAudioDecoder::init(MediaInfo *header) {
-    const char *mine = CodecUtils::codecType2Mime(header->audioType).c_str();
+    const char *mine = getMimeByCodeID((CODEC_TYPE)header->audioType);
     mAMediaCodec = AMediaCodec_createDecoderByType(mine);
     if (!mAMediaCodec) {
         LOGE(TAG, "can not find mine %s", mine);

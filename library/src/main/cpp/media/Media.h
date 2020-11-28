@@ -55,20 +55,8 @@ typedef struct MediaCallback {
                               uint64_t u64InputPTS, uint64_t u64InputDTS, int flag);
 
     void (*av_destroy)(int channelId);
+
+    void (*av_error)(int channelId, int code, char *msg);
 } MediaCallback;
-
-enum {
-    VIDEO_TYPE_NONE = 0,
-    VIDEO_TYPE_H264 = 1,
-    VIDEO_TYPE_MPEG4 = 2,
-    VIDEO_TYPE_JPEG = 3,
-    VIDEO_TYPE_MJPEG = 4,
-    VIDEO_TYPE_H265 = 5,
-};
-
-enum {
-    AUDIO_TYPE_AAC = 101,
-};
-
 
 #endif //GPLAYER_MEDIA_H

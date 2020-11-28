@@ -23,6 +23,7 @@ include_directories(
         protocol/file
         protocol/stream
         protocol/p2p
+        render
         sender
         source
         utils)
@@ -38,6 +39,7 @@ aux_source_directory(protocol SRC_PROTOCOL)
 aux_source_directory(protocol/file SRC_PROTOCOL_FILE)
 aux_source_directory(protocol/stream SRC_PROTOCOL_STREAM)
 aux_source_directory(protocol/p2p SRC_PROTOCOL_P2P)
+aux_source_directory(render SRC_RENDER)
 aux_source_directory(source SRC_SOURCE)
 aux_source_directory(utils SRC_UTILS)
 
@@ -51,6 +53,7 @@ list(APPEND SRC
         ${SRC_PROTOCOL_FILE}
         ${SRC_PROTOCOL_STREAM}
         ${SRC_PROTOCOL_P2P}
+        ${SRC_RENDER}
         ${SRC_SOURCE}
         ${SRC_UTILS})
 
@@ -120,5 +123,7 @@ target_link_libraries( # Specifies the target library.
         # included in the NDK.
         -landroid
         -lmediandk
+        -lEGL
+        -lGLESv2
         -lm -lz
         ${log-lib})

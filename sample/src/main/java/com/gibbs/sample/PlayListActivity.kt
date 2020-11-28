@@ -16,8 +16,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.gibbs.gplayer.utils.LogUtils
+import com.gibbs.sample.model.PlayList
 import com.gibbs.sample.widget.DividerItemDecoration
 import kotlinx.android.synthetic.main.activity_play_list.*
+import java.io.InputStream
+
 
 class PlayListActivity : BaseActivity() {
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
@@ -120,7 +123,21 @@ class PlayListActivity : BaseActivity() {
     }
 
     private fun getVideoFromWeb(list : MutableList<VideoItem>) {
-        list.add(VideoItem("http://ivi.bupt.edu.cn/hls/cctv3hd.m3u8", "cctv3"))
+        val playList = PlayList.createPlayList(getJsonString())
+        for (link in playList.links) {
+            list.add(VideoItem(link.url, link.name))
+        }
+    }
+
+    private fun getJsonString(): String? {
+        val fileName = "playlist.json"
+
+        val inputStream: InputStream = assets.open(fileName)
+        val size: Int = inputStream.available()
+        val buffer = ByteArray(size)
+        inputStream.read(buffer)
+        inputStream.close()
+        return String(buffer)
     }
 
     private class VideoItem internal constructor(val videoPath: String, val name: String)

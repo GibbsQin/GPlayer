@@ -4,7 +4,9 @@
 
 #include <base/Log.h>
 #include "MediaCodecVideoEncoder.h"
-#include "CodecUtils.h"
+extern "C" {
+#include <protocol/avformat_def.h>
+}
 
 #define TAG "MediaCodecVideoEncoder"
 
@@ -13,7 +15,7 @@ MediaCodecVideoEncoder::MediaCodecVideoEncoder() = default;
 MediaCodecVideoEncoder::~MediaCodecVideoEncoder() = default;
 
 void MediaCodecVideoEncoder::init(MediaInfo *header) {
-    const char *mine = CodecUtils::codecType2Mime(header->videoType).c_str();
+    const char *mine = getMimeByCodeID((CODEC_TYPE) header->videoType);
     mAMediaCodec = AMediaCodec_createDecoderByType(mine);
     if (!mAMediaCodec) {
         LOGE(TAG, "can not find mine %s", mine);

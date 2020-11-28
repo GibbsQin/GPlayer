@@ -3,7 +3,12 @@
 #include <unistd.h>
 #include "remuxing.h"
 
-static void ffmpegLog(const char *fmt, ...) {
+#define LOG_LEVEL ANDROID_LOG_INFO
+
+static void ffmpegLog(int level, const char *fmt, ...) {
+    if (level < LOG_LEVEL) {
+        return;
+    }
     char log_info[2040];
     char *buf = log_info;
     int ret, len = sizeof(log_info);
@@ -19,7 +24,7 @@ static void ffmpegLog(const char *fmt, ...) {
 
     va_end(arglist);
 
-    __android_log_print(2, "ffmpeg_remuxing", log_info, "");
+    __android_log_print(level, "ffmpeg_remuxing", log_info, "");
 }
 
 uint64_t ffmpeg_pts2timeus(AVRational time_base, int64_t pts) {
@@ -29,7 +34,7 @@ uint64_t ffmpeg_pts2timeus(AVRational time_base, int64_t pts) {
 static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, const char *tag) {
     AVRational *time_base = &fmt_ctx->streams[pkt->stream_index]->time_base;
 
-    ffmpegLog("%s, flags:%d, pts:%lld pts_time:%s dts_time:%s size:%d\n",
+    ffmpegLog(ANDROID_LOG_DEBUG, "%s, flags:%d, pts:%lld pts_time:%s dts_time:%s size:%d\n",
               tag, pkt->flags,
               ffmpeg_pts2timeus(*time_base, pkt->pts),
               av_ts2timestr(pkt->pts, time_base), av_ts2timestr(pkt->dts, time_base),
@@ -50,12 +55,12 @@ void ffmpeg_demuxing(const char *in_filename, const struct FfmpegCallback media_
 
     av_register_all();
     if ((ret = avformat_open_input(&ifmt_ctx, in_filename, 0, 0)) < 0) {
-        ffmpegLog("Could not open input file '%s'", in_filename);
+        ffmpegLog(ANDROID_LOG_ERROR, "Could not open input file '%s'", in_filename);
         goto end;
     }
 
     if ((ret = avformat_find_stream_info(ifmt_ctx, 0)) < 0) {
-        ffmpegLog("Failed to retrieve input stream information");
+        ffmpegLog(ANDROID_LOG_ERROR, "Failed to retrieve input stream information");
         goto end;
     }
 
@@ -65,6 +70,7 @@ void ffmpeg_demuxing(const char *in_filename, const struct FfmpegCallback media_
     stream_mapping = av_mallocz_array((size_t) stream_mapping_size, sizeof(*stream_mapping));
     if (!stream_mapping) {
         ret = AVERROR(ENOMEM);
+        ffmpegLog(ANDROID_LOG_ERROR, "invalid stream_mapping");
         goto end;
     }
 
@@ -76,34 +82,34 @@ void ffmpeg_demuxing(const char *in_filename, const struct FfmpegCallback media_
             in_codecpar->codec_type != AVMEDIA_TYPE_VIDEO &&
             in_codecpar->codec_type != AVMEDIA_TYPE_SUBTITLE) {
             stream_mapping[i] = -1;
-            ffmpegLog("Error: invalid media type %d", in_codecpar->codec_type);
+            ffmpegLog(ANDROID_LOG_ERROR, "Error: invalid media type %d", in_codecpar->codec_type);
             continue;
         }
         if (in_codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             if (video_stream_index == -1) {
                 video_stream_index = i;
             } else {
-                ffmpegLog("Error: video_stream_index has been set to %d", video_stream_index);
+                ffmpegLog(ANDROID_LOG_ERROR, "Error: video_stream_index has been set to %d", video_stream_index);
             }
-            media_callback.av_format_init_video(ifmt_ctx, in_stream);
         } else if (in_codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (audio_stream_index == -1) {
                 audio_stream_index = i;
             } else {
-                ffmpegLog("Error: audio_stream_index has been set to %d", audio_stream_index);
+                ffmpegLog(ANDROID_LOG_ERROR, "Error: audio_stream_index has been set to %d", audio_stream_index);
             }
-            media_callback.av_format_init_audio(ifmt_ctx, in_stream);
         } else if (in_codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE) {
-            ffmpegLog("Error: subtitle media type");
+            ffmpegLog(ANDROID_LOG_ERROR, "Error: subtitle media type");
         }
 
         stream_mapping[i] = stream_index++;
     }
 
-    ffmpegLog("audio_stream_index = %d, video_stream_index = %d, stream_mapping_size = %d\n",
+    ffmpegLog(ANDROID_LOG_INFO, "audio_stream_index = %d, video_stream_index = %d, stream_mapping_size = %d\n",
          audio_stream_index, video_stream_index, stream_mapping_size);
 
-    ffmpegLog("av_init\n");
+    media_callback.av_format_init(ifmt_ctx, ifmt_ctx->streams[audio_stream_index],
+            ifmt_ctx->streams[video_stream_index]);
+    ffmpegLog(ANDROID_LOG_INFO, "av_init\n");
     //send SPS PPS
     media_callback.av_format_extradata_video(ifmt_ctx, ifmt_ctx->streams[video_stream_index]->codecpar->extradata,
                                  (uint32_t) ifmt_ctx->streams[video_stream_index]->codecpar->extradata_size);
@@ -137,13 +143,13 @@ void ffmpeg_demuxing(const char *in_filename, const struct FfmpegCallback media_
         }
 
         if (ret < 0) {
-            ffmpegLog("Error muxing packet\n");
+            ffmpegLog(ANDROID_LOG_ERROR, "Error muxing packet\n");
             break;
         }
         av_packet_unref(&pkt);
     }
 
-    ffmpegLog("av_destroy\n");
+    ffmpegLog(ANDROID_LOG_INFO, "av_destroy\n");
     media_callback.av_format_destroy(ifmt_ctx);
 
     end:
@@ -153,15 +159,16 @@ void ffmpeg_demuxing(const char *in_filename, const struct FfmpegCallback media_
     av_freep(&stream_mapping);
 
     if (ret < 0 && ret != AVERROR_EOF) {
-        ffmpegLog("Error occurred: %s\n", av_err2str(ret));
+        ffmpegLog(ANDROID_LOG_ERROR, "Error occurred: %s\n", av_err2str(ret));
+        media_callback.av_format_error(ret, av_err2str(ret));
     }
-    ffmpegLog("ending");
+    ffmpegLog(ANDROID_LOG_INFO, "ending");
 }
 
 void ffmpeg_extra_audio_info(AVFormatContext *ifmt_ctx, AVStream *stream, MediaInfo *mediaInfo) {
     mediaInfo->duration = (int) (ifmt_ctx->duration / 1000);
     AVCodecParameters *in_codecpar = stream->codecpar;
-    mediaInfo->audioType = 101;
+    mediaInfo->audioType = in_codecpar->codec_id;
     mediaInfo->audioProfile = in_codecpar->profile;
     mediaInfo->audioMode = (int) in_codecpar->channel_layout;
     mediaInfo->audioChannels = in_codecpar->channels;
@@ -172,17 +179,7 @@ void ffmpeg_extra_audio_info(AVFormatContext *ifmt_ctx, AVStream *stream, MediaI
 
 void ffmpeg_extra_video_info(AVFormatContext *ifmt_ctx, AVStream *stream, MediaInfo *mediaInfo) {
     AVCodecParameters *in_codecpar = stream->codecpar;
-    if (in_codecpar->codec_id == AV_CODEC_ID_H264) {
-        mediaInfo->videoType = 1;
-    } else if (in_codecpar->codec_id == AV_CODEC_ID_MPEG4) {
-        mediaInfo->videoType = 2;
-    } else if (in_codecpar->codec_id == AV_CODEC_ID_JPEG2000) {
-        mediaInfo->videoType = 3;
-    } else if (in_codecpar->codec_id == AV_CODEC_ID_MJPEG) {
-        mediaInfo->videoType = 4;
-    } else if (in_codecpar->codec_id == AV_CODEC_ID_HEVC) {
-        mediaInfo->videoType = 5;
-    }
+    mediaInfo->videoType = in_codecpar->codec_id;
     mediaInfo->videoWidth = in_codecpar->width;
     mediaInfo->videoHeight = in_codecpar->height;
     mediaInfo->videoFrameRate = (stream->r_frame_rate.num / stream->r_frame_rate.den + 0.5f);
