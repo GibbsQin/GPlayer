@@ -45,18 +45,4 @@ typedef struct MediaInfo {
     int videoRotate;        // 视频旋转角度
 } MediaInfo;
 
-typedef struct MediaCallback {
-    void (*av_init)(int channelId, MediaInfo *header);
-
-    uint32_t (*av_feed_audio)(int channelId, uint8_t *pInputBuf, uint32_t dwInputDataSize,
-                              uint64_t u64InputPTS, uint64_t u64InputDTS, int flag);
-
-    uint32_t (*av_feed_video)(int channelId, uint8_t *pInputBuf, uint32_t dwInputDataSize,
-                              uint64_t u64InputPTS, uint64_t u64InputDTS, int flag);
-
-    void (*av_destroy)(int channelId);
-
-    void (*av_error)(int channelId, int code, char *msg);
-} MediaCallback;
-
 #endif //GPLAYER_MEDIA_H
