@@ -96,7 +96,8 @@ public abstract class MediaCodecBaseDecoder implements BaseDecoder {
     @Override
     public boolean feedInputBuffer() throws IllegalStateException {
         MediaData mediaData = readSource();
-        if (mediaData == null) {
+        if (mediaData == null || mediaData.isEmpty()) {
+            removeFirstPackage();
             return false;
         }
         int inputBufferId = codec.dequeueInputBuffer(DEFAULT_TIMEOUT_US);

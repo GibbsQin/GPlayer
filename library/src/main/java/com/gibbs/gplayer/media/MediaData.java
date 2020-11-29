@@ -77,4 +77,8 @@ public class MediaData implements Comparable<MediaData> {
         }
         return 0;
     }
+
+    public boolean isEmpty() {
+        return size <= 0 && size1 <= 0 && size2 <= 0;
+    }
 }

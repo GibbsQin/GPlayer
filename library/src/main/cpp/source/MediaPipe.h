@@ -1,12 +1,12 @@
-#ifndef GPLAYER_GPLAYERMGR_H
-#define GPLAYER_GPLAYERMGR_H
+#ifndef GPLAYER_MEDIAPIPE_H
+#define GPLAYER_MEDIAPIPE_H
 
 #include <stdint.h>
 #include "MediaSource.h"
-#include "GPlayerImp.h"
+#include "GPlayerEngine.h"
 #include <map>
 
-class GPlayerMgr {
+class MediaPipe {
 public:
     static void av_init(int channelId, MediaInfo *header);
 
@@ -20,9 +20,9 @@ public:
 
     static void av_error(int channelId, int code, char *msg);
 
-    static std::map<long, GPlayerImp *> sGPlayerMap;
+    static std::map<long, GPlayerEngine *> sGPlayerMap;
 
     static void deleteFromMap(int channelId);
 };
 
-#endif //GPLAYER_GPLAYERMGR_H
+#endif //GPLAYER_MEDIAPIPE_H

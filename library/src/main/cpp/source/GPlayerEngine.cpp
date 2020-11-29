@@ -2,8 +2,8 @@
 // Created by Gibbs on 2020/7/16.
 //
 
-#include "GPlayerImp.h"
-#include "GPlayerMgr.h"
+#include "GPlayerEngine.h"
+#include "MediaPipe.h"
 #include <media/Media.h>
 #include <base/Log.h>
 #include <cstdint>
@@ -12,7 +12,7 @@
 
 #define TAG "GPlayerImpC"
 
-GPlayerImp::GPlayerImp(jobject jAVSource) {
+GPlayerEngine::GPlayerEngine(jobject jAVSource) {
     outputSource = new MediaSourceJni(jAVSource);
     inputSource = new MediaSource();
     audioEngineThread = nullptr;
@@ -32,7 +32,7 @@ GPlayerImp::GPlayerImp(jobject jAVSource) {
     }
 }
 
-GPlayerImp::~GPlayerImp() {
+GPlayerEngine::~GPlayerEngine() {
     if (audioEngineThread) {
         delete audioEngineThread;
         audioEngineThread = nullptr;
@@ -58,26 +58,26 @@ GPlayerImp::~GPlayerImp() {
     LOGE(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
-void GPlayerImp::onInit() {
+void GPlayerEngine::onInit() {
     LOGI(TAG, "CoreFlow : onInit");
     audioEngineThread = new CommonThread(ENGINE_FREQUENCY);
-    audioEngineThread->setStartFunc(std::bind(&GPlayerImp::onAudioThreadStart, this));
+    audioEngineThread->setStartFunc(std::bind(&GPlayerEngine::onAudioThreadStart, this));
     audioEngineThread->setUpdateFunc(
-            std::bind(&GPlayerImp::processAudioBuffer, this, std::placeholders::_1));
-    audioEngineThread->setEndFunc(std::bind(&GPlayerImp::onAudioThreadEnd, this));
+            std::bind(&GPlayerEngine::processAudioBuffer, this, std::placeholders::_1));
+    audioEngineThread->setEndFunc(std::bind(&GPlayerEngine::onAudioThreadEnd, this));
     audioEngineThread->start();
 
     videoEngineThread = new CommonThread(ENGINE_FREQUENCY);
-    videoEngineThread->setStartFunc(std::bind(&GPlayerImp::onVideoThreadStart, this));
+    videoEngineThread->setStartFunc(std::bind(&GPlayerEngine::onVideoThreadStart, this));
     videoEngineThread->setUpdateFunc(
-            std::bind(&GPlayerImp::processVideoBuffer, this, std::placeholders::_1));
-    videoEngineThread->setEndFunc(std::bind(&GPlayerImp::onVideoThreadEnd, this));
+            std::bind(&GPlayerEngine::processVideoBuffer, this, std::placeholders::_1));
+    videoEngineThread->setEndFunc(std::bind(&GPlayerEngine::onVideoThreadEnd, this));
     videoEngineThread->start();
 
     isRelease = false;
 }
 
-void GPlayerImp::onRelease() {
+void GPlayerEngine::onRelease() {
     releaseMutex.lock();
     if (isStopping) {
         return;
@@ -93,15 +93,15 @@ void GPlayerImp::onRelease() {
     releaseMutex.unlock();
 }
 
-MediaSource *GPlayerImp::getInputSource() const {
+MediaSource *GPlayerEngine::getInputSource() const {
     return inputSource;
 }
 
-MediaSourceJni *GPlayerImp::getOutputSource() const {
+MediaSourceJni *GPlayerEngine::getOutputSource() const {
     return outputSource;
 }
 
-void GPlayerImp::onAudioThreadStart() {
+void GPlayerEngine::onAudioThreadStart() {
     LOGI(TAG, "startAudioDecode");
     isAudioThreadRunning = true;
     MediaInfo *header = inputSource->getAVHeader();
@@ -117,7 +117,7 @@ void GPlayerImp::onAudioThreadStart() {
     }
 }
 
-void GPlayerImp::processAudioBuffer(int64_t time) {
+void GPlayerEngine::processAudioBuffer(int64_t time) {
     if (isRelease || isStopping) {
         return;
     }
@@ -157,13 +157,13 @@ void GPlayerImp::processAudioBuffer(int64_t time) {
     }
 }
 
-void GPlayerImp::onAudioThreadEnd() {
+void GPlayerEngine::onAudioThreadEnd() {
     LOGI(TAG, "stopAudioDecode");
     isAudioThreadRunning = false;
     onAllThreadEnd();
 }
 
-void GPlayerImp::onVideoThreadStart() {
+void GPlayerEngine::onVideoThreadStart() {
     MediaInfo *header = inputSource->getAVHeader();
     LOGI(TAG, "startVideoDecode");
     isVideoThreadRunning = true;
@@ -179,7 +179,7 @@ void GPlayerImp::onVideoThreadStart() {
     }
 }
 
-void GPlayerImp::processVideoBuffer(int64_t time) {
+void GPlayerEngine::processVideoBuffer(int64_t time) {
     if (isRelease || isStopping) {
         return;
     }
@@ -219,13 +219,13 @@ void GPlayerImp::processVideoBuffer(int64_t time) {
     }
 }
 
-void GPlayerImp::onVideoThreadEnd() {
+void GPlayerEngine::onVideoThreadEnd() {
     LOGI(TAG, "stopVideoDecode");
     isVideoThreadRunning = false;
     onAllThreadEnd();
 }
 
-void GPlayerImp::onAllThreadEnd() {
+void GPlayerEngine::onAllThreadEnd() {
     releaseMutex.lock();
     if (isVideoThreadRunning || isAudioThreadRunning) {
         releaseMutex.unlock();

@@ -2,8 +2,8 @@
 // Created by Gibbs on 2020/7/16.
 //
 
-#ifndef GPLAYER_GPLAYERIMP_H
-#define GPLAYER_GPLAYERIMP_H
+#ifndef GPLAYER_GPLAYERENGINE_H
+#define GPLAYER_GPLAYERENGINE_H
 
 #include <interceptor/CodecInterceptor.h>
 #include "CommonThread.h"
@@ -14,12 +14,12 @@
 #define MAX_OUTPUT_FRAME_SIZE 5
 #define SLEEP_TIME_GAP 2000
 
-class GPlayerImp {
+class GPlayerEngine {
 
 public:
-    GPlayerImp(jobject jAVSource);
+    GPlayerEngine(jobject jAVSource);
 
-    ~GPlayerImp();
+    ~GPlayerEngine();
 
     void onInit();
 
@@ -78,4 +78,4 @@ private:
 };
 
 
-#endif //GPLAYER_GPLAYERIMP_H
+#endif //GPLAYER_GPLAYERENGINE_H

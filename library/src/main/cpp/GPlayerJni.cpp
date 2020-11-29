@@ -3,7 +3,7 @@
 #include <source/MediaSource.h>
 #include <utils/JniHelper.h>
 #include <base/Log.h>
-#include <source/GPlayerMgr.h>
+#include <source/MediaPipe.h>
 #include <media/MediaInfoJni.h>
 #include <media/MediaDataJni.h>
 
@@ -28,11 +28,11 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         return result;
     }
 
-    sMediaCallback.av_init = &(GPlayerMgr::av_init);
-    sMediaCallback.av_feed_audio = &(GPlayerMgr::av_feed_audio);
-    sMediaCallback.av_feed_video = &(GPlayerMgr::av_feed_video);
-    sMediaCallback.av_destroy = &(GPlayerMgr::av_destroy);
-    sMediaCallback.av_error = &(GPlayerMgr::av_error);
+    sMediaCallback.av_init = &(MediaPipe::av_init);
+    sMediaCallback.av_feed_audio = &(MediaPipe::av_feed_audio);
+    sMediaCallback.av_feed_video = &(MediaPipe::av_feed_video);
+    sMediaCallback.av_destroy = &(MediaPipe::av_destroy);
+    sMediaCallback.av_error = &(MediaPipe::av_error);
 
     MediaInfoJni::initClassAndMethodJni();
     MediaDataJni::initClassAndMethodJni();
@@ -52,7 +52,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 extern "C"
 JNIEXPORT jlong JNICALL
 Java_com_gibbs_gplayer_GPlayer_nInitAVSource(JNIEnv *env, jobject clazz, jobject jAVSource) {
-    auto pGPlayerImp = new GPlayerImp(jAVSource);
+    auto pGPlayerImp = new GPlayerEngine(jAVSource);
     std::string url = pGPlayerImp->getOutputSource()->getUrl();
     LOGI("GPlayerC", "Java_com_gibbs_gplayer_GPlayer_nInitAVSource url = %s", url.c_str());
     int channelId = -1;
@@ -62,12 +62,12 @@ Java_com_gibbs_gplayer_GPlayer_nInitAVSource(JNIEnv *env, jobject clazz, jobject
             channelId = create_channel(PROTOCOL_TYPE_FILE, fileUrl.c_str(), sMediaCallback);
             LOGI("GPlayerC", "nInitFileSource channelId = %d, url = %s", channelId, fileUrl.c_str());
             pGPlayerImp->getInputSource()->setChannelId(channelId);
-            GPlayerMgr::sGPlayerMap[channelId] = pGPlayerImp;
+            MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
         } else {
             channelId = create_channel(PROTOCOL_TYPE_STREAM, url.c_str(), sMediaCallback);
             LOGI("GPlayerC", "nInitStreamSource channelId = %d, url = %s", channelId, url.c_str());
             pGPlayerImp->getInputSource()->setChannelId(channelId);
-            GPlayerMgr::sGPlayerMap[channelId] = pGPlayerImp;
+            MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
         }
     }
     return channelId;
@@ -78,7 +78,7 @@ JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_GPlayer_nFinish(JNIEnv *env, jobject thiz, jlong channel_id,
                                        jboolean force) {
     LOGI("GPlayerC", "nFinish channelId : %lld, force : %d", channel_id, force);
-    auto targetPlayer = GPlayerMgr::sGPlayerMap[channel_id];
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return;
     }
@@ -107,7 +107,7 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_GPlayer_nDestroyAVSource(JNIEnv *env, jobject clazz, jlong channel_id) {
     LOGI("GPlayerC", "nDestroyAVSource channelId : %lld", channel_id);
-    GPlayerMgr::deleteFromMap(channel_id);
+    MediaPipe::deleteFromMap(channel_id);
 }
 
 extern "C"
