@@ -9,10 +9,11 @@
 #include "CommonThread.h"
 #include "MediaSource.h"
 #include "MediaSourceJni.h"
+#include "DemuxingThread.h"
 
-#define ENGINE_FREQUENCY 80
-#define MAX_OUTPUT_FRAME_SIZE 5
-#define SLEEP_TIME_GAP 2000
+extern "C" {
+#include <protocol/remuxing.h>
+}
 
 class GPlayerEngine {
 
@@ -29,31 +30,24 @@ public:
 
     MediaSourceJni *getOutputSource() const;
 
-public:
+    bool isDemuxingLoop() { return isDemuxing; }
 
-    void snapShot(const std::string &filePath);
-
-    void startRecordVideo(const std::string &filePath);
-
-    void stopRecordVideo();
-
-    void onVideoRecordResult(int code, const string &path);
+    void stopDemuxingLoop();
 
 private:
+    void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, MediaInfo *mediaInfo);
 
     void onAudioThreadStart();
 
-    void processAudioBuffer(int64_t time);
+    int processAudioBuffer();
 
     void onAudioThreadEnd();
 
     void onVideoThreadStart();
 
-    void processVideoBuffer(int64_t time);
+    int processVideoBuffer();
 
     void onVideoThreadEnd();
-
-    void onAllThreadEnd();
 
 private:
     MediaSource *inputSource;
@@ -64,17 +58,12 @@ private:
     bool mediaCodecFlag;
     CommonThread *audioEngineThread;
     CommonThread *videoEngineThread;
-    bool isAudioThreadRunning{};
-    bool isVideoThreadRunning{};
-    bool hasInit{};
+    DemuxingThread *demuxingThread;
     bool isRelease{};
     bool isStopping{};
-    int mRemoteAudioQueueSize;
-    int mRemoteVideoQueueSize;
-    long mAudioSleepTimeUs;
-    long mVideoSleepTimeUs;
     Interceptor *codeInterceptor;
-    std::mutex releaseMutex;
+    char *mUrl;
+    bool isDemuxing;
 };
 
 

@@ -47,6 +47,8 @@ public:
     static std::map<long, GPlayerEngine *> sGPlayerMap;
 
     static void deleteFromMap(int channelId);
+
+    static FfmpegCallback sFfmpegCallback;
 };
 
 #endif //GPLAYER_MEDIAPIPE_H

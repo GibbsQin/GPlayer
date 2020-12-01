@@ -6,17 +6,15 @@
 #include <source/MediaPipe.h>
 #include <media/MediaInfoJni.h>
 #include <media/MediaDataJni.h>
+#include <source/DemuxingThread.h>
 
 extern "C" {
-#include <protocol/protocol.h>
 #include <protocol/avformat_def.h>
 #include <codec/ffmpeg/libavcodec/jni.h>
 #include <protocol/remuxing.h>
 }
 
 //#define ENABLE_FFMPEG_JNI 1
-
-static FfmpegCallback sFfmpegCallback;
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     LOGI("GPlayerC", "JNI_OnLoad");
@@ -29,14 +27,14 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         return result;
     }
 
-    sFfmpegCallback.av_format_init = &(MediaPipe::av_format_init);
-    sFfmpegCallback.av_format_extradata_audio = &(MediaPipe::av_format_extradata_audio);
-    sFfmpegCallback.av_format_extradata_video = &(MediaPipe::av_format_extradata_video);
-    sFfmpegCallback.av_format_feed_audio = &(MediaPipe::av_format_feed_audio);
-    sFfmpegCallback.av_format_feed_video = &(MediaPipe::av_format_feed_video);
-    sFfmpegCallback.av_format_destroy = &(MediaPipe::av_format_destroy);
-    sFfmpegCallback.av_format_error = &(MediaPipe::av_format_error);
-    sFfmpegCallback.av_format_loop_wait = &(MediaPipe::av_format_loop_wait);
+    MediaPipe::sFfmpegCallback.av_format_init = &(MediaPipe::av_format_init);
+    MediaPipe::sFfmpegCallback.av_format_extradata_audio = &(MediaPipe::av_format_extradata_audio);
+    MediaPipe::sFfmpegCallback.av_format_extradata_video = &(MediaPipe::av_format_extradata_video);
+    MediaPipe::sFfmpegCallback.av_format_feed_audio = &(MediaPipe::av_format_feed_audio);
+    MediaPipe::sFfmpegCallback.av_format_feed_video = &(MediaPipe::av_format_feed_video);
+    MediaPipe::sFfmpegCallback.av_format_destroy = &(MediaPipe::av_format_destroy);
+    MediaPipe::sFfmpegCallback.av_format_error = &(MediaPipe::av_format_error);
+    MediaPipe::sFfmpegCallback.av_format_loop_wait = &(MediaPipe::av_format_loop_wait);
 
     MediaInfoJni::initClassAndMethodJni();
     MediaDataJni::initClassAndMethodJni();
@@ -57,24 +55,8 @@ extern "C"
 JNIEXPORT jlong JNICALL
 Java_com_gibbs_gplayer_GPlayer_nInitAVSource(JNIEnv *env, jobject clazz, jobject jAVSource) {
     auto pGPlayerImp = new GPlayerEngine(jAVSource);
-    std::string url = pGPlayerImp->getOutputSource()->getUrl();
-    LOGI("GPlayerC", "Java_com_gibbs_gplayer_GPlayer_nInitAVSource url = %s", url.c_str());
-    int channelId = 1;
-    auto *mediaInfo = new MediaInfo();
-    if (!url.empty()) {
-        if (url.find("file:") == 0) {
-            string fileUrl = url.substr(5, url.length());
-            LOGI("GPlayerC", "nInitFileSource channelId = %d, url = %s", channelId, fileUrl.c_str());
-            pGPlayerImp->getInputSource()->setChannelId(channelId);
-            MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
-            start_demuxing(PROTOCOL_TYPE_FILE, fileUrl.c_str(), sFfmpegCallback, mediaInfo, &channelId);
-        } else {
-            LOGI("GPlayerC", "nInitStreamSource channelId = %d, url = %s", channelId, url.c_str());
-            pGPlayerImp->getInputSource()->setChannelId(channelId);
-            MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
-            start_demuxing(PROTOCOL_TYPE_STREAM, url.c_str(), sFfmpegCallback, mediaInfo, &channelId);
-        }
-    }
+    int channelId = pGPlayerImp->getInputSource()->getChannelId();;
+    MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
     return channelId;
 }
 
@@ -87,21 +69,7 @@ Java_com_gibbs_gplayer_GPlayer_nFinish(JNIEnv *env, jobject thiz, jlong channel_
     if (!targetPlayer) {
         return;
     }
-    auto targetSource = targetPlayer->getInputSource();
-    auto outputSource = targetPlayer->getOutputSource();
-    if (!targetSource || !outputSource) {
-        return;
-    }
-    string url = outputSource->getUrl();
-    int type = -1;
-    if (!url.empty()) {
-        if (url.find("file:") == 0) {
-            type = PROTOCOL_TYPE_FILE;
-        } else {
-            type = PROTOCOL_TYPE_STREAM;
-        }
-    }
-    targetSource->pendingFlushBuffer();
+    targetPlayer->stopDemuxingLoop();
 }
 
 extern "C"

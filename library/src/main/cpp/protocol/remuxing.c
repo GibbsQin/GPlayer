@@ -41,8 +41,7 @@ static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, co
               pkt->size);
 }
 
-void ffmpeg_demuxing(void *data) {
-    struct DemuxingParams *params = (DemuxingParams *)data;
+void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, MediaInfo *mediaInfo) {
     AVFormatContext *ifmt_ctx = NULL;
     AVPacket pkt;
     int ret;
@@ -54,8 +53,8 @@ void ffmpeg_demuxing(void *data) {
     uint32_t stream_mapping_size = 0;
 
     av_register_all();
-    if ((ret = avformat_open_input(&ifmt_ctx, params->filename, 0, 0)) < 0) {
-        ffmpegLog(ANDROID_LOG_ERROR, "Could not open input file '%s'", params->filename);
+    if ((ret = avformat_open_input(&ifmt_ctx, filename, 0, 0)) < 0) {
+        ffmpegLog(ANDROID_LOG_ERROR, "Could not open input file '%s'", filename);
         goto end;
     }
 
@@ -64,7 +63,7 @@ void ffmpeg_demuxing(void *data) {
         goto end;
     }
 
-    av_dump_format(ifmt_ctx, 0, params->filename, 0);
+    av_dump_format(ifmt_ctx, 0, filename, 0);
 
     stream_mapping_size = ifmt_ctx->nb_streams;
     stream_mapping = av_mallocz_array((size_t) stream_mapping_size, sizeof(*stream_mapping));
@@ -107,19 +106,19 @@ void ffmpeg_demuxing(void *data) {
     ffmpegLog(ANDROID_LOG_INFO, "audio_stream_index = %d, video_stream_index = %d, stream_mapping_size = %d\n",
          audio_stream_index, video_stream_index, stream_mapping_size);
 
-    params->callback.av_format_init(*params->channelId, ifmt_ctx, ifmt_ctx->streams[audio_stream_index],
-                            ifmt_ctx->streams[video_stream_index], params->mediaInfo);
     ffmpegLog(ANDROID_LOG_INFO, "av_init\n");
+    callback.av_format_init(channelId, ifmt_ctx, ifmt_ctx->streams[audio_stream_index],
+                            ifmt_ctx->streams[video_stream_index], mediaInfo);
     //send SPS PPS
-    params->callback.av_format_extradata_video(*params->channelId, ifmt_ctx,
+    callback.av_format_extradata_video(channelId, ifmt_ctx,
                                        ifmt_ctx->streams[video_stream_index]->codecpar->extradata,
                                        (uint32_t) ifmt_ctx->streams[video_stream_index]->codecpar->extradata_size);
 
-    params->callback.av_format_extradata_audio(*params->channelId, ifmt_ctx,
+    callback.av_format_extradata_audio(channelId, ifmt_ctx,
                                        ifmt_ctx->streams[audio_stream_index]->codecpar->extradata,
                                        (uint32_t) ifmt_ctx->streams[audio_stream_index]->codecpar->extradata_size);
 
-    while (params->callback.av_format_loop_wait(*params->channelId)) {
+    while (callback.av_format_loop_wait(channelId)) {
         ret = av_read_frame(ifmt_ctx, &pkt);
         if (ret < 0)
             break;
@@ -138,10 +137,10 @@ void ffmpeg_demuxing(void *data) {
         pkt.stream_index = stream_mapping[pkt.stream_index];
         if (pkt.stream_index == audio_stream_index) {
             print_packet(ifmt_ctx, &pkt, "audio");
-            params->callback.av_format_feed_audio(*params->channelId, ifmt_ctx, &pkt);
+            callback.av_format_feed_audio(channelId, ifmt_ctx, &pkt);
         } else if (pkt.stream_index == video_stream_index) {
             print_packet(ifmt_ctx, &pkt, "video");
-            params->callback.av_format_feed_video(*params->channelId, ifmt_ctx, &pkt);
+            callback.av_format_feed_video(channelId, ifmt_ctx, &pkt);
         }
 
         if (ret < 0) {
@@ -152,7 +151,7 @@ void ffmpeg_demuxing(void *data) {
     }
 
     ffmpegLog(ANDROID_LOG_INFO, "av_destroy\n");
-    params->callback.av_format_destroy(*params->channelId, ifmt_ctx);
+    callback.av_format_destroy(channelId, ifmt_ctx);
 
     end:
 
@@ -162,7 +161,7 @@ void ffmpeg_demuxing(void *data) {
 
     if (ret < 0 && ret != AVERROR_EOF) {
         ffmpegLog(ANDROID_LOG_ERROR, "Error occurred: %s\n", av_err2str(ret));
-        params->callback.av_format_error(*params->channelId, ret, av_err2str(ret));
+        callback.av_format_error(channelId, ret, av_err2str(ret));
     }
     ffmpegLog(ANDROID_LOG_INFO, "ending");
 }

@@ -128,13 +128,7 @@ public class MediaSourceImp implements MediaSource {
         if (TextUtils.isEmpty(url)) {
             return;
         }
-        if (url.startsWith("/")) {
-            mUrl = "file:" + url;
-        } else if (url.startsWith("p2p")) {
-            mUrl = "p2p:" + url;
-        } else {
-            mUrl = url;
-        }
+        mUrl = url;
     }
 
     @Override

@@ -5,6 +5,8 @@
 
 std::map<long, GPlayerEngine *> MediaPipe::sGPlayerMap;
 
+FfmpegCallback MediaPipe::sFfmpegCallback;
+
 void MediaPipe::av_format_init(int channel, AVFormatContext *ifmt_ctx,
                                AVStream *audioStream, AVStream *videoStream, MediaInfo *mediaInfo) {
     ffmpeg_extra_audio_info(ifmt_ctx, audioStream, mediaInfo);
@@ -45,8 +47,12 @@ void MediaPipe::av_format_error(int channel, int code, char *msg) {
     av_error(channel, code, msg);
 }
 
-uint32_t MediaPipe::av_format_loop_wait(int channel) {
-    return 1;
+uint32_t MediaPipe::av_format_loop_wait(int channelId) {
+    GPlayerEngine *targetPlayer = sGPlayerMap[channelId];
+    if (targetPlayer != nullptr) {
+        return targetPlayer->isDemuxingLoop() ? 1 : 0;
+    }
+    return 0;
 }
 
 void MediaPipe::av_init(int channelId, MediaInfo *header) {

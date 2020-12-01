@@ -18,13 +18,15 @@ class MediaSource {
 
 public:
 
-    MediaSource();
+    MediaSource(const char* inputUrl, int channel);
 
     ~MediaSource();
 
     int getChannelId();
 
-    void setChannelId(int ch);
+    char* getUrl();
+
+    MediaInfo* getAVHeader();
 
     /**
      * 初始化
@@ -61,8 +63,6 @@ public:
 
     void pendingFlushBuffer();
 
-    MediaInfo* getAVHeader();
-
     int readAudioBuffer(MediaData** avData);
 
     int readVideoBuffer(MediaData** avData);
@@ -72,9 +72,10 @@ public:
     void popVideoBuffer();
 
 private:
-    MediaInfo *mAVHeader{};
+    char *mUrl;
+    MediaInfo *mAVHeader;
+    int channelId;
     bool isRelease{};
-    int channelId{};
     std::queue<MediaData *> videoPacketQueue;
     std::queue<MediaData *> audioPacketQueue;
     std::mutex mAudioLock;

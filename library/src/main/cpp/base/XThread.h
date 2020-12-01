@@ -14,7 +14,9 @@ public:
 
     virtual bool stop();
 
-    inline bool isAlive() { return mRunning; }
+    void join() {/*mThread->join();*/}
+
+    bool isAlive() { return mRunning; }
 
     void setFunction(std::function<void(void)> func) { mFunc = func; }
 

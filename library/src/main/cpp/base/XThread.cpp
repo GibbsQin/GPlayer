@@ -32,7 +32,6 @@ bool XThread::stop() {
     }
 
     mRunning = false;
-//    mThread->join();
 
     return true;
 }

@@ -3,7 +3,6 @@
 #endif
 
 #include "Log.h"
-#include "XTick.h"
 
 #include <stdio.h>
 #include <time.h>

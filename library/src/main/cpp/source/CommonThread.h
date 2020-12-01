@@ -4,17 +4,20 @@
 #include "XThread.h"
 #include <functional>
 
+#define MAX_OUTPUT_FRAME_SIZE 5
+#define SLEEP_TIME_GAP 2
+
 using namespace std;
 
 class CommonThread : public XThread {
 public:
-    CommonThread(int fps);
+    CommonThread();
 
 	virtual ~CommonThread();
 
     void setStartFunc(std::function<void(void)> func);
 
-    void setUpdateFunc(std::function<void(int64_t)> func);
+    void setUpdateFunc(std::function<int(void)> func);
 
     void setEndFunc(std::function<void(void)> func);
 
@@ -24,11 +27,9 @@ protected:
     void handleRunning();
 
 private:
-    int fps;    //帧率
-    int64_t currentTime;
-    int64_t frameInterval;
-    std::function<void(void)> startFunc;
-    std::function<void(int64_t)> updateFunc;
+    int64_t sleepTimeMs;
+	std::function<void(void)> startFunc;
+	std::function<int(void)> updateFunc;
     std::function<void(void)> endFunc;
     bool isStarted = false;
 };

@@ -1,12 +1,8 @@
 #include "CommonThread.h"
 
 #include <utility>
-#include "../base/XTick.h"
 
-CommonThread::CommonThread(int fps) {
-    this->fps = fps;
-    frameInterval = (int64_t) (1.0f / (float) fps * 1000);
-    currentTime = getTickCount64();
+CommonThread::CommonThread() {
     setFunction(std::bind(&CommonThread::handleRunning, this));
 }
 
@@ -21,16 +17,18 @@ void CommonThread::handleRunning() {
     isStarted = true;
 
     while (mRunning) {
-        time = getTickCount64();
         if (!updateFunc) {
             break;
         }
-        updateFunc(time);
-        currentTime = getTickCount64();
-        time = frameInterval - (currentTime - time);
-        time = time < 0 ? 1 : time;
-        time = time > frameInterval ? frameInterval : time;
-        std::this_thread::sleep_for(std::chrono::milliseconds(time));
+        int count = updateFunc();
+        if (count > MAX_OUTPUT_FRAME_SIZE) {
+            sleepTimeMs += SLEEP_TIME_GAP;
+        } else {
+            sleepTimeMs = 0;
+        }
+        if (sleepTimeMs > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepTimeMs));
+        }
     }
 
     if (endFunc) {
@@ -43,7 +41,7 @@ void CommonThread::setStartFunc(std::function<void(void)> func) {
     startFunc = std::move(func);
 }
 
-void CommonThread::setUpdateFunc(std::function<void(int64_t)> func) {
+void CommonThread::setUpdateFunc(std::function<int(void)> func) {
     updateFunc = std::move(func);
 }
 

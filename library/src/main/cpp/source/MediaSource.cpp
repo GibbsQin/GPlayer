@@ -7,14 +7,20 @@
 
 #define TAG "MediaSourceC"
 
-MediaSource::MediaSource() {
+MediaSource::MediaSource(const char* inputUrl, int channel) {
     LOGI(TAG, "CoreFlow : create MediaSource");
+    mAVHeader = new MediaInfo();
+    mUrl = static_cast<char *>(malloc(strlen(inputUrl)));
+    memcpy(mUrl, inputUrl, strlen(inputUrl));
+    channelId = channel;
     isPendingFlushBuffer = false;
 }
 
 MediaSource::~MediaSource() {
     flushBuffer();
     isPendingFlushBuffer = false;
+    delete mAVHeader;
+    free(mUrl);
     LOGE(TAG, "CoreFlow : MediaSource destroyed");
 }
 
@@ -45,6 +51,7 @@ uint32_t MediaSource::onReceiveVideo(MediaData *inPacket) {
 void MediaSource::onRelease() {
     LOGE(TAG, "CoreFlow : onRelease");
     isRelease = true;
+    pendingFlushBuffer();
 }
 
 void MediaSource::flushBuffer() {
@@ -93,8 +100,8 @@ int MediaSource::getChannelId() {
     return channelId;
 }
 
-void MediaSource::setChannelId(int ch) {
-    channelId = ch;
+char *MediaSource::getUrl() {
+    return mUrl;
 }
 
 MediaInfo *MediaSource::getAVHeader() {
