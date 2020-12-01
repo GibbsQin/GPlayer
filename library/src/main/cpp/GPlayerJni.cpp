@@ -1,48 +1,31 @@
 #include <jni.h>
-#include <string>
-#include <source/MediaSource.h>
 #include <utils/JniHelper.h>
 #include <base/Log.h>
 #include <source/MediaPipe.h>
 #include <media/MediaInfoJni.h>
 #include <media/MediaDataJni.h>
-#include <source/DemuxingThread.h>
-
-extern "C" {
-#include <protocol/avformat_def.h>
-#include <codec/ffmpeg/libavcodec/jni.h>
-#include <protocol/remuxing.h>
-}
 
 //#define ENABLE_FFMPEG_JNI 1
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
-    LOGI("GPlayerC", "JNI_OnLoad");
+    LOGI("GPlayerJni", "JNI_OnLoad");
     JNIEnv *env = nullptr;
     jint result = JNI_ERR;
     JniHelper::sJavaVM = vm;
 
     if (vm->GetEnv((void **) &env, JNI_VERSION_1_4) != JNI_OK) {
-        LOGE("GPlayerC", "JNI_OnLoad fail %d", result);
+        LOGE("GPlayerJni", "JNI_OnLoad fail %d", result);
         return result;
     }
 
-    MediaPipe::sFfmpegCallback.av_format_init = &(MediaPipe::av_format_init);
-    MediaPipe::sFfmpegCallback.av_format_extradata_audio = &(MediaPipe::av_format_extradata_audio);
-    MediaPipe::sFfmpegCallback.av_format_extradata_video = &(MediaPipe::av_format_extradata_video);
-    MediaPipe::sFfmpegCallback.av_format_feed_audio = &(MediaPipe::av_format_feed_audio);
-    MediaPipe::sFfmpegCallback.av_format_feed_video = &(MediaPipe::av_format_feed_video);
-    MediaPipe::sFfmpegCallback.av_format_destroy = &(MediaPipe::av_format_destroy);
-    MediaPipe::sFfmpegCallback.av_format_error = &(MediaPipe::av_format_error);
-    MediaPipe::sFfmpegCallback.av_format_loop_wait = &(MediaPipe::av_format_loop_wait);
-
+    MediaPipe::initFfmpegCallback();
     MediaInfoJni::initClassAndMethodJni();
     MediaDataJni::initClassAndMethodJni();
 
 #ifdef ENABLE_FFMPEG_JNI
     int init_ffmpeg_jni_result = av_jni_set_java_vm(vm, nullptr);
     if (init_ffmpeg_jni_result < 0) {
-        LOGE("GPlayerC", "av_jni_set_java_vm fail : %s", av_err2str(init_ffmpeg_jni_result));
+        LOGE("GPlayerJni", "av_jni_set_java_vm fail : %s", av_err2str(init_ffmpeg_jni_result));
     }
 #endif
 
@@ -52,36 +35,38 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 }
 
 extern "C"
-JNIEXPORT jlong JNICALL
-Java_com_gibbs_gplayer_GPlayer_nInitAVSource(JNIEnv *env, jobject clazz, jobject jAVSource) {
-    auto pGPlayerImp = new GPlayerEngine(jAVSource);
-    int channelId = pGPlayerImp->getInputSource()->getChannelId();;
+JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nInit(JNIEnv *env, jobject clazz, jint channelId, jobject jAVSource) {
+    auto pGPlayerImp = new GPlayerEngine(channelId, jAVSource);
     MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
-    return channelId;
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nFinish(JNIEnv *env, jobject thiz, jlong channel_id,
-                                       jboolean force) {
-    LOGI("GPlayerC", "nFinish channelId : %lld, force : %d", channel_id, force);
+Java_com_gibbs_gplayer_GPlayer_nStart(JNIEnv *env, jobject thiz, jlong channel_id) {
+    LOGI("GPlayerJni", "nStart channelId : %lld", channel_id);
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->stopDemuxingLoop();
+    targetPlayer->start();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nDestroyAVSource(JNIEnv *env, jobject clazz, jlong channel_id) {
-    LOGI("GPlayerC", "nDestroyAVSource channelId : %lld", channel_id);
-    MediaPipe::deleteFromMap(channel_id);
+Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jlong channel_id,
+                                     jboolean force) {
+    LOGI("GPlayerJni", "nStop channelId : %lld, force : %d", channel_id, force);
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return;
+    }
+    targetPlayer->stop();
 }
 
 extern "C"
-JNIEXPORT jstring JNICALL
-Java_com_gibbs_gplayer_codec_C_getMimeByCodecType(JNIEnv *env, jclass clazz, jint type) {
-    char* mime = getMimeByCodeID((CODEC_TYPE) type);
-    return JniHelper::newStringUTF(env, mime);
+JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nDestroy(JNIEnv *env, jobject clazz, jlong channel_id) {
+    LOGI("GPlayerJni", "nDestroyAVSource channelId : %lld", channel_id);
+    MediaPipe::deleteFromMap(static_cast<int>(channel_id));
 }

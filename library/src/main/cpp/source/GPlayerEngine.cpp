@@ -13,32 +13,21 @@
 
 #define TAG "GPlayerImpC"
 
-GPlayerEngine::GPlayerEngine(jobject jAVSource) {
+GPlayerEngine::GPlayerEngine(int channelId, jobject jAVSource) {
     outputSource = new MediaSourceJni(jAVSource);
-    std::string url = outputSource->getUrl();
-    inputSource = new MediaSource(url.c_str(), 0);
+    inputSource = new MediaSource();
     audioEngineThread = nullptr;
     videoEngineThread = nullptr;
-    decodeFlag = (outputSource->getFlag() & AV_FLAG_SOURCE_DECODE) == AV_FLAG_SOURCE_DECODE;
     mediaCodecFlag =
             (outputSource->getFlag() & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
-    LOGI(TAG, "CoreFlow : new GPlayerImp decodeFlag = %d, mediaCodecFlag = %d", decodeFlag,
-         mediaCodecFlag);
-    isRelease = false;
-    isStopping = false;
-    if (decodeFlag) {
-        codeInterceptor = new CodecInterceptor(mediaCodecFlag);
-    }
+    LOGI(TAG, "CoreFlow : new GPlayerImp mediaCodecFlag = %d", mediaCodecFlag);
+    codeInterceptor = new CodecInterceptor(mediaCodecFlag);
 
+    std::string url = outputSource->getUrl();
     mUrl = static_cast<char *>(malloc(url.length()));
     memcpy(mUrl, url.c_str(), url.length());
-    LOGI(TAG, "CoreFlow : start demuxing url %s, channel %d", mUrl, inputSource->getChannelId());
-    isDemuxing = true;
-    demuxingThread = new DemuxingThread(std::bind(&GPlayerEngine::startDemuxing, this,
-                                 std::placeholders::_1, std::placeholders::_2,
-                                 std::placeholders::_3, std::placeholders::_4),
-                       mUrl, inputSource->getChannelId(),
-                       MediaPipe::sFfmpegCallback, inputSource->getAVHeader());
+    mChannelId = channelId;
+    LOGI(TAG, "CoreFlow : start demuxing url %s, channel %d", mUrl, mChannelId);
 }
 
 GPlayerEngine::~GPlayerEngine() {
@@ -58,11 +47,9 @@ GPlayerEngine::~GPlayerEngine() {
         delete inputSource;
         inputSource = nullptr;
     }
-    if (decodeFlag) {
-        if (codeInterceptor) {
-            delete codeInterceptor;
-            codeInterceptor = nullptr;
-        }
+    if (codeInterceptor) {
+        delete codeInterceptor;
+        codeInterceptor = nullptr;
     }
     if (mUrl) {
         free(mUrl);
@@ -70,8 +57,68 @@ GPlayerEngine::~GPlayerEngine() {
     LOGE(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
-void GPlayerEngine::onInit() {
-    LOGI(TAG, "CoreFlow : onInit");
+void GPlayerEngine::av_init(MediaInfo *header) {
+    inputSource->onInit(header);
+    startDecode();
+}
+
+uint32_t GPlayerEngine::av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
+                                      uint64_t u64InputPTS, uint64_t u64InputDTS, int flag) {
+    auto *avData = new MediaData();
+    avData->data = static_cast<uint8_t *>(malloc(dwInputDataSize));
+    memcpy(avData->data, pInputBuf, dwInputDataSize);
+    avData->size = dwInputDataSize;
+    avData->pts = u64InputPTS;
+    avData->dts = u64InputDTS;
+    avData->flag = flag;
+
+    return inputSource->onReceiveAudio(avData);
+}
+
+uint32_t GPlayerEngine::av_feed_video(uint8_t *pInputBuf, uint32_t dwInputDataSize,
+                                      uint64_t u64InputPTS, uint64_t u64InputDTS, int flag) {
+    auto *avData = new MediaData();
+    avData->data = static_cast<uint8_t *>(malloc(dwInputDataSize));
+    memcpy(avData->data, pInputBuf, dwInputDataSize);
+    avData->size = dwInputDataSize;
+    avData->pts = u64InputPTS;
+    avData->dts = u64InputDTS;
+    avData->flag = flag;
+
+    return inputSource->onReceiveVideo(avData);
+}
+
+void GPlayerEngine::av_destroy() {
+    inputSource->onRelease();
+}
+
+void GPlayerEngine::av_error(int code, char *msg) {
+    outputSource->callJavaErrorMethod(code, msg);
+}
+
+void GPlayerEngine::start() {
+    isDemuxing = true;
+    demuxingThread = new DemuxingThread(std::bind(&GPlayerEngine::startDemuxing, this,
+                                                  std::placeholders::_1, std::placeholders::_2,
+                                                  std::placeholders::_3, std::placeholders::_4),
+                                        mUrl, mChannelId,
+                                        MediaPipe::sFfmpegCallback, inputSource->getAVHeader());
+}
+
+void GPlayerEngine::stop() {
+    LOGI(TAG, "CoreFlow : stopping");
+    isDemuxing = false;
+    demuxingThread->join();
+    LOGI(TAG, "CoreFlow : demuxing thread is stopped!");
+    stopDecode();;
+    LOGI(TAG, "CoreFlow : decode threads were stopped!");
+    codeInterceptor->onRelease();
+    inputSource->flushBuffer();
+    outputSource->callJavaReleaseMethod();
+}
+
+void GPlayerEngine::startDecode() {
+    LOGI(TAG, "CoreFlow : startDecode");
     audioEngineThread = new CommonThread();
     audioEngineThread->setStartFunc(std::bind(&GPlayerEngine::onAudioThreadStart, this));
     audioEngineThread->setUpdateFunc(std::bind(&GPlayerEngine::processAudioBuffer, this));
@@ -85,23 +132,14 @@ void GPlayerEngine::onInit() {
     videoEngineThread->start();
 
     MediaInfo *header = inputSource->getAVHeader();
-    if (decodeFlag) {
-        int ret = codeInterceptor->onInit(header);
-        if (ret > 0) {
-            outputSource->callJavaErrorMethod(ret, "not support this codec");
-        }
+    int ret = codeInterceptor->onInit(header);
+    if (ret > 0) {
+        outputSource->callJavaErrorMethod(ret, "not support this codec");
     }
-    outputSource->callJavaInitMethod(inputSource->getAVHeader(), inputSource->getChannelId());
-
-    isRelease = false;
+    outputSource->callJavaInitMethod(inputSource->getAVHeader());
 }
 
-void GPlayerEngine::onRelease() {
-    if (isStopping || isRelease) {
-        return;
-    }
-    LOGE(TAG, "CoreFlow : onRelease");
-    isStopping = true;
+void GPlayerEngine::stopDecode() {
     if (audioEngineThread && audioEngineThread->hasStarted()) {
         audioEngineThread->stop();
     }
@@ -110,20 +148,6 @@ void GPlayerEngine::onRelease() {
     }
     audioEngineThread->join();
     videoEngineThread->join();
-    LOGI(TAG, "onAllThreadEnd");
-    if (decodeFlag) {
-        codeInterceptor->onRelease();
-    }
-    outputSource->callJavaReleaseMethod();
-    isRelease = true;
-}
-
-MediaSource *GPlayerEngine::getInputSource() const {
-    return inputSource;
-}
-
-MediaSourceJni *GPlayerEngine::getOutputSource() const {
-    return outputSource;
 }
 
 void GPlayerEngine::startDemuxing(char *web_url, int channelId, FfmpegCallback callback,
@@ -131,40 +155,24 @@ void GPlayerEngine::startDemuxing(char *web_url, int channelId, FfmpegCallback c
     ffmpeg_demuxing(web_url, channelId, callback, mediaInfo);
 }
 
-void GPlayerEngine::stopDemuxingLoop() {
-    isDemuxing = false;
-//    demuxingThread->join();
-//    LOGI(TAG, "CoreFlow : demuxing thread is stopped!");
-}
-
 void GPlayerEngine::onAudioThreadStart() {
     LOGI(TAG, "startAudioDecode");
 }
 
 int GPlayerEngine::processAudioBuffer() {
-    if (isRelease || isStopping) {
-        return 0;
-    }
     MediaData *inPacket;
     int ret = inputSource->readAudioBuffer(&inPacket);
     if (ret <= 0) {
-        if (ret == AV_SOURCE_RELEASE) {
-            onRelease();
-        }
         return 0;
     }
     outputSource->sendAudioPacketSize2Java(ret);
     int inputResult = -1;
     int mediaSize = 0;
-    if (decodeFlag) {
-        inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_AUDIO);
-        MediaData *outBuffer;
-        ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
-        if (ret >= 0) {
-            mediaSize = outputSource->sendAudio2Java(outBuffer);
-        }
-    } else {
-        mediaSize = outputSource->sendAudio2Java(inPacket);
+    inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_AUDIO);
+    MediaData *outBuffer;
+    ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
+    if (ret >= 0) {
+        mediaSize = outputSource->sendAudio2Java(outBuffer);
     }
     if (inputResult != TRY_AGAIN) {
         free(inPacket->data);
@@ -184,29 +192,19 @@ void GPlayerEngine::onVideoThreadStart() {
 }
 
 int GPlayerEngine::processVideoBuffer() {
-    if (isRelease || isStopping) {
-        return 0;
-    }
     MediaData *inPacket;
     int ret = inputSource->readVideoBuffer(&inPacket);
     if (ret <= 0) {
-        if (ret == AV_SOURCE_RELEASE) {
-            onRelease();
-        }
         return 0;
     }
     outputSource->sendVideoPacketSize2Java(ret);
     int inputResult = -1;
     int mediaSize = 0;
-    if (decodeFlag) {
-        inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_VIDEO);
-        MediaData *outBuffer;
-        ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
-        if (ret >= 0) {
-            mediaSize = outputSource->sendVideo2Java(outBuffer);
-        }
-    } else {
-        mediaSize = outputSource->sendVideo2Java(inPacket);
+    inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_VIDEO);
+    MediaData *outBuffer;
+    ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
+    if (ret >= 0) {
+        mediaSize = outputSource->sendVideo2Java(outBuffer);
     }
     if (inputResult != TRY_AGAIN) {
         free(inPacket->data);

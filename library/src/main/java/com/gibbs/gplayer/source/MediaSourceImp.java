@@ -15,7 +15,6 @@ public class MediaSourceImp implements MediaSource {
 
     private static final boolean VERBOSE = false;
 
-    private int mChannelId;
     private String mUrl;
     private MediaInfo mMediaInfo;
     private int mFlag = 0;
@@ -23,7 +22,6 @@ public class MediaSourceImp implements MediaSource {
     private LinkedList<MediaData> mVideoQueue;
     private final Object mAudioQueueLock = new Object();
     private final Object mVideoQueueLock = new Object();
-    private boolean mIsSourceEnd;
 
     private SourceState mSourceState = null;
     private OnSourceStateChangedListener mOnSourceStateChangedListener;
@@ -43,23 +41,16 @@ public class MediaSourceImp implements MediaSource {
         setUrl(url);
         mAudioQueue = new LinkedList<>();
         mVideoQueue = new LinkedList<>();
-        if (decode) {
-            mFlag |= FLAG_DECODE;
-        }
-        if (mediaCodec) {
-            mFlag |= FLAG_MEDIA_CODEC;
-        }
+
         LogUtils.i(TAG, "CoreFlow : new MediaSourceImp url = " + url + ", decode = " + decode + ", mediaCodec = "
                 + mediaCodec + ", flag = " + mFlag);
     }
 
     @Override
-    public void onInit(int channelId, MediaInfo header) {
-        LogUtils.i(TAG, "CoreFlow : onInit channelId = " + channelId+ ", header = " + header.toString());
-        mChannelId = channelId;
+    public void onInit(MediaInfo header) {
+        LogUtils.i(TAG, "CoreFlow : onInit header = " + header.toString());
         mMediaInfo = header;
         setSourceState(SourceState.Init);
-        mIsSourceEnd = false;
     }
 
     @Override
@@ -101,7 +92,7 @@ public class MediaSourceImp implements MediaSource {
     @Override
     public void onRelease() {
         LogUtils.e(TAG, "CoreFlow : onRelease");
-        mIsSourceEnd = true;
+        setSourceState(SourceState.Release);
     }
 
     @Override
@@ -169,7 +160,6 @@ public class MediaSourceImp implements MediaSource {
         synchronized (mAudioQueueLock) {
             MediaData mediaData;
             mediaData = mAudioQueue.peek();
-            checkSourceEnd();
             return mediaData;
         }
     }
@@ -188,7 +178,6 @@ public class MediaSourceImp implements MediaSource {
                 if (VERBOSE) LogUtils.e(TAG, "audio buffer queue empty!");
             }
         }
-        checkSourceEnd();
     }
 
     @Override
@@ -196,7 +185,6 @@ public class MediaSourceImp implements MediaSource {
         synchronized (mVideoQueueLock) {
             MediaData mediaData;
             mediaData = mVideoQueue.peek();
-            checkSourceEnd();
             return mediaData;
         }
     }
@@ -215,7 +203,6 @@ public class MediaSourceImp implements MediaSource {
                 if (VERBOSE) LogUtils.e(TAG, "video buffer queue empty!");
             }
         }
-        checkSourceEnd();
     }
 
     @Override
@@ -237,16 +224,6 @@ public class MediaSourceImp implements MediaSource {
         LogUtils.i(TAG, "CoreFlow flushBuffer");
         clearAudioQueue();
         clearVideoQueue();
-    }
-
-    @Override
-    public void checkSourceEnd() {
-        boolean isFinishing = (mSourceState == SourceState.Finishing);
-        boolean isEmpty = (mAudioQueue.isEmpty() && mVideoQueue.isEmpty());
-        if (mIsSourceEnd && (isFinishing || isEmpty)) {
-            LogUtils.e(TAG, "CoreFlow checkSourceEnd true");
-            setSourceState(SourceState.Release);
-        }
     }
 
     @Override
@@ -282,7 +259,6 @@ public class MediaSourceImp implements MediaSource {
     @Override
     public String toString() {
         return "MediaSourceImp{" +
-                "mChannelId=" + mChannelId +
                 ", mUrl='" + mUrl + '\'' +
                 ", mFlag=" + mFlag +
                 '}';

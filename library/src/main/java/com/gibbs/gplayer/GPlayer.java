@@ -6,10 +6,8 @@ import android.text.TextUtils;
 
 import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.render.AudioRender;
-import com.gibbs.gplayer.render.EncodeAudioRender;
 import com.gibbs.gplayer.render.AVSync;
 import com.gibbs.gplayer.render.PcmAudioRender;
-import com.gibbs.gplayer.render.SurfaceGLRenderer;
 import com.gibbs.gplayer.render.VideoFrameReleaseTimeHelper;
 import com.gibbs.gplayer.render.VideoRender;
 import com.gibbs.gplayer.render.YUVGLRenderer;
@@ -34,7 +32,7 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         IDLE, PREPARING, PLAYING, FINISHING
     }
 
-    private long mChannelId;
+    private int mChannelId = hashCode();
 
     private Context mContext;
     private GLSurfaceView mGLSurfaceView;
@@ -84,22 +82,15 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         if (mVideoRender instanceof YUVGLRenderer) {
             mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         }
+        init(mMediaSource);
     }
 
     private AudioRender createAudioRender(MediaSource source) {
-        if ((source.getFlag() & MediaSource.FLAG_DECODE) == MediaSource.FLAG_DECODE) {
-            return new PcmAudioRender(mMediaSource);
-        } else {
-            return new EncodeAudioRender(source);
-        }
+        return new PcmAudioRender(mMediaSource);
     }
 
     private VideoRender createVideoRender(GLSurfaceView view, MediaSource source) {
-        if ((source.getFlag() & MediaSource.FLAG_DECODE) == MediaSource.FLAG_DECODE) {
-            return new YUVGLRenderer(view, source);
-        } else {
-            return new SurfaceGLRenderer(view, source);
-        }
+        return new YUVGLRenderer(view, source);
     }
 
     @Override
@@ -139,7 +130,7 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         if (mVideoRender != null && mVideoRender.isAvailable()) {
             LogUtils.e(TAG, "preparing");
             setPlayState(State.PREPARING);
-            initAVSource(mMediaSource);
+            nStart(mChannelId);
         } else {
             LogUtils.i(TAG, "waiting for GLSurfaceView ready");
             mStartPlayWhenReady = true;
@@ -163,22 +154,7 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         }
         setPlayState(State.FINISHING);
         mMediaSource.onFinishing();
-        nFinish(mChannelId, force);
-        if (mAudioPlayThread != null && mAudioPlayThread.isAlive()) {
-            try {
-                mAudioPlayThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        if (mVideoPlayThread != null && mVideoPlayThread.isAlive()) {
-            try {
-                mVideoPlayThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        LogUtils.e(TAG, "CoreFlow : finished");
+        nStop(mChannelId, force);
     }
 
     private void onInit() {
@@ -196,7 +172,22 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     private void onRelease() {
         LogUtils.e(TAG, "----------onRelease----------");
         mIsProcessingSource = false;
-        destroyAVSource();
+        if (mAudioPlayThread != null && mAudioPlayThread.isAlive()) {
+            try {
+                mAudioPlayThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if (mVideoPlayThread != null && mVideoPlayThread.isAlive()) {
+            try {
+                mVideoPlayThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        LogUtils.e(TAG, "CoreFlow : finished");
+        destroy();
     }
 
     /**
@@ -399,18 +390,20 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         void onPlayStateChanged(State state);
     }
 
-    private void initAVSource(MediaSource MediaSource) {
-        mChannelId = nInitAVSource(MediaSource);
+    private void init(MediaSource MediaSource) {
+        nInit(mChannelId, MediaSource);
     }
 
-    private void destroyAVSource() {
-        LogUtils.i(TAG, "destroyAVSource channelId " + mChannelId);
-        nDestroyAVSource(mChannelId);
+    private void destroy() {
+        LogUtils.i(TAG, "destroy channelId " + mChannelId);
+        nDestroy(mChannelId);
     }
 
-    private native long nInitAVSource(MediaSource MediaSource);
+    private native void nInit(int channelId, MediaSource MediaSource);
 
-    private native void nFinish(long channelId, boolean force);
+    private native void nStart(long channelId);
 
-    private native void nDestroyAVSource(long channelId);
+    private native void nStop(long channelId, boolean force);
+
+    private native void nDestroy(long channelId);
 }

@@ -273,7 +273,7 @@ void JniHelper::callVoidMethod(jobject obj, jmethodID methodId, jstring arg1, ji
     }
 }
 
-void JniHelper::callVoidMethod(jobject obj, jmethodID methodId, jint arg1, jobject arg2) {
+void JniHelper::callVoidMethod(jobject obj, jmethodID methodId, jobject arg2) {
     if (sJavaVM == nullptr) {
         LOGE(TAG, "sJavaVM is nullptr");
         return;
@@ -298,7 +298,7 @@ void JniHelper::callVoidMethod(jobject obj, jmethodID methodId, jint arg1, jobje
     }
 
     if (env != nullptr) {
-        env->CallVoidMethod(obj, methodId, arg1, arg2);
+        env->CallVoidMethod(obj, methodId, arg2);
     }
 
     if (attached) {

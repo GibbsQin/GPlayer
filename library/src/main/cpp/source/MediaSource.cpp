@@ -7,20 +7,14 @@
 
 #define TAG "MediaSourceC"
 
-MediaSource::MediaSource(const char* inputUrl, int channel) {
+MediaSource::MediaSource() {
     LOGI(TAG, "CoreFlow : create MediaSource");
     mAVHeader = new MediaInfo();
-    mUrl = static_cast<char *>(malloc(strlen(inputUrl)));
-    memcpy(mUrl, inputUrl, strlen(inputUrl));
-    channelId = channel;
-    isPendingFlushBuffer = false;
 }
 
 MediaSource::~MediaSource() {
     flushBuffer();
-    isPendingFlushBuffer = false;
     delete mAVHeader;
-    free(mUrl);
     LOGE(TAG, "CoreFlow : MediaSource destroyed");
 }
 
@@ -31,7 +25,6 @@ void MediaSource::onInit(MediaInfo *header) {
          header->videoType, header->videoWidth, header->videoHeight, header->videoFrameRate,
          header->audioType, header->audioMode, header->audioBitWidth, header->audioSampleRate,
          header->sampleNumPerFrame);
-    isRelease = false;
 }
 
 uint32_t MediaSource::onReceiveAudio(MediaData *inPacket) {
@@ -50,8 +43,6 @@ uint32_t MediaSource::onReceiveVideo(MediaData *inPacket) {
 
 void MediaSource::onRelease() {
     LOGE(TAG, "CoreFlow : onRelease");
-    isRelease = true;
-    pendingFlushBuffer();
 }
 
 void MediaSource::flushBuffer() {
@@ -91,37 +82,13 @@ void MediaSource::flushAudioBuffer() {
     }
 }
 
-void MediaSource::pendingFlushBuffer() {
-    LOGI(TAG, "pendingFlushBuffer");
-    isPendingFlushBuffer = true;
-}
-
-int MediaSource::getChannelId() {
-    return channelId;
-}
-
-char *MediaSource::getUrl() {
-    return mUrl;
-}
-
 MediaInfo *MediaSource::getAVHeader() {
     return mAVHeader;
 }
 
 int MediaSource::readAudioBuffer(MediaData **avData) {
-    if (isPendingFlushBuffer) {
-        LOGI(TAG, "readAudioBuffer flushAudioBuffer");
-        mAudioLock.lock();
-        flushAudioBuffer();
-        mAudioLock.unlock();
-    }
     if (audioPacketQueue.empty()) {
-        if (isRelease && videoPacketQueue.empty()) {
-            LOGI(TAG, "both audio and video buffer are empty");
-            return AV_SOURCE_RELEASE;
-        } else {
-            return AV_SOURCE_EMPTY;
-        }
+        return AV_SOURCE_EMPTY;
     }
     *avData = audioPacketQueue.front();
     if (!(*avData)) {
@@ -133,19 +100,8 @@ int MediaSource::readAudioBuffer(MediaData **avData) {
 }
 
 int MediaSource::readVideoBuffer(MediaData **avData) {
-    if (isPendingFlushBuffer) {
-        LOGI(TAG, "readVideoBuffer flushVideoBuffer");
-        mVideoLock.lock();
-        flushVideoBuffer();
-        mVideoLock.unlock();
-    }
     if (videoPacketQueue.empty()) {
-        if (isRelease && audioPacketQueue.empty()) {
-            LOGI(TAG, "both video and audio buffer are empty");
-            return AV_SOURCE_RELEASE;
-        } else {
-            return AV_SOURCE_EMPTY;
-        }
+        return AV_SOURCE_EMPTY;
     }
     *avData = videoPacketQueue.front();
     if (!(*avData)) {

@@ -43,7 +43,7 @@ public:
 
     void sendVideoPacketSize2Java(int size);
 
-    void callJavaInitMethod(MediaInfo *header, int channelId);
+    void callJavaInitMethod(MediaInfo *header);
 
     void callJavaReleaseMethod();
 

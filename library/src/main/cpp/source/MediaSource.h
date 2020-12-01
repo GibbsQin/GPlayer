@@ -8,23 +8,17 @@
 #include "Codec.h"
 #include "CommonThread.h"
 
-#define AV_SOURCE_RELEASE -1
 #define AV_SOURCE_EMPTY -2
 
-#define AV_FLAG_SOURCE_DECODE 0x00000001
 #define AV_FLAG_SOURCE_MEDIA_CODEC 0x00000002
 
 class MediaSource {
 
 public:
 
-    MediaSource(const char* inputUrl, int channel);
+    MediaSource();
 
     ~MediaSource();
-
-    int getChannelId();
-
-    char* getUrl();
 
     MediaInfo* getAVHeader();
 
@@ -61,8 +55,6 @@ public:
 
     void flushVideoBuffer();
 
-    void pendingFlushBuffer();
-
     int readAudioBuffer(MediaData** avData);
 
     int readVideoBuffer(MediaData** avData);
@@ -72,15 +64,11 @@ public:
     void popVideoBuffer();
 
 private:
-    char *mUrl;
     MediaInfo *mAVHeader;
-    int channelId;
-    bool isRelease{};
     std::queue<MediaData *> videoPacketQueue;
     std::queue<MediaData *> audioPacketQueue;
     std::mutex mAudioLock;
     std::mutex mVideoLock;
-    bool isPendingFlushBuffer;
 };
 
 

@@ -5,15 +5,6 @@ import com.gibbs.gplayer.media.MediaInfo;
 
 public interface MediaSource extends MediaSourceControl {
     /**
-     * decode the media data on jni layer
-     */
-    int FLAG_DECODE = 0x00000001;
-    /**
-     * decode the media data using mediacodec
-     */
-    int FLAG_MEDIA_CODEC = 0x00000002;
-
-    /**
      * Init : has received media head info
      * Ready : playing
      * Release : media source was release
@@ -24,7 +15,7 @@ public interface MediaSource extends MediaSourceControl {
         Init, Ready, Release, Error, Finishing
     }
 
-    void onInit(int channelId, MediaInfo header);
+    void onInit(MediaInfo header);
 
     int onReceiveAudio(MediaData inPacket);
 
@@ -51,8 +42,6 @@ public interface MediaSource extends MediaSourceControl {
     void clearVideoQueue();
 
     void flushBuffer();
-
-    void checkSourceEnd();
 
     void onRemoteAudioSizeChanged(int size);
 

@@ -36,7 +36,7 @@ public:
 
     static void callVoidMethod(jobject obj, jmethodID methodId, jstring arg1, jint arg2);
 
-    static void callVoidMethod(jobject obj, jmethodID methodId, jint arg1, jobject arg2);
+    static void callVoidMethod(jobject obj, jmethodID methodId, jobject arg2);
 
     static int callIntMethod(jobject obj, jmethodID methodId, jstring arg1, jint arg2);
 

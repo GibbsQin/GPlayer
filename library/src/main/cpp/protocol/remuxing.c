@@ -118,7 +118,7 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
                                        ifmt_ctx->streams[audio_stream_index]->codecpar->extradata,
                                        (uint32_t) ifmt_ctx->streams[audio_stream_index]->codecpar->extradata_size);
 
-    while (callback.av_format_loop_wait(channelId)) {
+    while (callback.av_format_loop_wait(channelId) == 1) {
         ret = av_read_frame(ifmt_ctx, &pkt);
         if (ret < 0)
             break;

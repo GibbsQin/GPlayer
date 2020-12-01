@@ -18,24 +18,36 @@ extern "C" {
 class GPlayerEngine {
 
 public:
-    GPlayerEngine(jobject jAVSource);
+    GPlayerEngine(int channelId, jobject jAVSource);
 
     ~GPlayerEngine();
 
-    void onInit();
+public:
+    void av_init(MediaInfo *header);
 
-    void onRelease();
+    uint32_t av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
+                           uint64_t u64InputPTS, uint64_t u64InputDTS, int flag);
 
-    MediaSource *getInputSource() const;
+    uint32_t av_feed_video(uint8_t *pInputBuf, uint32_t dwInputDataSize,
+                           uint64_t u64InputPTS, uint64_t u64InputDTS, int flag);
 
-    MediaSourceJni *getOutputSource() const;
+    void av_destroy();
+
+    void av_error(int code, char *msg);
+
+public:
+    void start();
+
+    void stop();
+
+    void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, MediaInfo *mediaInfo);
 
     bool isDemuxingLoop() { return isDemuxing; }
 
-    void stopDemuxingLoop();
-
 private:
-    void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, MediaInfo *mediaInfo);
+    void startDecode();
+
+    void stopDecode();
 
     void onAudioThreadStart();
 
@@ -54,15 +66,13 @@ private:
     MediaSourceJni *outputSource;
 
 private:
-    bool decodeFlag;
     bool mediaCodecFlag;
     CommonThread *audioEngineThread;
     CommonThread *videoEngineThread;
     DemuxingThread *demuxingThread;
-    bool isRelease{};
-    bool isStopping{};
     Interceptor *codeInterceptor;
     char *mUrl;
+    int mChannelId;
     bool isDemuxing;
 };
 

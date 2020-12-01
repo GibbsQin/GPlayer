@@ -32,7 +32,7 @@ void MediaSourceJni::createJni(jobject obj) {
     getUrlMethodId = env->GetMethodID(p2pSourceClass, "getUrl", "()Ljava/lang/String;");
     getFlagMethodId = env->GetMethodID(p2pSourceClass, "getFlag", "()I");
     onInitMethodId = env->GetMethodID(p2pSourceClass, "onInit",
-                                      "(ILcom/gibbs/gplayer/media/MediaInfo;)V");
+                                      "(Lcom/gibbs/gplayer/media/MediaInfo;)V");
     onReceiveAudioMethodId = env->GetMethodID(p2pSourceClass, "onReceiveAudio",
                                               "(Lcom/gibbs/gplayer/media/MediaData;)I");
     onReceiveVideoMethodId = env->GetMethodID(p2pSourceClass, "onReceiveVideo",
@@ -118,12 +118,12 @@ void MediaSourceJni::sendVideoPacketSize2Java(int size) {
     }
 }
 
-void MediaSourceJni::callJavaInitMethod(MediaInfo *header, int channelId) {
+void MediaSourceJni::callJavaInitMethod(MediaInfo *header) {
     LOGI(TAG, "callJavaInitMethod");
     if (p2pSourceJObj && onInitMethodId) {
         bool attach = JniHelper::attachCurrentThread();
         jobject jdata = MediaInfoJni::createJobject(header);
-        JniHelper::callVoidMethod(p2pSourceJObj, onInitMethodId, channelId, jdata);
+        JniHelper::callVoidMethod(p2pSourceJObj, onInitMethodId, jdata);
         JniHelper::deleteLocalRef(jdata);
         if (attach) {
             JniHelper::detachCurrentThread();

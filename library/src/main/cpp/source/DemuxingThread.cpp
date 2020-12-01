@@ -11,7 +11,9 @@ DemuxingThread::DemuxingThread(std::function<void(char*, int, FfmpegCallback, Me
 
 DemuxingThread::~DemuxingThread() {
     if (mThread) {
-        mThread->join();
+        if (mThread->joinable()) {
+            mThread->join();
+        }
         mThread = nullptr;
     }
 }

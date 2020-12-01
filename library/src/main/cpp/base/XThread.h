@@ -14,7 +14,7 @@ public:
 
     virtual bool stop();
 
-    void join() {/*mThread->join();*/}
+    void join() { mThread->join(); }
 
     bool isAlive() { return mRunning; }
 
