@@ -47,15 +47,12 @@ class PlayListActivity : BaseActivity() {
                     val intent : Intent = when (SettingsSPUtils.instance.getGPlayerStyle(this@PlayListActivity)) {
                         "simple" -> Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
                         "external" -> Intent(this@PlayListActivity, ExternalGPlayerViewActivity::class.java)
-                        "open_gl" -> Intent(this@PlayListActivity, GLSurfaceGPlayerActivity::class.java)
-                        else -> Intent(this@PlayListActivity, GLSurfaceGPlayerActivity::class.java)
+                        else -> Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
                     }
                     intent.putExtra("url", videoItem.videoPath)
-                    val decodeSource = SettingsSPUtils.instance.isDecodeSource(this@PlayListActivity)
                     val useMediaCodec = SettingsSPUtils.instance.isMediaCodec(this@PlayListActivity)
-                    intent.putExtra("decodeSource", decodeSource)
                     intent.putExtra("useMediaCodec", useMediaCodec)
-                    LogUtils.i("PlayListActivity", "decodeSource = $decodeSource, useMediaCodec = $useMediaCodec")
+                    LogUtils.i("PlayListActivity", "useMediaCodec = $useMediaCodec")
                     startActivity(intent)
                 }
             }

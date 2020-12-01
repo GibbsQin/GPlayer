@@ -46,14 +46,14 @@ void MediaSource::onRelease() {
 }
 
 void MediaSource::flushBuffer() {
-    LOGI(TAG, "flushBuffer start");
+    LOGI(TAG, "CoreFlow : flushBuffer start");
     mVideoLock.lock();
     mAudioLock.lock();
     flushAudioBuffer();
     flushVideoBuffer();
     mAudioLock.unlock();
     mVideoLock.unlock();
-    LOGI(TAG, "flushBuffer end");
+    LOGI(TAG, "CoreFlow : flushBuffer end");
 }
 
 void MediaSource::flushVideoBuffer() {
@@ -122,4 +122,12 @@ void MediaSource::popVideoBuffer() {
     mVideoLock.lock();
     videoPacketQueue.pop();
     mVideoLock.unlock();
+}
+
+uint32_t MediaSource::getAudioBufferSize() {
+    return audioPacketQueue.size();
+}
+
+uint32_t MediaSource::getVideoBufferSize() {
+    return videoPacketQueue.size();
 }

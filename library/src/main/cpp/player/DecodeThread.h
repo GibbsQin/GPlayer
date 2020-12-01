@@ -1,5 +1,5 @@
-#ifndef GPLAYER_COMMONTHREAD_H
-#define GPLAYER_COMMONTHREAD_H
+#ifndef GPLAYER_DECODETHREAD_H
+#define GPLAYER_DECODETHREAD_H
 
 #include "XThread.h"
 #include <functional>
@@ -9,11 +9,11 @@
 
 using namespace std;
 
-class CommonThread : public XThread {
+class DecodeThread : public XThread {
 public:
-    CommonThread();
+    DecodeThread();
 
-	virtual ~CommonThread();
+	virtual ~DecodeThread();
 
     void setStartFunc(std::function<void(void)> func);
 
@@ -34,4 +34,4 @@ private:
     bool isStarted = false;
 };
 
-#endif //GPLAYER_COMMONTHREAD_H
+#endif //GPLAYER_DECODETHREAD_H

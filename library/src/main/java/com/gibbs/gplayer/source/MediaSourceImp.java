@@ -33,16 +33,12 @@ public class MediaSourceImp implements MediaSource {
         this(url, false);
     }
 
-    public MediaSourceImp(String url, boolean decode) {
-        this(url, decode, false);
-    }
-
-    public MediaSourceImp(String url, boolean decode, boolean mediaCodec) {
+    public MediaSourceImp(String url, boolean mediaCodec) {
         setUrl(url);
         mAudioQueue = new LinkedList<>();
         mVideoQueue = new LinkedList<>();
 
-        LogUtils.i(TAG, "CoreFlow : new MediaSourceImp url = " + url + ", decode = " + decode + ", mediaCodec = "
+        LogUtils.i(TAG, "CoreFlow : new MediaSourceImp url = " + url + ", mediaCodec = "
                 + mediaCodec + ", flag = " + mFlag);
     }
 

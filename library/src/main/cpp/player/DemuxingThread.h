@@ -6,10 +6,10 @@
 #define GPLAYER_DEMUXINGTHREAD_H
 
 #include <thread>
-#include "../media/Media.h"
-
+#include "media/Media.h"
 extern "C" {
-#include "../protocol/remuxing.h"
+#include "demuxing/demuxing.h"
+#include "demuxing/avformat_def.h"
 }
 
 using namespace std;

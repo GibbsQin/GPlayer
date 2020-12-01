@@ -2,13 +2,12 @@
 #define GPLAYER_MEDIAPIPE_H
 
 #include <stdint.h>
-#include "MediaSource.h"
-#include "GPlayerEngine.h"
 #include <map>
-
+#include "MediaSource.h"
+#include "player/GPlayer.h"
 extern "C" {
 #include <codec/ffmpeg/libavformat/avformat.h>
-#include <protocol/remuxing.h>
+#include <demuxing/demuxing.h>
 }
 
 class MediaPipe {
@@ -30,9 +29,9 @@ public:
 
     static void av_format_error(int channel, int code, char *msg);
 
-    static uint32_t av_format_loop_wait(int channel);
+    static LoopFlag av_format_loop_wait(int channel);
 
-    static std::map<long, GPlayerEngine *> sGPlayerMap;
+    static std::map<long, GPlayer *> sGPlayerMap;
 
     static void deleteFromMap(int channelId);
 

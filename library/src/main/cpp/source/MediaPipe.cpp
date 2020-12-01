@@ -3,7 +3,7 @@
 
 #define TAG "GPlayerMgr"
 
-std::map<long, GPlayerEngine *> MediaPipe::sGPlayerMap;
+std::map<long, GPlayer *> MediaPipe::sGPlayerMap;
 
 FfmpegCallback MediaPipe::sFfmpegCallback;
 
@@ -12,7 +12,7 @@ void MediaPipe::av_format_init(int channel, AVFormatContext *ifmt_ctx,
     ffmpeg_extra_audio_info(ifmt_ctx, audioStream, mediaInfo);
     ffmpeg_extra_video_info(ifmt_ctx, videoStream, mediaInfo);
 
-    GPlayerEngine *targetPlayer = sGPlayerMap[channel];
+    GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
         targetPlayer->av_init(mediaInfo);
     }
@@ -20,7 +20,7 @@ void MediaPipe::av_format_init(int channel, AVFormatContext *ifmt_ctx,
 
 void MediaPipe::av_format_extradata_audio(int channel, AVFormatContext *ifmt_ctx,
                                           uint8_t *pInputBuf, uint32_t dwInputDataSize) {
-    GPlayerEngine *targetPlayer = sGPlayerMap[channel];
+    GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
         targetPlayer->av_feed_audio(pInputBuf, dwInputDataSize, 0, 0, 2);
     }
@@ -28,7 +28,7 @@ void MediaPipe::av_format_extradata_audio(int channel, AVFormatContext *ifmt_ctx
 
 void MediaPipe::av_format_extradata_video(int channel, AVFormatContext *ifmt_ctx,
                                           uint8_t *pInputBuf, uint32_t dwInputDataSize) {
-    GPlayerEngine *targetPlayer = sGPlayerMap[channel];
+    GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
         targetPlayer->av_feed_video(pInputBuf, dwInputDataSize, 0, 0, 2);
     }
@@ -36,7 +36,7 @@ void MediaPipe::av_format_extradata_video(int channel, AVFormatContext *ifmt_ctx
 
 uint32_t MediaPipe::av_format_feed_audio(int channel, AVFormatContext *ifmt_ctx, AVPacket *packet) {
     AVRational time_base = ifmt_ctx->streams[packet->stream_index]->time_base;
-    GPlayerEngine *targetPlayer = sGPlayerMap[channel];
+    GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
         return targetPlayer->av_feed_audio(packet->data, packet->size,
                                            ffmpeg_pts2timeus(time_base, packet->pts),
@@ -47,7 +47,7 @@ uint32_t MediaPipe::av_format_feed_audio(int channel, AVFormatContext *ifmt_ctx,
 
 uint32_t MediaPipe::av_format_feed_video(int channel, AVFormatContext *ifmt_ctx, AVPacket *packet) {
     AVRational time_base = ifmt_ctx->streams[packet->stream_index]->time_base;
-    GPlayerEngine *targetPlayer = sGPlayerMap[channel];
+    GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
         targetPlayer->av_feed_video(packet->data, packet->size,
                                     ffmpeg_pts2timeus(time_base, packet->pts),
@@ -58,33 +58,33 @@ uint32_t MediaPipe::av_format_feed_video(int channel, AVFormatContext *ifmt_ctx,
 }
 
 void MediaPipe::av_format_destroy(int channel, AVFormatContext *ifmt_ctx) {
-    GPlayerEngine *targetPlayer = sGPlayerMap[channel];
+    GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
         targetPlayer->av_destroy();
     }
 }
 
 void MediaPipe::av_format_error(int channel, int code, char *msg) {
-    GPlayerEngine *targetPlayer = sGPlayerMap[channel];
+    GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
         targetPlayer->av_error(code, msg);
     }
 }
 
-uint32_t MediaPipe::av_format_loop_wait(int channelId) {
-    GPlayerEngine *targetPlayer = sGPlayerMap[channelId];
+LoopFlag MediaPipe::av_format_loop_wait(int channelId) {
+    GPlayer *targetPlayer = sGPlayerMap[channelId];
     if (targetPlayer != nullptr) {
-        return targetPlayer->isDemuxingLoop() ? 1 : 0;
+        return targetPlayer->isDemuxingLoop();
     }
-    return 0;
+    return BREAK;
 }
 
 void MediaPipe::deleteFromMap(int channelId) {
-    GPlayerEngine *targetPlayer = MediaPipe::sGPlayerMap[channelId];
+    GPlayer *targetPlayer = MediaPipe::sGPlayerMap[channelId];
     delete targetPlayer;
     MediaPipe::sGPlayerMap[channelId] = nullptr;
     MediaPipe::sGPlayerMap.erase(static_cast<const long &>(channelId));
-    LOGE(TAG, "deleteFromMap channelId %d, current sGPlayerMap size = %d", channelId,
+    LOGE(TAG, "CoreFlow : deleteFromMap channelId %d, current sGPlayerMap size = %d", channelId,
          MediaPipe::sGPlayerMap.size());
 }
 

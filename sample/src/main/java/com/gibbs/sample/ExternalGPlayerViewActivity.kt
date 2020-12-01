@@ -14,6 +14,7 @@ import com.gibbs.gplayer.source.OnTimeChangedListener
 import com.gibbs.gplayer.utils.LogUtils
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_external_gplayer.*
+import kotlinx.android.synthetic.main.activity_external_gplayer.gl_surface_view
 import kotlinx.android.synthetic.main.layout_gplayer_top.*
 
 class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
@@ -23,12 +24,11 @@ class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_external_gplayer)
-        val decodeSource = intent.getBooleanExtra("decodeSource", false)
         val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
         val url = intent.getStringExtra("url")
         LogUtils.i(TAG, "url = $url")
-        LogUtils.i(TAG, "decodeSource = $decodeSource, useMediaCodec = $useMediaCodec")
-        gl_surface_view.setUrl(url, decodeSource, useMediaCodec)
+        LogUtils.i(TAG, "useMediaCodec = $useMediaCodec")
+        gl_surface_view.url = url
         gl_surface_view.setPlayStateChangedListener(this)
         gl_surface_view.setOnErrorListener(this)
         gl_surface_view.setOnTimeChangedListener(this)

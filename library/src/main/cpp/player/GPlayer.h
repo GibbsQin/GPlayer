@@ -2,25 +2,26 @@
 // Created by Gibbs on 2020/7/16.
 //
 
-#ifndef GPLAYER_GPLAYERENGINE_H
-#define GPLAYER_GPLAYERENGINE_H
+#ifndef GPLAYER_GPLAYER_H
+#define GPLAYER_GPLAYER_H
 
 #include <interceptor/CodecInterceptor.h>
-#include "CommonThread.h"
+#include "DecodeThread.h"
 #include "MediaSource.h"
 #include "MediaSourceJni.h"
 #include "DemuxingThread.h"
-
 extern "C" {
-#include <protocol/remuxing.h>
+#include <demuxing/demuxing.h>
 }
 
-class GPlayerEngine {
+#define MAX_BUFFER_SIZE 30
+
+class GPlayer {
 
 public:
-    GPlayerEngine(int channelId, jobject jAVSource);
+    GPlayer(int channelId, jobject jAVSource);
 
-    ~GPlayerEngine();
+    ~GPlayer();
 
 public:
     void av_init(MediaInfo *header);
@@ -42,7 +43,7 @@ public:
 
     void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, MediaInfo *mediaInfo);
 
-    bool isDemuxingLoop() { return isDemuxing; }
+    LoopFlag isDemuxingLoop();
 
 private:
     void startDecode();
@@ -67,14 +68,14 @@ private:
 
 private:
     bool mediaCodecFlag;
-    CommonThread *audioEngineThread;
-    CommonThread *videoEngineThread;
-    DemuxingThread *demuxingThread;
-    Interceptor *codeInterceptor;
     char *mUrl;
     int mChannelId;
-    bool isDemuxing;
+    bool isDemuxing{};
+    DecodeThread *audioEngineThread;
+    DecodeThread *videoEngineThread;
+    DemuxingThread *demuxingThread{};
+    Interceptor *codeInterceptor;
 };
 
 
-#endif //GPLAYER_GPLAYERENGINE_H
+#endif //GPLAYER_GPLAYER_H

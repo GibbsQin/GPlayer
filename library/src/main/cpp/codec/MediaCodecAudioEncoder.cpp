@@ -5,7 +5,7 @@
 #include <base/Log.h>
 #include "MediaCodecAudioEncoder.h"
 extern "C" {
-#include <protocol/avformat_def.h>
+#include <demuxing/avformat_def.h>
 }
 
 #define TAG "MediaCodecAudioEncoder"

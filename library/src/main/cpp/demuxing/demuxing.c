@@ -1,7 +1,7 @@
 #include <android/log.h>
 #include <codec/ffmpeg/libavutil/timestamp.h>
 #include <unistd.h>
-#include "remuxing.h"
+#include "demuxing.h"
 
 #define LOG_LEVEL ANDROID_LOG_INFO
 
@@ -105,6 +105,7 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
 
     ffmpegLog(ANDROID_LOG_INFO, "audio_stream_index = %d, video_stream_index = %d, stream_mapping_size = %d\n",
          audio_stream_index, video_stream_index, stream_mapping_size);
+    ffmpegLog(ANDROID_LOG_INFO, "extensions %s", ifmt_ctx->iformat->extensions);
 
     ffmpegLog(ANDROID_LOG_INFO, "av_init\n");
     callback.av_format_init(channelId, ifmt_ctx, ifmt_ctx->streams[audio_stream_index],
@@ -118,7 +119,28 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
                                        ifmt_ctx->streams[audio_stream_index]->codecpar->extradata,
                                        (uint32_t) ifmt_ctx->streams[audio_stream_index]->codecpar->extradata_size);
 
-    while (callback.av_format_loop_wait(channelId) == 1) {
+    int needStreamFilter = ifmt_ctx->iformat->extensions != NULL;
+    AVBSFContext *video_abs_ctx = NULL;
+    const AVBitStreamFilter *video_abs_filter = NULL;
+    if (needStreamFilter) {
+        AVCodecParameters *in_codecpar = ifmt_ctx->streams[video_stream_index]->codecpar;
+        if (in_codecpar->codec_id == AV_CODEC_ID_HEVC) {
+            video_abs_filter = av_bsf_get_by_name("hevc_mp4toannexb");
+        } else if (in_codecpar->codec_id == AV_CODEC_ID_H264) {
+            video_abs_filter = av_bsf_get_by_name("h264_mp4toannexb");
+        }
+        av_bsf_alloc(video_abs_filter, &video_abs_ctx);
+        avcodec_parameters_copy(video_abs_ctx->par_in, in_codecpar);
+        av_bsf_init(video_abs_ctx);
+    }
+
+    while (1) {
+        LoopFlag loop_flag = callback.av_format_loop_wait(channelId);
+        if (loop_flag == CONTINUE) {
+            continue;
+        } else if (loop_flag == BREAK) {
+            break;
+        }
         ret = av_read_frame(ifmt_ctx, &pkt);
         if (ret < 0)
             break;
@@ -140,7 +162,17 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
             callback.av_format_feed_audio(channelId, ifmt_ctx, &pkt);
         } else if (pkt.stream_index == video_stream_index) {
             print_packet(ifmt_ctx, &pkt, "video");
-            callback.av_format_feed_video(channelId, ifmt_ctx, &pkt);
+            if (needStreamFilter) {
+                av_bsf_send_packet(video_abs_ctx, &pkt);
+                while (av_bsf_receive_packet(video_abs_ctx, &pkt) == 0) {
+                    if (pkt.size <= 0) {
+                        continue;
+                    }
+                    callback.av_format_feed_video(channelId, ifmt_ctx, &pkt);
+                }
+            } else {
+                callback.av_format_feed_video(channelId, ifmt_ctx, &pkt);
+            }
         }
 
         if (ret < 0) {
@@ -158,6 +190,11 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
     avformat_close_input(&ifmt_ctx);
 
     av_freep(&stream_mapping);
+
+    if (needStreamFilter) {
+        av_bsf_free(&video_abs_ctx);
+        video_abs_ctx = NULL;
+    }
 
     if (ret < 0 && ret != AVERROR_EOF) {
         ffmpegLog(ANDROID_LOG_ERROR, "Error occurred: %s\n", av_err2str(ret));

@@ -4,7 +4,6 @@
     <string name="settings">Settings</string>
     <string name="software_introduce">Software introduce</string>
     <string name="decode_option">Decode option</string>
-    <string name="decode_layer">decode layer</string>
     <string name="decode_type">decode type</string>
     <string name="style">style</string>
     <string name="gplayer_style">GPlayer style</string>

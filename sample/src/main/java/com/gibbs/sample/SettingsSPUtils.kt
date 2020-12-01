@@ -16,10 +16,6 @@ class SettingsSPUtils {
         return sf.getString(key, defaultValue)
     }
 
-    private fun getCodecLayer(context: Context): String? {
-        return getString(context, CODEC_SOURCE)
-    }
-
     private fun getCodecType(context: Context): String? {
         return getString(context, CODEC_TYPE)
     }
@@ -28,17 +24,12 @@ class SettingsSPUtils {
         return getString(context, GPLAYER_STYLE, "external")
     }
 
-    fun isDecodeSource(context: Context): Boolean {
-        return getCodecLayer(context) == "1"
-    }
-
     fun isMediaCodec(context: Context): Boolean {
         return getCodecType(context) == "2"
     }
 
     companion object {
         private const val SP_FILE = "com.gibbs.gplayer_preferences"
-        const val CODEC_SOURCE = "codec_source"
         const val CODEC_TYPE = "codec_type"
         const val GPLAYER_STYLE = "gplayer_style"
         val instance: SettingsSPUtils

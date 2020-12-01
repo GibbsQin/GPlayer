@@ -5,17 +5,6 @@
         app:iconSpaceReserved="false">
 
         <ListPreference
-            app:key="codec_source"
-            app:title="@string/decode_layer"
-            app:iconSpaceReserved="false"
-            app:entries="@array/codec_layer_name"
-            app:entryValues="@array/codec_layer"
-            app:defaultValue="1"
-            app:useSimpleSummaryProvider="true"
-            app:allowDividerAbove="true"/>
-
-        <ListPreference
-            app:dependency="codec_source"
             app:key="codec_type"
             app:iconSpaceReserved="false"
             app:title="@string/decode_type"

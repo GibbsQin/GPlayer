@@ -9,7 +9,7 @@
 #include <codec/MediaCodecAudioDecoder.h>
 #include "CodecInterceptor.h"
 extern "C" {
-#include <protocol/avformat_def.h>
+#include <demuxing/avformat_def.h>
 }
 
 #define TAG "CodecInterceptor"

@@ -4,7 +4,6 @@
     <string name="settings">设置</string>
     <string name="software_introduce">软件介绍</string>
     <string name="decode_option">解码选项</string>
-    <string name="decode_layer">解码层</string>
     <string name="decode_type">解码类型</string>
     <string name="style">风格</string>
     <string name="gplayer_style">GPlayer风格</string>

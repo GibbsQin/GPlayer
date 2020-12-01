@@ -59,12 +59,8 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         this(view, new MediaSourceImp(url));
     }
 
-    public GPlayer(GLSurfaceView view, String url, boolean decode) {
-        this(view, new MediaSourceImp(url, decode));
-    }
-
-    public GPlayer(GLSurfaceView view, String url, boolean decode, boolean mediaCodec) {
-        this(view, new MediaSourceImp(url, decode, mediaCodec));
+    public GPlayer(GLSurfaceView view, String url, boolean mediaCodec) {
+        this(view, new MediaSourceImp(url, mediaCodec));
     }
 
     public GPlayer(GLSurfaceView view, MediaSource source) {

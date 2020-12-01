@@ -18,11 +18,9 @@ include_directories(
         base
         codec
         codec/ffmpeg
+        demuxing
         interceptor
-        protocol
-        protocol/file
-        protocol/stream
-        protocol/p2p
+        player
         render
         sender
         source
@@ -34,11 +32,9 @@ aux_source_directory(media SRC_MEDIA)
 aux_source_directory(base SRC_BASE)
 aux_source_directory(codec SRC_CODEC)
 aux_source_directory(codec/ffmpeg SRC_CODEC_FFMPEG)
+aux_source_directory(demuxing SRC_DEMUXING)
 aux_source_directory(interceptor SRC_INTERCEPTOR)
-aux_source_directory(protocol SRC_PROTOCOL)
-aux_source_directory(protocol/file SRC_PROTOCOL_FILE)
-aux_source_directory(protocol/stream SRC_PROTOCOL_STREAM)
-aux_source_directory(protocol/p2p SRC_PROTOCOL_P2P)
+aux_source_directory(player SRC_PLAYER)
 aux_source_directory(render SRC_RENDER)
 aux_source_directory(source SRC_SOURCE)
 aux_source_directory(utils SRC_UTILS)
@@ -48,11 +44,9 @@ list(APPEND SRC
         ${SRC_BASE}
         ${SRC_CODEC}
         ${SRC_CODEC_FFMPEG}
+        ${SRC_DEMUXING}
         ${SRC_INTERCEPTOR}
-        ${SRC_PROTOCOL}
-        ${SRC_PROTOCOL_FILE}
-        ${SRC_PROTOCOL_STREAM}
-        ${SRC_PROTOCOL_P2P}
+        ${SRC_PLAYER}
         ${SRC_RENDER}
         ${SRC_SOURCE}
         ${SRC_UTILS})

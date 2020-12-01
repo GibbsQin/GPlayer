@@ -1,14 +1,14 @@
-#include "CommonThread.h"
+#include "DecodeThread.h"
 
 #include <utility>
 
-CommonThread::CommonThread() {
-    setFunction(std::bind(&CommonThread::handleRunning, this));
+DecodeThread::DecodeThread() {
+    setFunction(std::bind(&DecodeThread::handleRunning, this));
 }
 
-CommonThread::~CommonThread()= default;
+DecodeThread::~DecodeThread()= default;
 
-void CommonThread::handleRunning() {
+void DecodeThread::handleRunning() {
     int64_t time;
 
     if (startFunc) {
@@ -37,18 +37,18 @@ void CommonThread::handleRunning() {
     isStarted = false;
 }
 
-void CommonThread::setStartFunc(std::function<void(void)> func) {
+void DecodeThread::setStartFunc(std::function<void(void)> func) {
     startFunc = std::move(func);
 }
 
-void CommonThread::setUpdateFunc(std::function<int(void)> func) {
+void DecodeThread::setUpdateFunc(std::function<int(void)> func) {
     updateFunc = std::move(func);
 }
 
-void CommonThread::setEndFunc(std::function<void(void)> func) {
+void DecodeThread::setEndFunc(std::function<void(void)> func) {
     endFunc = std::move(func);
 }
 
-bool CommonThread::hasStarted() {
+bool DecodeThread::hasStarted() {
     return isStarted;
 }

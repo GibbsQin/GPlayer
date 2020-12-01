@@ -1,9 +1,4 @@
 <resources>
-    <string-array name="codec_layer_name">
-        <item>在jni层进行解码</item>
-        <item>在java层进行解码</item>
-    </string-array>
-
     <string-array name="codec_type_name">
         <item>软解</item>
         <item>硬解</item>
@@ -12,12 +7,10 @@
     <string-array name="gplayer_style">
         <item>simple</item>
         <item>external</item>
-        <item>open_gl</item>
     </string-array>
 
     <string-array name="gplayer_style_name">
         <item>简单GPlayerView</item>
         <item>拓展GPlayerView</item>
-        <item>GLSurfaceView+GPlayer</item>
     </string-array>
 </resources>

@@ -37,7 +37,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_GPlayer_nInit(JNIEnv *env, jobject clazz, jint channelId, jobject jAVSource) {
-    auto pGPlayerImp = new GPlayerEngine(channelId, jAVSource);
+    auto pGPlayerImp = new GPlayer(channelId, jAVSource);
     MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
 }
 
