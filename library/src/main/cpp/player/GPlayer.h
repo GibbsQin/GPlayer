@@ -14,6 +14,8 @@ extern "C" {
 #include <demuxing/demuxing.h>
 }
 
+#define AV_FLAG_SOURCE_MEDIA_CODEC 0x00000002
+
 #define MAX_BUFFER_SIZE 30
 
 class GPlayer {

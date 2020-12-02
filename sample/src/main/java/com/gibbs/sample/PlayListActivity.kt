@@ -40,7 +40,7 @@ class PlayListActivity : BaseActivity() {
                 val videoItem = mVideoList[position]
                 holder.videoName.text = videoItem.name
                 Glide.with(this@PlayListActivity)
-                        .applyDefaultRequestOptions(RequestOptions().centerCrop())
+                        .applyDefaultRequestOptions(RequestOptions().centerCrop().error(R.drawable.ic_video_play))
                         .load(videoItem.videoPath)
                         .into(holder.videoThumbnail)
                 holder.rootView.setOnClickListener {
@@ -50,6 +50,7 @@ class PlayListActivity : BaseActivity() {
                         else -> Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
                     }
                     intent.putExtra("url", videoItem.videoPath)
+                    intent.putExtra("name", videoItem.name)
                     val useMediaCodec = SettingsSPUtils.instance.isMediaCodec(this@PlayListActivity)
                     intent.putExtra("useMediaCodec", useMediaCodec)
                     LogUtils.i("PlayListActivity", "useMediaCodec = $useMediaCodec")

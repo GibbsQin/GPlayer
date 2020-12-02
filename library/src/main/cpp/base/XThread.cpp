@@ -35,3 +35,9 @@ bool XThread::stop() {
 
     return true;
 }
+
+void XThread::join() {
+    if (mRunning && mThread != nullptr && mThread->joinable()) {
+        mThread->join();
+    }
+}

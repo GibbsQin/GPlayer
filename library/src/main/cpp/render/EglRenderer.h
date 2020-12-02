@@ -1,13 +1,11 @@
 #ifndef EGL_RENDERER_H
 #define EGL_RENDERER_H
 
-#include <cstdint>
-#include <unistd.h>
-#include <pthread.h>
-#include <android/native_window.h> // requires ndk r5 or newer
-#include <EGL/egl.h> // requires ndk r5 or newer
-#include <GLES/gl.h>
+#include <android/native_window.h>
+#include <EGL/egl.h>
+#include <GLES2/gl2.h>
 #include <base/Log.h>
+#include "YuvGlesProgram.h"
 
 class EglRenderer {
 
@@ -22,9 +20,12 @@ public:
 
     void destroy();
 
+    void buildTextures(char *y, char *u, char *v, uint32_t width, uint32_t height);
+
     void drawFrame();
 
 private:
+    YuvGlesProgram *_glProgram;
     ANativeWindow *_window{};
 
     EGLDisplay _display{};

@@ -2,9 +2,13 @@
 
 #define TAG "EglRenderer"
 
-EglRenderer::EglRenderer() = default;
+EglRenderer::EglRenderer() {
+    _glProgram = new YuvGlesProgram();
+}
 
-EglRenderer::~EglRenderer() = default;
+EglRenderer::~EglRenderer() {
+    delete _glProgram;
+}
 
 void EglRenderer::setWindow(ANativeWindow *window) {
     _window = window;
@@ -80,6 +84,8 @@ bool EglRenderer::initialize() {
     _surface = surface;
     _context = context;
 
+    _glProgram->buildProgram();
+
     glClearColor(0, 0, 0, 0);
     glViewport(0, 0, width, height);
 
@@ -99,8 +105,14 @@ void EglRenderer::destroy() {
     _context = EGL_NO_CONTEXT;
 }
 
+void EglRenderer::buildTextures(char *y, char *u, char *v, uint32_t width, uint32_t height) {
+    _glProgram->buildTextures(y, u, v, width, height);
+}
+
 void EglRenderer::drawFrame() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    _glProgram->drawFrame();
 
     if (_display) {
         if (!eglSwapBuffers(_display, _surface)) {

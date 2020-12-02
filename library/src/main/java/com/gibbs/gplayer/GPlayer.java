@@ -82,7 +82,7 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     }
 
     private AudioRender createAudioRender(MediaSource source) {
-        return new PcmAudioRender(mMediaSource);
+        return new PcmAudioRender(source);
     }
 
     private VideoRender createVideoRender(GLSurfaceView view, MediaSource source) {

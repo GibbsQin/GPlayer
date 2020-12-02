@@ -16,7 +16,7 @@ static void ffmpegLog(int level, const char *fmt, ...) {
     va_list arglist;
     va_start(arglist, fmt);
 
-    ret = vsnprintf(buf, len - 1, fmt, arglist);
+    ret = vsnprintf(buf, (size_t) (len - 1), fmt, arglist);
     if (ret < 0) {
         buf[len - 1] = 0;
         buf[len - 2] = '\n';
@@ -220,7 +220,7 @@ void ffmpeg_extra_video_info(AVFormatContext *ifmt_ctx, AVStream *stream, MediaI
     mediaInfo->videoType = in_codecpar->codec_id;
     mediaInfo->videoWidth = in_codecpar->width;
     mediaInfo->videoHeight = in_codecpar->height;
-    mediaInfo->videoFrameRate = (stream->r_frame_rate.num / stream->r_frame_rate.den + 0.5f);
+    mediaInfo->videoFrameRate = (int) (stream->r_frame_rate.num / stream->r_frame_rate.den + 0.5f);
     AVDictionaryEntry *tag = NULL;
     tag = av_dict_get(stream->metadata, "rotate", tag, AV_DICT_IGNORE_SUFFIX);
     if (tag != NULL) {

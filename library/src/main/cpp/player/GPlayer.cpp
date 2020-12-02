@@ -70,7 +70,7 @@ uint32_t GPlayer::av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
     avData->size = dwInputDataSize;
     avData->pts = u64InputPTS;
     avData->dts = u64InputDTS;
-    avData->flag = flag;
+    avData->flag = static_cast<uint8_t>(flag);
 
     return inputSource->onReceiveAudio(avData);
 }
@@ -83,7 +83,7 @@ uint32_t GPlayer::av_feed_video(uint8_t *pInputBuf, uint32_t dwInputDataSize,
     avData->size = dwInputDataSize;
     avData->pts = u64InputPTS;
     avData->dts = u64InputDTS;
-    avData->flag = flag;
+    avData->flag = static_cast<uint8_t>(flag);
 
     return inputSource->onReceiveVideo(avData);
 }
@@ -142,12 +142,12 @@ void GPlayer::startDecode() {
 void GPlayer::stopDecode() {
     if (audioEngineThread && audioEngineThread->hasStarted()) {
         audioEngineThread->stop();
+        audioEngineThread->join();
     }
     if (videoEngineThread && videoEngineThread->hasStarted()) {
         videoEngineThread->stop();
+        videoEngineThread->join();
     }
-    audioEngineThread->join();
-    videoEngineThread->join();
 }
 
 void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback,
@@ -179,9 +179,8 @@ int GPlayer::processAudioBuffer() {
         return 0;
     }
     outputSource->sendAudioPacketSize2Java(ret);
-    int inputResult = -1;
     int mediaSize = 0;
-    inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_AUDIO);
+    int inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_AUDIO);
     MediaData *outBuffer;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
     if (ret >= 0) {
@@ -211,9 +210,8 @@ int GPlayer::processVideoBuffer() {
         return 0;
     }
     outputSource->sendVideoPacketSize2Java(ret);
-    int inputResult = -1;
     int mediaSize = 0;
-    inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_VIDEO);
+    int inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_VIDEO);
     MediaData *outBuffer;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
     if (ret >= 0) {

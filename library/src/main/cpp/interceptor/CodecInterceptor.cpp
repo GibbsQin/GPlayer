@@ -33,7 +33,7 @@ int CodecInterceptor::onInit(MediaInfo *header) {
     }
     hasInit = true;
     bool ffmpegSupport = header->audioType > CODEC_START && header->audioType < CODEC_END;
-    bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->audioType);
+    bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->audioType) != "";
     LOGI(TAG, "CoreFlow : onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
             ffmpegSupport, mediaCodecSupport, mediaCodecFirst);
     isAudioAvailable = (ffmpegSupport || mediaCodecSupport);
@@ -56,7 +56,7 @@ int CodecInterceptor::onInit(MediaInfo *header) {
             }
         }
         auto audioDataSize = header->sampleNumPerFrame * header->audioBitWidth * header->audioChannels;
-        audioOutFrame.data = (uint8_t *) malloc(audioDataSize);
+        audioOutFrame.data = (uint8_t *) malloc(static_cast<size_t>(audioDataSize));
         audioOutFrame.data1 = nullptr;
         audioOutFrame.data2 = nullptr;
         audioOutFrame.size = 0;
@@ -73,7 +73,7 @@ int CodecInterceptor::onInit(MediaInfo *header) {
     }
 
     ffmpegSupport = header->videoType > CODEC_START && header->videoType < CODEC_END;
-    mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->videoType);
+    mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->videoType) != "";
     isVideoAvailable = (ffmpegSupport || mediaCodecSupport);
     if (isVideoAvailable) {
         if (mediaCodecFirst) {
@@ -94,9 +94,9 @@ int CodecInterceptor::onInit(MediaInfo *header) {
             }
         }
         auto videoDataSize = header->videoWidth * header->videoHeight;
-        videoOutFrame.data = (uint8_t *) malloc(videoDataSize);
-        videoOutFrame.data1 = (uint8_t *) malloc(videoDataSize / 4);
-        videoOutFrame.data2 = (uint8_t *) malloc(videoDataSize / 4);
+        videoOutFrame.data = (uint8_t *) malloc(static_cast<size_t>(videoDataSize));
+        videoOutFrame.data1 = (uint8_t *) malloc(static_cast<size_t>(videoDataSize / 4));
+        videoOutFrame.data2 = (uint8_t *) malloc(static_cast<size_t>(videoDataSize / 4));
         videoOutFrame.size = 0;
         videoOutFrame.size1 = 0;
         videoOutFrame.size2 = 0;

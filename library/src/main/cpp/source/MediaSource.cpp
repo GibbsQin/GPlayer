@@ -1,8 +1,6 @@
 #include <media/MediaInfoJni.h>
 #include <media/MediaDataJni.h>
 #include <base/Log.h>
-#include <utils/JniHelper.h>
-#include <unistd.h>
 #include "MediaSource.h"
 
 #define TAG "MediaSourceC"
@@ -30,19 +28,61 @@ void MediaSource::onInit(MediaInfo *header) {
 uint32_t MediaSource::onReceiveAudio(MediaData *inPacket) {
     uint32_t queueSize = 0;
     audioPacketQueue.push(inPacket);
-    queueSize = audioPacketQueue.size();
+    queueSize = static_cast<uint32_t>(audioPacketQueue.size());
     return queueSize;
 }
 
 uint32_t MediaSource::onReceiveVideo(MediaData *inPacket) {
     uint32_t queueSize = 0;
     videoPacketQueue.push(inPacket);
-    queueSize = videoPacketQueue.size();
+    queueSize = static_cast<uint32_t>(videoPacketQueue.size());
     return queueSize;
 }
 
 void MediaSource::onRelease() {
     LOGE(TAG, "CoreFlow : onRelease");
+}
+
+MediaInfo *MediaSource::getAVHeader() {
+    return mAVHeader;
+}
+
+int MediaSource::readAudioBuffer(MediaData **avData) {
+    if (audioPacketQueue.empty()) {
+        return AV_SOURCE_EMPTY;
+    }
+    *avData = audioPacketQueue.front();
+    if (!(*avData)) {
+        LOGE(TAG, "readAudioBuffer item is null");
+        popAudioBuffer();
+        return 0;
+    }
+    return static_cast<int>(audioPacketQueue.size());
+}
+
+int MediaSource::readVideoBuffer(MediaData **avData) {
+    if (videoPacketQueue.empty()) {
+        return AV_SOURCE_EMPTY;
+    }
+    *avData = videoPacketQueue.front();
+    if (!(*avData)) {
+        LOGE(TAG, "readVideoBuffer item is null");
+        popVideoBuffer();
+        return 0;
+    }
+    return static_cast<int>(videoPacketQueue.size());
+}
+
+void MediaSource::popAudioBuffer() {
+    mAudioLock.lock();
+    audioPacketQueue.pop();
+    mAudioLock.unlock();
+}
+
+void MediaSource::popVideoBuffer() {
+    mVideoLock.lock();
+    videoPacketQueue.pop();
+    mVideoLock.unlock();
 }
 
 void MediaSource::flushBuffer() {
@@ -60,7 +100,9 @@ void MediaSource::flushVideoBuffer() {
     while (!videoPacketQueue.empty()) {
         MediaData *videoItem = videoPacketQueue.front();
         if (videoItem) {
-            free(videoItem->data);
+            if (videoItem->data) {
+                free(videoItem->data);
+            }
             delete videoItem;
         } else {
             LOGE(TAG, "videoItem is null");
@@ -73,7 +115,9 @@ void MediaSource::flushAudioBuffer() {
     while (!audioPacketQueue.empty()) {
         MediaData *audioItem = audioPacketQueue.front();
         if (audioItem) {
-            free(audioItem->data);
+            if (audioItem->data) {
+                free(audioItem->data);
+            }
             delete audioItem;
         } else {
             LOGE(TAG, "audioItem is null");
@@ -82,52 +126,10 @@ void MediaSource::flushAudioBuffer() {
     }
 }
 
-MediaInfo *MediaSource::getAVHeader() {
-    return mAVHeader;
-}
-
-int MediaSource::readAudioBuffer(MediaData **avData) {
-    if (audioPacketQueue.empty()) {
-        return AV_SOURCE_EMPTY;
-    }
-    *avData = audioPacketQueue.front();
-    if (!(*avData)) {
-        LOGE(TAG, "readAudioBuffer item is null");
-        audioPacketQueue.pop();
-        return 0;
-    }
-    return audioPacketQueue.size();
-}
-
-int MediaSource::readVideoBuffer(MediaData **avData) {
-    if (videoPacketQueue.empty()) {
-        return AV_SOURCE_EMPTY;
-    }
-    *avData = videoPacketQueue.front();
-    if (!(*avData)) {
-        LOGE(TAG, "readVideoBuffer item is null");
-        videoPacketQueue.pop();
-        return 0;
-    }
-    return videoPacketQueue.size();
-}
-
-void MediaSource::popAudioBuffer() {
-    mAudioLock.lock();
-    audioPacketQueue.pop();
-    mAudioLock.unlock();
-}
-
-void MediaSource::popVideoBuffer() {
-    mVideoLock.lock();
-    videoPacketQueue.pop();
-    mVideoLock.unlock();
-}
-
 uint32_t MediaSource::getAudioBufferSize() {
-    return audioPacketQueue.size();
+    return static_cast<uint32_t>(audioPacketQueue.size());
 }
 
 uint32_t MediaSource::getVideoBufferSize() {
-    return videoPacketQueue.size();
+    return static_cast<uint32_t>(videoPacketQueue.size());
 }

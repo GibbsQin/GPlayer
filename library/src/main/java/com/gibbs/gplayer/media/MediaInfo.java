@@ -72,10 +72,10 @@ public class MediaInfo {
 
 
     //数据字典
-    public Map<String, Object> map;
+    private Map<String, Object> map;
 
     public MediaInfo() {
-        map = new HashMap();
+        map = new HashMap<>();
     }
 
     /**

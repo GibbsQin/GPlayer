@@ -5,23 +5,18 @@
 #include <jni.h>
 #include <string>
 #include <queue>
-#include "Codec.h"
-#include "player/DecodeThread.h"
+#include <mutex>
 
 #define AV_SOURCE_EMPTY -2
-
-#define AV_FLAG_SOURCE_MEDIA_CODEC 0x00000002
 
 class MediaSource {
 
 public:
-
     MediaSource();
 
     ~MediaSource();
 
-    MediaInfo* getAVHeader();
-
+public:
     void onInit(MediaInfo *header);
 
     uint32_t onReceiveAudio(MediaData *inPacket);
@@ -30,23 +25,27 @@ public:
 
     void onRelease();
 
-    void flushBuffer();
+public:
+    MediaInfo *getAVHeader();
 
-    void flushAudioBuffer();
+    int readAudioBuffer(MediaData **avData);
 
-    void flushVideoBuffer();
-
-    int readAudioBuffer(MediaData** avData);
-
-    int readVideoBuffer(MediaData** avData);
+    int readVideoBuffer(MediaData **avData);
 
     void popAudioBuffer();
 
     void popVideoBuffer();
 
+    void flushBuffer();
+
     uint32_t getAudioBufferSize();
 
     uint32_t getVideoBufferSize();
+
+private:
+    void flushAudioBuffer();
+
+    void flushVideoBuffer();
 
 private:
     MediaInfo *mAVHeader;

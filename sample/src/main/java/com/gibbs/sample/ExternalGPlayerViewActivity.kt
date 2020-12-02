@@ -26,14 +26,17 @@ class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
         setContentView(R.layout.activity_external_gplayer)
         val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
         val url = intent.getStringExtra("url")
-        LogUtils.i(TAG, "url = $url")
+        val name = intent.getStringExtra("name")
+        LogUtils.i(TAG, "url = $url, name = $name")
         LogUtils.i(TAG, "useMediaCodec = $useMediaCodec")
         gl_surface_view.url = url
         gl_surface_view.setPlayStateChangedListener(this)
         gl_surface_view.setOnErrorListener(this)
         gl_surface_view.setOnTimeChangedListener(this)
         gl_surface_view.setOnSourceSizeChangedListener(this)
-        if (url != null) {
+        if (name != null) {
+            title = name
+        } else if (url != null) {
             val urlSplit = url.split("/".toRegex()).toTypedArray()
             title = urlSplit[urlSplit.size - 1]
         }
