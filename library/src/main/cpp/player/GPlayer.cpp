@@ -140,6 +140,7 @@ void GPlayer::startDecode() {
         playerJni->onMessageCallback(0, 1, 0, "not support this codec", nullptr);
     }
     outputSource->onInit(header);
+    playerJni->onMessageCallback(1, 2, 0, nullptr, nullptr);
 }
 
 void GPlayer::stopDecode() {
@@ -151,6 +152,7 @@ void GPlayer::stopDecode() {
         videoEngineThread->stop();
         videoEngineThread->join();
     }
+    playerJni->onMessageCallback(1, 5, 0, nullptr, nullptr);
 }
 
 void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback,

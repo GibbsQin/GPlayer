@@ -3,24 +3,19 @@ package com.gibbs.gplayer;
 import android.content.Context;
 import android.opengl.GLSurfaceView;
 
+import com.gibbs.gplayer.listener.OnStateChangedListener;
 import com.gibbs.gplayer.media.MediaInfo;
-import com.gibbs.gplayer.render.AudioRender;
 import com.gibbs.gplayer.render.AVSync;
+import com.gibbs.gplayer.render.AudioRender;
 import com.gibbs.gplayer.render.PcmAudioRender;
 import com.gibbs.gplayer.render.VideoFrameReleaseTimeHelper;
 import com.gibbs.gplayer.render.VideoRender;
 import com.gibbs.gplayer.render.YUVGLRenderer;
 import com.gibbs.gplayer.source.MediaSource;
-import com.gibbs.gplayer.source.MediaSourceControl;
 import com.gibbs.gplayer.source.MediaSourceImp;
-import com.gibbs.gplayer.source.OnErrorListener;
-import com.gibbs.gplayer.source.OnSourceSizeChangedListener;
-import com.gibbs.gplayer.source.OnSourceStateChangedListener;
-import com.gibbs.gplayer.source.OnTimeChangedListener;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener, AVSync,
-        VideoRender.OnVideoRenderChangedListener {
+public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener {
     private static final String TAG = "GPlayerJ";
 
     static {
@@ -28,7 +23,7 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     }
 
     public enum State {
-        IDLE, PREPARING, PLAYING, FINISHING, RELEASED
+        IDLE, PREPARING, PREPARED, PLAYING, FINISHING, RELEASED
     }
 
     private int mChannelId = hashCode();
@@ -48,12 +43,10 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     private AudioPlayThread mAudioPlayThread;
     private VideoPlayThread mVideoPlayThread;
     private boolean mIsProcessingSource;
-    private boolean mIsAudioPlaying;
-    private boolean mIsVideoPlaying;
     private boolean mStartPlayWhenReady;
     private State mPlayState = State.IDLE;
 
-    private PlayStateChangedListener mPlayStateChangedListener;
+    private OnStateChangedListener mPlayStateChangedListener;
 
     public GPlayer(GLSurfaceView view, String url) {
         this(view, url, false);
@@ -83,19 +76,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
 
     private VideoRender createVideoRender(GLSurfaceView view, MediaSource source) {
         return new YUVGLRenderer(view, source);
-    }
-
-    @Override
-    public void onSourceStateChanged(State sourceState) {
-        LogUtils.i(TAG, "onSourceStateChanged " + sourceState);
-        switch (sourceState) {
-            case PREPARING:
-                onInit();
-                break;
-            case RELEASED:
-                onRelease();
-                break;
-        }
     }
 
     /**
@@ -189,35 +169,8 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
      *
      * @param listener callback
      */
-    public void setPlayStateChangedListener(PlayStateChangedListener listener) {
+    public void setPlayStateChangedListener(OnStateChangedListener listener) {
         mPlayStateChangedListener = listener;
-    }
-
-    /**
-     * set the media buffer callback
-     *
-     * @param listener callback
-     */
-    @Override
-    public void setOnSourceSizeChangedListener(OnSourceSizeChangedListener listener) {
-    }
-
-    /**
-     * set timestamp listener
-     *
-     * @param listener listener
-     */
-    @Override
-    public void setOnTimeChangedListener(OnTimeChangedListener listener) {
-    }
-
-    /**
-     * set error listener
-     *
-     * @param listener listener
-     */
-    @Override
-    public void setOnErrorListener(OnErrorListener listener) {
     }
 
     @Override
@@ -274,11 +227,15 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
             mPlayState = state;
         }
         LogUtils.e(TAG, "CoreFlow setPlayState state = " + state);
-        if (mPlayState == State.IDLE) {
+        if (state == State.PREPARED) {
+            onInit();
+        } else if (state == State.RELEASED) {
+            onRelease();
+        } else if (mPlayState == State.IDLE) {
             mMediaSource.flushBuffer();
         }
         if (mPlayStateChangedListener != null) {
-            mPlayStateChangedListener.onPlayStateChanged(mPlayState);
+            mPlayStateChangedListener.onStateChanged(mPlayState);
         }
     }
 
@@ -286,18 +243,13 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         @Override
         public void run() {
             super.run();
-            mIsAudioPlaying = true;
             LogUtils.i(TAG, "AudioPlayThread init " + getId());
             setPlayState(GPlayer.State.PLAYING);
             while (mIsProcessingSource) {
                 mAudioRender.render();
             }
             mAudioRender.release();
-            mIsAudioPlaying = false;
             LogUtils.i(TAG, "AudioPlayThread end " + getId());
-            if (!mIsAudioPlaying && !mIsVideoPlaying) {
-                setPlayState(GPlayer.State.IDLE);
-            }
         }
     }
 
@@ -306,7 +258,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         public void run() {
             super.run();
             LogUtils.i(TAG, "VideoPlayThread init " + getId());
-            mIsVideoPlaying = true;
             setPlayState(GPlayer.State.PLAYING);
             mFrameReleaseTimeHelper = new VideoFrameReleaseTimeHelper(mContext);
             mFrameReleaseTimeHelper.enable();
@@ -317,16 +268,8 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
             mVideoRender.release();
             mFrameReleaseTimeHelper.disable();
             mFrameReleaseTimeHelper = null;
-            mIsVideoPlaying = false;
             LogUtils.i(TAG, "VideoPlayThread end " + getId());
-            if (!mIsAudioPlaying && !mIsVideoPlaying) {
-                setPlayState(GPlayer.State.IDLE);
-            }
         }
-    }
-
-    public interface PlayStateChangedListener {
-        void onPlayStateChanged(State state);
     }
 
     private void init(String url, int flag) {
@@ -336,11 +279,15 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     private void destroy() {
         LogUtils.i(TAG, "destroy channelId " + mChannelId);
         nDestroy(mChannelId);
+        setPlayState(GPlayer.State.IDLE);
     }
 
     //call by jni
     public void onMessageCallback(int what, int arg1, int arg2, String msg1, String msg2, Object object) {
-
+        if (what == 1) {
+            State state = State.values()[arg1];
+            setPlayState(state);
+        }
     }
 
     private native void nInit(int channelId, int flag, String url, GPlayer player);

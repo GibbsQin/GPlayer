@@ -4,19 +4,16 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.ViewGroup;
 
+import com.gibbs.gplayer.listener.OnStateChangedListener;
 import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.render.GestureGLSurfaceView;
-import com.gibbs.gplayer.source.MediaSourceControl;
-import com.gibbs.gplayer.source.OnErrorListener;
-import com.gibbs.gplayer.source.OnSourceSizeChangedListener;
-import com.gibbs.gplayer.source.OnTimeChangedListener;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayerView extends GestureGLSurfaceView implements MediaSourceControl, GPlayer.PlayStateChangedListener {
+public class GPlayerView extends GestureGLSurfaceView implements OnStateChangedListener {
     private static final String TAG = "GPlayerView";
 
     private GPlayer mGPlayer;
-    private GPlayer.PlayStateChangedListener mPlayStateChangedListener;
+    private OnStateChangedListener mPlayStateChangedListener;
 
     public GPlayerView(Context context) {
         super(context);
@@ -54,7 +51,7 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
      *
      * @param listener callback
      */
-    public void setPlayStateChangedListener(GPlayer.PlayStateChangedListener listener) {
+    public void setPlayStateChangedListener(OnStateChangedListener listener) {
         mPlayStateChangedListener = listener;
     }
 
@@ -95,40 +92,10 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
         initGPlayer(url, mediaCodec);
     }
 
-    /**
-     * set the media buffer callback
-     *
-     * @param listener callback
-     */
     @Override
-    public void setOnSourceSizeChangedListener(OnSourceSizeChangedListener listener) {
-        mGPlayer.setOnSourceSizeChangedListener(listener);
-    }
-
-    /**
-     * set timestamp listener
-     *
-     * @param listener listener
-     */
-    @Override
-    public void setOnTimeChangedListener(OnTimeChangedListener listener) {
-        mGPlayer.setOnTimeChangedListener(listener);
-    }
-
-    /**
-     * set error listener
-     *
-     * @param listener listener
-     */
-    @Override
-    public void setOnErrorListener(OnErrorListener listener) {
-        mGPlayer.setOnErrorListener(listener);
-    }
-
-    @Override
-    public void onPlayStateChanged(GPlayer.State state) {
+    public void onStateChanged(GPlayer.State state) {
         if (mPlayStateChangedListener != null) {
-            mPlayStateChangedListener.onPlayStateChanged(state);
+            mPlayStateChangedListener.onStateChanged(state);
         }
         if (state == GPlayer.State.PLAYING) {
             post(new Runnable() {

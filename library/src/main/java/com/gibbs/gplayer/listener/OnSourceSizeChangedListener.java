@@ -1,4 +1,4 @@
-package com.gibbs.gplayer.source;
+package com.gibbs.gplayer.listener;
 
 /**
  * media buffer size listener

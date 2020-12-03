@@ -6,18 +6,18 @@ import android.view.MenuItem
 import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
 import com.gibbs.gplayer.GPlayer
-import com.gibbs.gplayer.GPlayer.PlayStateChangedListener
+import com.gibbs.gplayer.listener.OnStateChangedListener
 import com.gibbs.gplayer.media.MediaInfo
-import com.gibbs.gplayer.source.OnErrorListener
-import com.gibbs.gplayer.source.OnSourceSizeChangedListener
-import com.gibbs.gplayer.source.OnTimeChangedListener
+import com.gibbs.gplayer.listener.OnErrorListener
+import com.gibbs.gplayer.listener.OnSourceSizeChangedListener
+import com.gibbs.gplayer.listener.OnTimeChangedListener
 import com.gibbs.gplayer.utils.LogUtils
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_external_gplayer.*
 import kotlinx.android.synthetic.main.activity_external_gplayer.gl_surface_view
 import kotlinx.android.synthetic.main.layout_gplayer_top.*
 
-class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
+class ExternalGPlayerViewActivity : BaseActivity(), OnStateChangedListener,
         OnSourceSizeChangedListener, OnTimeChangedListener, OnErrorListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,9 +31,9 @@ class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
         LogUtils.i(TAG, "useMediaCodec = $useMediaCodec")
         gl_surface_view.url = url
         gl_surface_view.setPlayStateChangedListener(this)
-        gl_surface_view.setOnErrorListener(this)
-        gl_surface_view.setOnTimeChangedListener(this)
-        gl_surface_view.setOnSourceSizeChangedListener(this)
+//        gl_surface_view.setOnErrorListener(this)
+//        gl_surface_view.setOnTimeChangedListener(this)
+//        gl_surface_view.setOnSourceSizeChangedListener(this)
         if (name != null) {
             title = name
         } else if (url != null) {
@@ -56,7 +56,7 @@ class ExternalGPlayerViewActivity : BaseActivity(), PlayStateChangedListener,
         gl_surface_view.stopPlay()
     }
 
-    override fun onPlayStateChanged(state: GPlayer.State) {
+    override fun onStateChanged(state: GPlayer.State) {
         LogUtils.i(TAG, "onPlayStateChanged $state")
         if (state == GPlayer.State.PLAYING) {
             runOnUiThread {
