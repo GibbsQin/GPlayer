@@ -18,6 +18,16 @@ extern "C" {
 
 #define MAX_BUFFER_SIZE 30
 
+#define MSG_TYPE_ERROR 0
+#define MSG_TYPE_STATE 1
+
+#define STATE_IDLE      0
+#define STATE_PREPARING 1
+#define STATE_PREPARED  2
+#define STATE_PLAYING   3
+#define STATE_FINISHING 4
+#define STATE_RELEASED  5
+
 class GPlayer {
 
 public:

@@ -94,6 +94,9 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nReadAudioSource(JNIEnv *env, jobje
     }
     MediaData *mediaData;
     targetPlayer->getFrameSource()->readAudioBuffer(&mediaData);
+    if (!mediaData) {
+        return nullptr;
+    }
     return MediaDataJni::createJObject(mediaData);
 }
 
@@ -107,6 +110,9 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nReadVideoSource(JNIEnv *env, jobje
     }
     MediaData *mediaData;
     targetPlayer->getFrameSource()->readVideoBuffer(&mediaData);
+    if (!mediaData) {
+        return nullptr;
+    }
     return MediaDataJni::createJObject(mediaData);
 }
 

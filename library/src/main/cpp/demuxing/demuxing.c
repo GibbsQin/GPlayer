@@ -52,6 +52,7 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
     int *stream_mapping = NULL;
     uint32_t stream_mapping_size = 0;
 
+    filename = "http://cctvalih5ca.v.myalicdn.com/live/cctv1_2/index.m3u8";
     av_register_all();
     if ((ret = avformat_open_input(&ifmt_ctx, filename, 0, 0)) < 0) {
         ffmpegLog(ANDROID_LOG_ERROR, "Could not open input file '%s'", filename);

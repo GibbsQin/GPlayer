@@ -7,6 +7,8 @@ public class MediaSourceImp implements MediaSource {
     private static final String TAG = "MediaSourceImpJ";
 
     private int mChannelId;
+    private MediaData mTopAudioFrame = null;
+    private MediaData mTopVideoFrame = null;
 
     public MediaSourceImp(int channel) {
         mChannelId = channel;
@@ -19,21 +21,29 @@ public class MediaSourceImp implements MediaSource {
 
     @Override
     public MediaData readAudioSource() {
-        return nReadAudioSource(mChannelId);
+        if (mTopAudioFrame == null) {
+            mTopAudioFrame = nReadAudioSource(mChannelId);
+        }
+        return mTopAudioFrame;
     }
 
     @Override
     public MediaData readVideoSource() {
-        return nReadVideoSource(mChannelId);
+        if (mTopVideoFrame == null) {
+            mTopVideoFrame = nReadVideoSource(mChannelId);
+        }
+        return mTopVideoFrame;
     }
 
     @Override
     public void removeFirstAudioPackage() {
+        mTopAudioFrame = null;
         nRemoveFirstAudioPackage(mChannelId);
     }
 
     @Override
     public void removeFirstVideoPackage() {
+        mTopVideoFrame = null;
         nRemoveFirstVideoPackage(mChannelId);
     }
 

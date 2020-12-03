@@ -96,7 +96,7 @@ void GPlayer::av_destroy() {
 }
 
 void GPlayer::av_error(int code, char *msg) {
-    playerJni->onMessageCallback(0, code, 0, msg, nullptr);
+    playerJni->onMessageCallback(MSG_TYPE_ERROR, code, 0, msg, nullptr);
 }
 
 void GPlayer::start() {
@@ -137,10 +137,10 @@ void GPlayer::startDecode() {
     MediaInfo *header = inputSource->getAVHeader();
     int ret = codeInterceptor->onInit(header);
     if (ret > 0) {
-        playerJni->onMessageCallback(0, 1, 0, "not support this codec", nullptr);
+        playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0, "not support this codec", nullptr);
     }
     outputSource->onInit(header);
-    playerJni->onMessageCallback(1, 2, 0, nullptr, nullptr);
+    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr);
 }
 
 void GPlayer::stopDecode() {
@@ -152,7 +152,7 @@ void GPlayer::stopDecode() {
         videoEngineThread->stop();
         videoEngineThread->join();
     }
-    playerJni->onMessageCallback(1, 5, 0, nullptr, nullptr);
+    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_RELEASED, 0, nullptr, nullptr);
 }
 
 void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback,
@@ -191,8 +191,6 @@ int GPlayer::processAudioBuffer() {
         mediaSize = outputSource->onReceiveAudio(outBuffer);
     }
     if (inputResult != TRY_AGAIN) {
-        free(inPacket->data);
-        delete inPacket;
         inputSource->popAudioBuffer();
     }
 
@@ -221,8 +219,6 @@ int GPlayer::processVideoBuffer() {
         mediaSize = outputSource->onReceiveVideo(outBuffer);
     }
     if (inputResult != TRY_AGAIN) {
-        free(inPacket->data);
-        delete inPacket;
         inputSource->popVideoBuffer();
     }
 

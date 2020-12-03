@@ -46,14 +46,19 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
     private boolean mStartPlayWhenReady;
     private State mPlayState = State.IDLE;
 
-    private OnStateChangedListener mPlayStateChangedListener;
+    private int mAudioPacketBufferCount;
+    private int mAudioFrameBufferCount;
+    private int mVideoPacketBufferCount;
+    private int mVideoFrameBufferCount;
+
+    private OnStateChangedListener mOnStateChangedListener;
 
     public GPlayer(GLSurfaceView view, String url) {
         this(view, url, false);
     }
 
     public GPlayer(GLSurfaceView view, String url, boolean mediaCodec) {
-        LogUtils.i(TAG, "CoreFlow : new GPlayer");
+        LogUtils.i(TAG, "CoreFlow : new GPlayer " + url);
         mGLSurfaceView = view;
         mContext = mGLSurfaceView.getContext();
         mMediaSource = new MediaSourceImp(mChannelId);
@@ -170,7 +175,7 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
      * @param listener callback
      */
     public void setPlayStateChangedListener(OnStateChangedListener listener) {
-        mPlayStateChangedListener = listener;
+        mOnStateChangedListener = listener;
     }
 
     @Override
@@ -234,8 +239,8 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
         } else if (mPlayState == State.IDLE) {
             mMediaSource.flushBuffer();
         }
-        if (mPlayStateChangedListener != null) {
-            mPlayStateChangedListener.onStateChanged(mPlayState);
+        if (mOnStateChangedListener != null) {
+            mOnStateChangedListener.onStateChanged(mPlayState);
         }
     }
 
@@ -284,6 +289,7 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
 
     //call by jni
     public void onMessageCallback(int what, int arg1, int arg2, String msg1, String msg2, Object object) {
+        LogUtils.i(TAG, "CoreFlow : onMessageCallback " + what + " " + arg1 + " " + msg1);
         if (what == 1) {
             State state = State.values()[arg1];
             setPlayState(state);

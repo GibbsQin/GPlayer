@@ -75,12 +75,44 @@ int MediaSource::readVideoBuffer(MediaData **avData) {
 
 void MediaSource::popAudioBuffer() {
     mAudioLock.lock();
+    MediaData *audioItem = audioPacketQueue.front();
+    if (audioItem) {
+        if (audioItem->data) {
+            free(audioItem->data);
+            audioItem->data = nullptr;
+        }
+        if (audioItem->data1) {
+            free(audioItem->data1);
+            audioItem->data1 = nullptr;
+        }
+        if (audioItem->data2) {
+            free(audioItem->data2);
+            audioItem->data2 = nullptr;
+        }
+        delete audioItem;
+    }
     audioPacketQueue.pop();
     mAudioLock.unlock();
 }
 
 void MediaSource::popVideoBuffer() {
     mVideoLock.lock();
+    MediaData *videoItem = videoPacketQueue.front();
+    if (videoItem) {
+        if (videoItem->data) {
+            free(videoItem->data);
+            videoItem->data = nullptr;
+        }
+        if (videoItem->data1) {
+            free(videoItem->data1);
+            videoItem->data1 = nullptr;
+        }
+        if (videoItem->data2) {
+            free(videoItem->data2);
+            videoItem->data2 = nullptr;
+        }
+        delete videoItem;
+    }
     videoPacketQueue.pop();
     mVideoLock.unlock();
 }
