@@ -2,7 +2,6 @@ package com.gibbs.gplayer;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
-import android.text.TextUtils;
 
 import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.render.AudioRender;
@@ -29,10 +28,11 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     }
 
     public enum State {
-        IDLE, PREPARING, PLAYING, FINISHING
+        IDLE, PREPARING, PLAYING, FINISHING, RELEASED
     }
 
     private int mChannelId = hashCode();
+    private String mUrl;
 
     private Context mContext;
     private GLSurfaceView mGLSurfaceView;
@@ -56,19 +56,14 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     private PlayStateChangedListener mPlayStateChangedListener;
 
     public GPlayer(GLSurfaceView view, String url) {
-        this(view, new MediaSourceImp(url));
+        this(view, url, false);
     }
 
     public GPlayer(GLSurfaceView view, String url, boolean mediaCodec) {
-        this(view, new MediaSourceImp(url, mediaCodec));
-    }
-
-    public GPlayer(GLSurfaceView view, MediaSource source) {
         LogUtils.i(TAG, "CoreFlow : new GPlayer");
         mGLSurfaceView = view;
         mContext = mGLSurfaceView.getContext();
-        mMediaSource = source;
-        mMediaSource.setOnSourceStateChangedListener(this);
+        mMediaSource = new MediaSourceImp(mChannelId);
         mAudioRender = createAudioRender(mMediaSource);
         mVideoRender = createVideoRender(mGLSurfaceView, mMediaSource);
         mVideoRender.setOnVideoRenderChangedListener(this);
@@ -78,7 +73,8 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         if (mVideoRender instanceof YUVGLRenderer) {
             mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         }
-        init(mMediaSource);
+        mUrl = url;
+        init(url, mediaCodec ? 2 : 0);
     }
 
     private AudioRender createAudioRender(MediaSource source) {
@@ -90,15 +86,13 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     }
 
     @Override
-    public void onSourceStateChanged(MediaSource.SourceState sourceState) {
+    public void onSourceStateChanged(State sourceState) {
         LogUtils.i(TAG, "onSourceStateChanged " + sourceState);
         switch (sourceState) {
-            case Init:
+            case PREPARING:
                 onInit();
                 break;
-            case Ready:
-                break;
-            case Release:
+            case RELEASED:
                 onRelease();
                 break;
         }
@@ -118,9 +112,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
      */
     public void prepare() {
         if (mPlayState != State.IDLE) {
-            return;
-        }
-        if (TextUtils.isEmpty(mMediaSource.getUrl())) {
             return;
         }
         if (mVideoRender != null && mVideoRender.isAvailable()) {
@@ -149,7 +140,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
             return;
         }
         setPlayState(State.FINISHING);
-        mMediaSource.onFinishing();
         nStop(mChannelId, force);
     }
 
@@ -186,6 +176,14 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         destroy();
     }
 
+    public MediaInfo getMediaInfo() {
+        return mMediaSource.getMediaInfo();
+    }
+
+    public String getUrl() {
+        return mUrl;
+    }
+
     /**
      * set player state callback
      *
@@ -196,63 +194,12 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
     }
 
     /**
-     * get the media info
-     *
-     * @return media info
-     */
-    @Override
-    public MediaInfo getMediaInfo() {
-        return mMediaSource.getMediaInfo();
-    }
-
-    /**
-     * get player url
-     *
-     * @return url
-     */
-    @Override
-    public String getUrl() {
-        return mMediaSource.getUrl();
-    }
-
-    /**
-     * set the file url(only support local file now)
-     *
-     * @param url  file path
-     */
-    @Override
-    public void setUrl(String url) {
-        mMediaSource.setUrl(url);
-    }
-
-    /**
-     * set media source flag
-     *
-     * @param flag refer to com.gibbs.gplayer.source.MediaSource#FLAG_
-     */
-    @Override
-    public void addFlag(int flag) {
-        mMediaSource.addFlag(flag);
-    }
-
-    /**
-     * get media source flag
-     *
-     * @return flag
-     */
-    @Override
-    public int getFlag() {
-        return mMediaSource.getFlag();
-    }
-
-    /**
      * set the media buffer callback
      *
      * @param listener callback
      */
     @Override
     public void setOnSourceSizeChangedListener(OnSourceSizeChangedListener listener) {
-        mMediaSource.setOnSourceSizeChangedListener(listener);
     }
 
     /**
@@ -262,7 +209,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
      */
     @Override
     public void setOnTimeChangedListener(OnTimeChangedListener listener) {
-        mMediaSource.setOnTimeChangedListener(listener);
     }
 
     /**
@@ -272,7 +218,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
      */
     @Override
     public void setOnErrorListener(OnErrorListener listener) {
-        mMediaSource.setOnErrorListener(listener);
     }
 
     @Override
@@ -348,7 +293,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
                 mAudioRender.render();
             }
             mAudioRender.release();
-            mMediaSource.clearAudioQueue();
             mIsAudioPlaying = false;
             LogUtils.i(TAG, "AudioPlayThread end " + getId());
             if (!mIsAudioPlaying && !mIsVideoPlaying) {
@@ -371,7 +315,6 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
                 mVideoRender.render();
             }
             mVideoRender.release();
-            mMediaSource.clearVideoQueue();
             mFrameReleaseTimeHelper.disable();
             mFrameReleaseTimeHelper = null;
             mIsVideoPlaying = false;
@@ -386,8 +329,8 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         void onPlayStateChanged(State state);
     }
 
-    private void init(MediaSource MediaSource) {
-        nInit(mChannelId, MediaSource);
+    private void init(String url, int flag) {
+        nInit(mChannelId, flag, url, this);
     }
 
     private void destroy() {
@@ -395,7 +338,12 @@ public class GPlayer implements MediaSourceControl, OnSourceStateChangedListener
         nDestroy(mChannelId);
     }
 
-    private native void nInit(int channelId, MediaSource MediaSource);
+    //call by jni
+    public void onMessageCallback(int what, int arg1, int arg2, String msg1, String msg2, Object object) {
+
+    }
+
+    private native void nInit(int channelId, int flag, String url, GPlayer player);
 
     private native void nStart(long channelId);
 

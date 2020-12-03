@@ -13,17 +13,16 @@
 
 #define TAG "GPlayerC"
 
-GPlayer::GPlayer(int channelId, jobject jAVSource) {
-    outputSource = new MediaSourceJni(jAVSource);
+GPlayer::GPlayer(int channelId, int flag, std::string url, jobject obj) {
+    outputSource = new MediaSource();
     inputSource = new MediaSource();
+    playerJni = new GPlayerJni(obj);
     audioEngineThread = nullptr;
     videoEngineThread = nullptr;
-    mediaCodecFlag =
-            (outputSource->getFlag() & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
+    mediaCodecFlag = (flag & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
     LOGI(TAG, "CoreFlow : new GPlayerImp mediaCodecFlag = %d", mediaCodecFlag);
     codeInterceptor = new CodecInterceptor(mediaCodecFlag);
 
-    std::string url = outputSource->getUrl();
     mUrl = static_cast<char *>(malloc(url.length()));
     memcpy(mUrl, url.c_str(), url.length());
     mChannelId = channelId;
@@ -46,6 +45,10 @@ GPlayer::~GPlayer() {
     if (inputSource) {
         delete inputSource;
         inputSource = nullptr;
+    }
+    if (playerJni) {
+        delete playerJni;
+        playerJni = nullptr;
     }
     if (codeInterceptor) {
         delete codeInterceptor;
@@ -93,7 +96,7 @@ void GPlayer::av_destroy() {
 }
 
 void GPlayer::av_error(int code, char *msg) {
-    outputSource->callJavaErrorMethod(code, msg);
+    playerJni->onMessageCallback(0, code, 0, msg, nullptr);
 }
 
 void GPlayer::start() {
@@ -114,7 +117,7 @@ void GPlayer::stop() {
     LOGI(TAG, "CoreFlow : decode threads were stopped!");
     codeInterceptor->onRelease();
     inputSource->flushBuffer();
-    outputSource->callJavaReleaseMethod();
+    outputSource->onRelease();
 }
 
 void GPlayer::startDecode() {
@@ -134,9 +137,9 @@ void GPlayer::startDecode() {
     MediaInfo *header = inputSource->getAVHeader();
     int ret = codeInterceptor->onInit(header);
     if (ret > 0) {
-        outputSource->callJavaErrorMethod(ret, "not support this codec");
+        playerJni->onMessageCallback(0, 1, 0, "not support this codec", nullptr);
     }
-    outputSource->callJavaInitMethod(inputSource->getAVHeader());
+    outputSource->onInit(header);
 }
 
 void GPlayer::stopDecode() {
@@ -178,13 +181,12 @@ int GPlayer::processAudioBuffer() {
     if (ret <= 0) {
         return 0;
     }
-    outputSource->sendAudioPacketSize2Java(ret);
     int mediaSize = 0;
     int inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_AUDIO);
     MediaData *outBuffer;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
     if (ret >= 0) {
-        mediaSize = outputSource->sendAudio2Java(outBuffer);
+        mediaSize = outputSource->onReceiveAudio(outBuffer);
     }
     if (inputResult != TRY_AGAIN) {
         free(inPacket->data);
@@ -209,13 +211,12 @@ int GPlayer::processVideoBuffer() {
     if (ret <= 0) {
         return 0;
     }
-    outputSource->sendVideoPacketSize2Java(ret);
     int mediaSize = 0;
     int inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_VIDEO);
     MediaData *outBuffer;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
     if (ret >= 0) {
-        mediaSize = outputSource->sendVideo2Java(outBuffer);
+        mediaSize = outputSource->onReceiveVideo(outBuffer);
     }
     if (inputResult != TRY_AGAIN) {
         free(inPacket->data);
@@ -228,4 +229,8 @@ int GPlayer::processVideoBuffer() {
 
 void GPlayer::onVideoThreadEnd() {
     LOGI(TAG, "stopVideoDecode");
+}
+
+MediaSource* GPlayer::getFrameSource() {
+    return outputSource;
 }

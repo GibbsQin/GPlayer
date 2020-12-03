@@ -6,10 +6,10 @@
 #define GPLAYER_GPLAYER_H
 
 #include <interceptor/CodecInterceptor.h>
+#include <player/GPlayerJni.h>
 #include "DecodeThread.h"
-#include "MediaSource.h"
-#include "MediaSourceJni.h"
 #include "DemuxingThread.h"
+#include "MediaSource.h"
 extern "C" {
 #include <demuxing/demuxing.h>
 }
@@ -21,7 +21,7 @@ extern "C" {
 class GPlayer {
 
 public:
-    GPlayer(int channelId, jobject jAVSource);
+    GPlayer(int channelId, int flag, std::string url, jobject obj);
 
     ~GPlayer();
 
@@ -47,6 +47,8 @@ public:
 
     LoopFlag isDemuxingLoop();
 
+    MediaSource* getFrameSource();
+
 private:
     void startDecode();
 
@@ -66,7 +68,8 @@ private:
 
 private:
     MediaSource *inputSource;
-    MediaSourceJni *outputSource;
+    MediaSource *outputSource;
+    GPlayerJni *playerJni;
 
 private:
     bool mediaCodecFlag;

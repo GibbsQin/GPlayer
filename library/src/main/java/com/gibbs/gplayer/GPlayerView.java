@@ -63,7 +63,6 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
      *
      * @return media info
      */
-    @Override
     public MediaInfo getMediaInfo() {
         return mGPlayer.getMediaInfo();
     }
@@ -73,7 +72,6 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
      *
      * @return url
      */
-    @Override
     public String getUrl() {
         return mGPlayer.getUrl();
     }
@@ -83,7 +81,6 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
      *
      * @param url  file path
      */
-    @Override
     public void setUrl(String url) {
         setUrl(url, false);
     }
@@ -96,26 +93,6 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
      */
     public void setUrl(String url, boolean mediaCodec) {
         initGPlayer(url, mediaCodec);
-    }
-
-    /**
-     * set media source flag
-     *
-     * @param flag refer to com.gibbs.gplayer.source.MediaSource#FLAG_
-     */
-    @Override
-    public void addFlag(int flag) {
-        mGPlayer.addFlag(flag);
-    }
-
-    /**
-     * get media source flag
-     *
-     * @return flag
-     */
-    @Override
-    public int getFlag() {
-        return mGPlayer.getFlag();
     }
 
     /**
@@ -164,7 +141,7 @@ public class GPlayerView extends GestureGLSurfaceView implements MediaSourceCont
     }
 
     private void resize() {
-        MediaInfo mediaInfo = getMediaInfo();
+        MediaInfo mediaInfo = mGPlayer.getMediaInfo();
         int width = mediaInfo.getInteger(MediaInfo.KEY_WIDTH, 16);
         int height = mediaInfo.getInteger(MediaInfo.KEY_HEIGHT, 9);
         int rotate = mediaInfo.getInteger(MediaInfo.KEY_VIDEO_ROTATE, 0);

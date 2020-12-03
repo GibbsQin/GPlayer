@@ -20,7 +20,7 @@ public:
 
     static string getStringUTF(JNIEnv *env, jstring obj);
 
-    static char* getCharArrayUTF(JNIEnv *env, jstring obj);
+    static char *getCharArrayUTF(JNIEnv *env, jstring obj);
 
     static jobject createByteBuffer(JNIEnv *env, unsigned char *buffer, int size);
 
@@ -38,6 +38,9 @@ public:
 
     static void callVoidMethod(jobject obj, jmethodID methodId, jobject arg2);
 
+    static void callVoidMethod(jobject obj, jmethodID methodId, jint arg1, jint arg2,
+                               jint arg3, jstring arg4, jstring arg5, jobject arg6);
+
     static int callIntMethod(jobject obj, jmethodID methodId, jstring arg1, jint arg2);
 
     static int callIntMethod(jobject obj, jmethodID methodId, jobject arg1);
@@ -48,19 +51,22 @@ public:
 
     static void callStaticVoidMethod(jclass cls, jmethodID methodId, jint arg1);
 
-    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jlong arg1, jint arg2, jint arg3, jint arg4,
-                                     jstring arg5, jstring arg6);
+    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jlong arg1, jint arg2,
+                                     jint arg3, jint arg4, jstring arg5, jstring arg6);
 
-    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jint arg2, jint arg3, jint arg4,
-                                     jstring arg5, jstring arg6);
+    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jint arg2,
+                                     jint arg3, jint arg4, jstring arg5, jstring arg6);
 
     static void callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jstring arg2);
 
-    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jstring arg2, jstring arg3);
+    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jstring arg2,
+                                     jstring arg3);
 
-    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jint arg1, jint arg2, jint arg3, jbyteArray arg4);
+    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jint arg1, jint arg2,
+                                     jint arg3, jbyteArray arg4);
 
-    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jint arg2, jint arg3, jint arg4, jbyteArray arg5);
+    static void callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jint arg2,
+                                     jint arg3, jint arg4, jbyteArray arg5);
 
     static jobject callObjectMethod(jobject obj, jmethodID methodId);
 

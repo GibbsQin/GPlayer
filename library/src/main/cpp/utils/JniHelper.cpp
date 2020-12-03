@@ -135,7 +135,7 @@ string JniHelper::getStringUTF(JNIEnv *env, jstring obj) {
     return tmpString;
 }
 
-char* JniHelper::getCharArrayUTF(JNIEnv *env, jstring obj) {
+char *JniHelper::getCharArrayUTF(JNIEnv *env, jstring obj) {
     char *c_str = (char *) env->GetStringUTFChars(obj, nullptr);
     env->ReleaseStringUTFChars(obj, c_str);
     return c_str;
@@ -306,6 +306,41 @@ void JniHelper::callVoidMethod(jobject obj, jmethodID methodId, jobject arg2) {
     }
 }
 
+void
+JniHelper::callVoidMethod(jobject obj, jmethodID methodId, jint arg1, jint arg2, jint arg3,
+                          jstring arg4, jstring arg5, jobject arg6) {
+    if (sJavaVM == nullptr) {
+        LOGE(TAG, "sJavaVM is nullptr");
+        return;
+    }
+
+    JNIEnv *env = nullptr;
+    bool attached = false;
+    switch (sJavaVM->GetEnv((void **) &env, JNI_VERSION_1_4)) {
+        case JNI_OK:
+            break;
+        case JNI_EDETACHED:
+            if (sJavaVM->AttachCurrentThread(&env, nullptr) != 0) {
+                LOGE(TAG, "Could not attach current thread");
+            }
+            attached = true;
+            break;
+        case JNI_EVERSION:
+            LOGE(TAG, "Invalid java version");
+            break;
+        default:
+            break;
+    }
+
+    if (env != nullptr) {
+        env->CallVoidMethod(obj, methodId, arg1, arg2, arg3, arg4, arg5, arg6);
+    }
+
+    if (attached) {
+        sJavaVM->DetachCurrentThread();
+    }
+}
+
 int JniHelper::callIntMethod(jobject obj, jmethodID methodId, jstring arg1, jint arg2) {
     if (sJavaVM == nullptr) {
         LOGE(TAG, "sJavaVM is nullptr");
@@ -450,8 +485,10 @@ int JniHelper::callIntMethod(jobject obj, jmethodID methodId) {
     return ret;
 }
 
-void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jlong arg1, jint arg2, jint arg3, jint arg4,
-                                     jstring arg5, jstring arg6) {
+void
+JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jlong arg1, jint arg2, jint arg3,
+                                jint arg4,
+                                jstring arg5, jstring arg6) {
     if (sJavaVM == nullptr) {
         LOGE(TAG, "sJavaVM is nullptr");
         return;
@@ -484,7 +521,9 @@ void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jlong arg1,
     }
 }
 
-void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jint arg2, jint arg3, jint arg4, jbyteArray arg5) {
+void
+JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jint arg2, jint arg3,
+                                jint arg4, jbyteArray arg5) {
     if (sJavaVM == nullptr) {
         LOGE(TAG, "sJavaVM is nullptr");
         return;
@@ -517,7 +556,8 @@ void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg
     }
 }
 
-void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jint arg2, jint arg3,
+void
+JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jint arg2, jint arg3,
                                 jint arg4, jstring arg5, jstring arg6) {
     if (sJavaVM == nullptr) {
         LOGE(TAG, "sJavaVM is nullptr");
@@ -584,7 +624,8 @@ void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg
     }
 }
 
-void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jstring arg2, jstring arg3) {
+void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg1, jstring arg2,
+                                     jstring arg3) {
     if (sJavaVM == nullptr) {
         LOGE(TAG, "sJavaVM is nullptr");
         return;
@@ -617,7 +658,9 @@ void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jstring arg
     }
 }
 
-void JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jint arg1, jint arg2, jint arg3, jbyteArray arg4) {
+void
+JniHelper::callStaticVoidMethod(jclass cls, jmethodID methodId, jint arg1, jint arg2, jint arg3,
+                                jbyteArray arg4) {
     if (sJavaVM == nullptr) {
         LOGE(TAG, "sJavaVM is nullptr");
         return;

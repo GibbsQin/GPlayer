@@ -6,6 +6,7 @@
 #include <string>
 #include <queue>
 #include <mutex>
+#include "media/Media.h"
 
 #define AV_SOURCE_EMPTY -2
 
