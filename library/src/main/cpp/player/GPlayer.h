@@ -41,7 +41,7 @@ extern "C" {
 class GPlayer {
 
 public:
-    GPlayer(int channelId, int flag, jobject obj);
+    GPlayer(int channelId, uint32_t flag, jobject obj);
 
     ~GPlayer();
 
@@ -60,7 +60,7 @@ public:
 
 public:
 
-    void prepare(std::string url);
+    void prepare(const std::string& url);
 
     void start();
 
@@ -100,7 +100,7 @@ private:
 
 private:
     bool mediaCodecFlag;
-    char *mUrl;
+    char *mUrl{};
     int mChannelId;
     bool isDemuxing{};
     DecodeThread *audioEngineThread;

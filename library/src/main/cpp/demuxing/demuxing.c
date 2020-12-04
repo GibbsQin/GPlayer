@@ -2,6 +2,7 @@
 #include <codec/ffmpeg/libavutil/timestamp.h>
 #include <unistd.h>
 #include "demuxing.h"
+#include "adtsenc.h"
 
 #define LOG_LEVEL ANDROID_LOG_INFO
 
@@ -42,6 +43,7 @@ static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, co
 }
 
 void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, MediaInfo *mediaInfo) {
+    ffmpegLog(ANDROID_LOG_INFO, "CoreFlow : ffmpeg_demuxing '%s'", filename);
     AVFormatContext *ifmt_ctx = NULL;
     AVPacket pkt;
     int ret;
@@ -52,7 +54,6 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
     int *stream_mapping = NULL;
     uint32_t stream_mapping_size = 0;
 
-    filename = "http://cctvalih5ca.v.myalicdn.com/live/cctv1_2/index.m3u8";
     av_register_all();
     if ((ret = avformat_open_input(&ifmt_ctx, filename, 0, 0)) < 0) {
         ffmpegLog(ANDROID_LOG_ERROR, "Could not open input file '%s'", filename);
@@ -120,20 +121,33 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
                                        ifmt_ctx->streams[audio_stream_index]->codecpar->extradata,
                                        (uint32_t) ifmt_ctx->streams[audio_stream_index]->codecpar->extradata_size);
 
-    int needStreamFilter = ifmt_ctx->iformat->extensions != NULL;
+    AVCodecParameters *video_codecpar = ifmt_ctx->streams[video_stream_index]->codecpar;
+    int needVideoStreamFilter = ifmt_ctx->iformat->extensions != NULL &&
+            (video_codecpar->codec_id == AV_CODEC_ID_H264 || video_codecpar->codec_id == AV_CODEC_ID_HEVC);
     AVBSFContext *video_abs_ctx = NULL;
     const AVBitStreamFilter *video_abs_filter = NULL;
-    if (needStreamFilter) {
-        AVCodecParameters *in_codecpar = ifmt_ctx->streams[video_stream_index]->codecpar;
-        if (in_codecpar->codec_id == AV_CODEC_ID_HEVC) {
+    if (needVideoStreamFilter) {
+        if (video_codecpar->codec_id == AV_CODEC_ID_HEVC) {
             video_abs_filter = av_bsf_get_by_name("hevc_mp4toannexb");
-        } else if (in_codecpar->codec_id == AV_CODEC_ID_H264) {
+        } else if (video_codecpar->codec_id == AV_CODEC_ID_H264) {
             video_abs_filter = av_bsf_get_by_name("h264_mp4toannexb");
         }
         av_bsf_alloc(video_abs_filter, &video_abs_ctx);
-        avcodec_parameters_copy(video_abs_ctx->par_in, in_codecpar);
+        avcodec_parameters_copy(video_abs_ctx->par_in, video_codecpar);
         av_bsf_init(video_abs_ctx);
     }
+
+    AVCodecParameters *audio_codecpar = ifmt_ctx->streams[audio_stream_index]->codecpar;
+    int needAudioStreamFilter = audio_codecpar->codec_id == AV_CODEC_ID_AAC;
+    unsigned char mADTSHeader[ADTS_HEADER_SIZE] = {0};
+    ADTSContext mADTSContext;
+    uint8_t *audioADTSData = NULL;
+    if (needAudioStreamFilter) {
+        create_adts_context(&mADTSContext, audio_codecpar->extradata, audio_codecpar->extradata_size);
+        audioADTSData = malloc(audio_codecpar->frame_size + ADTS_HEADER_SIZE);
+    }
+    ffmpegLog(ANDROID_LOG_INFO, "needVideoStreamFilter %d, needAudioStreamFilter %d\n",
+              needVideoStreamFilter, needAudioStreamFilter);
 
     while (1) {
         LoopFlag loop_flag = callback.av_format_loop_wait(channelId);
@@ -160,10 +174,22 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
         pkt.stream_index = stream_mapping[pkt.stream_index];
         if (pkt.stream_index == audio_stream_index) {
             print_packet(ifmt_ctx, &pkt, "audio");
-            callback.av_format_feed_audio(channelId, ifmt_ctx, &pkt);
+            if (needAudioStreamFilter) {
+                insert_adts_head(&mADTSContext, mADTSHeader, pkt.size);
+                memcpy(audioADTSData, mADTSHeader, ADTS_HEADER_SIZE);
+                memcpy(audioADTSData + ADTS_HEADER_SIZE, pkt.data, (size_t) pkt.size);
+                uint8_t *old = pkt.data;
+                pkt.data = audioADTSData;
+                pkt.size += ADTS_HEADER_SIZE;
+                callback.av_format_feed_audio(channelId, ifmt_ctx, &pkt);
+                pkt.data = old;
+                pkt.size -= ADTS_HEADER_SIZE;
+            } else {
+                callback.av_format_feed_audio(channelId, ifmt_ctx, &pkt);
+            }
         } else if (pkt.stream_index == video_stream_index) {
             print_packet(ifmt_ctx, &pkt, "video");
-            if (needStreamFilter) {
+            if (needVideoStreamFilter) {
                 av_bsf_send_packet(video_abs_ctx, &pkt);
                 while (av_bsf_receive_packet(video_abs_ctx, &pkt) == 0) {
                     if (pkt.size <= 0) {
@@ -192,9 +218,12 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
 
     av_freep(&stream_mapping);
 
-    if (needStreamFilter) {
+    if (needVideoStreamFilter) {
         av_bsf_free(&video_abs_ctx);
         video_abs_ctx = NULL;
+    }
+    if (needAudioStreamFilter) {
+        free(audioADTSData);
     }
 
     if (ret < 0 && ret != AVERROR_EOF) {

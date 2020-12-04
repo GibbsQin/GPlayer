@@ -22,7 +22,7 @@ void MediaPipe::av_format_extradata_audio(int channel, AVFormatContext *ifmt_ctx
                                           uint8_t *pInputBuf, uint32_t dwInputDataSize) {
     GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
-        targetPlayer->av_feed_audio(pInputBuf, dwInputDataSize, 0, 0, 2);
+        targetPlayer->av_feed_audio(pInputBuf, dwInputDataSize, 0, 0, FLAG_KEY_EXTRA_DATA);
     }
 }
 
@@ -30,7 +30,7 @@ void MediaPipe::av_format_extradata_video(int channel, AVFormatContext *ifmt_ctx
                                           uint8_t *pInputBuf, uint32_t dwInputDataSize) {
     GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
-        targetPlayer->av_feed_video(pInputBuf, dwInputDataSize, 0, 0, 2);
+        targetPlayer->av_feed_video(pInputBuf, dwInputDataSize, 0, 0, FLAG_KEY_EXTRA_DATA);
     }
 }
 

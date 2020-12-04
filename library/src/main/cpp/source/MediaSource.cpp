@@ -11,36 +11,30 @@ MediaSource::MediaSource() {
 }
 
 MediaSource::~MediaSource() {
-    flushBuffer();
     delete mAVHeader;
-    LOGE(TAG, "CoreFlow : MediaSource destroyed");
+    LOGE(TAG, "CoreFlow : MediaSource destroyed %d %d",
+            audioPacketQueue.size(), videoPacketQueue.size());
 }
 
 void MediaSource::onInit(MediaInfo *header) {
     mAVHeader = header;
-    LOGI(TAG, "CoreFlow : onInit header videoType:%d, videoWidth:%d, videoHeight:%d, videoFrameRate:%d,"
-              "audioType:%d, audioMode:%d, audioBitWidth:%d, audioSampleRate:%d, sampleNumPerFrame:%d",
-         header->videoType, header->videoWidth, header->videoHeight, header->videoFrameRate,
-         header->audioType, header->audioMode, header->audioBitWidth, header->audioSampleRate,
-         header->sampleNumPerFrame);
 }
 
 uint32_t MediaSource::onReceiveAudio(MediaData *inPacket) {
     uint32_t queueSize = 0;
-    audioPacketQueue.push(inPacket);
+    audioPacketQueue.push_back(inPacket);
     queueSize = static_cast<uint32_t>(audioPacketQueue.size());
     return queueSize;
 }
 
 uint32_t MediaSource::onReceiveVideo(MediaData *inPacket) {
     uint32_t queueSize = 0;
-    videoPacketQueue.push(inPacket);
+    videoPacketQueue.push_back(inPacket);
     queueSize = static_cast<uint32_t>(videoPacketQueue.size());
     return queueSize;
 }
 
 void MediaSource::onRelease() {
-    LOGE(TAG, "CoreFlow : onRelease");
 }
 
 MediaInfo *MediaSource::getAVHeader() {
@@ -48,7 +42,7 @@ MediaInfo *MediaSource::getAVHeader() {
 }
 
 int MediaSource::readAudioBuffer(MediaData **avData) {
-    if (audioPacketQueue.empty()) {
+    if (audioPacketQueue.size() <= 0) {
         return AV_SOURCE_EMPTY;
     }
     *avData = audioPacketQueue.front();
@@ -61,7 +55,7 @@ int MediaSource::readAudioBuffer(MediaData **avData) {
 }
 
 int MediaSource::readVideoBuffer(MediaData **avData) {
-    if (videoPacketQueue.empty()) {
+    if (videoPacketQueue.size() <= 0) {
         return AV_SOURCE_EMPTY;
     }
     *avData = videoPacketQueue.front();
@@ -75,45 +69,13 @@ int MediaSource::readVideoBuffer(MediaData **avData) {
 
 void MediaSource::popAudioBuffer() {
     mAudioLock.lock();
-    MediaData *audioItem = audioPacketQueue.front();
-    if (audioItem) {
-        if (audioItem->data) {
-            free(audioItem->data);
-            audioItem->data = nullptr;
-        }
-        if (audioItem->data1) {
-            free(audioItem->data1);
-            audioItem->data1 = nullptr;
-        }
-        if (audioItem->data2) {
-            free(audioItem->data2);
-            audioItem->data2 = nullptr;
-        }
-        delete audioItem;
-    }
-    audioPacketQueue.pop();
+    audioPacketQueue.pop_front();
     mAudioLock.unlock();
 }
 
 void MediaSource::popVideoBuffer() {
     mVideoLock.lock();
-    MediaData *videoItem = videoPacketQueue.front();
-    if (videoItem) {
-        if (videoItem->data) {
-            free(videoItem->data);
-            videoItem->data = nullptr;
-        }
-        if (videoItem->data1) {
-            free(videoItem->data1);
-            videoItem->data1 = nullptr;
-        }
-        if (videoItem->data2) {
-            free(videoItem->data2);
-            videoItem->data2 = nullptr;
-        }
-        delete videoItem;
-    }
-    videoPacketQueue.pop();
+    videoPacketQueue.pop_front();
     mVideoLock.unlock();
 }
 
@@ -129,32 +91,14 @@ void MediaSource::flushBuffer() {
 }
 
 void MediaSource::flushVideoBuffer() {
-    while (!videoPacketQueue.empty()) {
-        MediaData *videoItem = videoPacketQueue.front();
-        if (videoItem) {
-            if (videoItem->data) {
-                free(videoItem->data);
-            }
-            delete videoItem;
-        } else {
-            LOGE(TAG, "videoItem is null");
-        }
-        videoPacketQueue.pop();
+    if (videoPacketQueue.size() > 0) {
+        videoPacketQueue.clear();
     }
 }
 
 void MediaSource::flushAudioBuffer() {
-    while (!audioPacketQueue.empty()) {
-        MediaData *audioItem = audioPacketQueue.front();
-        if (audioItem) {
-            if (audioItem->data) {
-                free(audioItem->data);
-            }
-            delete audioItem;
-        } else {
-            LOGE(TAG, "audioItem is null");
-        }
-        audioPacketQueue.pop();
+    if (audioPacketQueue.size() > 0) {
+        audioPacketQueue.clear();
     }
 }
 

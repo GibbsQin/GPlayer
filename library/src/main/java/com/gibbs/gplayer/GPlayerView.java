@@ -3,7 +3,7 @@ package com.gibbs.gplayer;
 import android.content.Context;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
-import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.ViewGroup;
 
 import com.gibbs.gplayer.listener.OnErrorListener;
@@ -20,6 +20,7 @@ public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnSta
 
     private GPlayer mGPlayer;
     private OnStateChangedListener mOnStateChangedListener;
+    private boolean mHasSetRender = false;
 
     public GPlayerView(Context context) {
         super(context);
@@ -37,28 +38,33 @@ public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnSta
             return;
         }
         mGPlayer = new GPlayer();
+        mGPlayer.setSurface(this);
         mGPlayer.setOnStateChangedListener(this);
-        getHolder().addCallback(new SurfaceHolder.Callback() {
-            @Override
-            public void surfaceCreated(SurfaceHolder holder) {
-                mGPlayer.setSurface(GPlayerView.this);
-            }
-
-            @Override
-            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
-            }
-
-            @Override
-            public void surfaceDestroyed(SurfaceHolder holder) {
-                mGPlayer.setSurface(null);
-            }
-        });
     }
 
     @Override
-    public void setSurface(GLSurfaceView view) {
-        mGPlayer.setSurface(view);
+    public void setRenderer(Renderer renderer) {
+        super.setRenderer(renderer);
+        mHasSetRender = true;
+    }
+
+    @Override
+    public void onResume() {
+        if (mHasSetRender) {
+            super.onResume();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        if (mHasSetRender) {
+            super.onPause();
+        }
+    }
+
+    @Override
+    public void setSurface(SurfaceView view) {
+
     }
 
     @Override

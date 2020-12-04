@@ -18,17 +18,16 @@ extern "C" {
 
 #define TAG "GPlayerC"
 
-GPlayer::GPlayer(int channelId, int flag, jobject obj) {
+GPlayer::GPlayer(int channelId, uint32_t flag, jobject obj) {
     outputSource = new MediaSource();
     inputSource = new MediaSource();
     playerJni = new GPlayerJni(obj);
     audioEngineThread = nullptr;
     videoEngineThread = nullptr;
+    LOGI(TAG, "CoreFlow : start demuxing channel %d, flag %d", mChannelId, flag);
     mediaCodecFlag = (flag & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
-    LOGI(TAG, "CoreFlow : new GPlayerImp mediaCodecFlag = %d", mediaCodecFlag);
     codeInterceptor = new CodecInterceptor(mediaCodecFlag);
     mChannelId = channelId;
-    LOGI(TAG, "CoreFlow : start demuxing url %s, channel %d", mUrl, mChannelId);
 }
 
 GPlayer::~GPlayer() {
@@ -48,10 +47,6 @@ GPlayer::~GPlayer() {
         delete inputSource;
         inputSource = nullptr;
     }
-    if (playerJni) {
-        delete playerJni;
-        playerJni = nullptr;
-    }
     if (codeInterceptor) {
         delete codeInterceptor;
         codeInterceptor = nullptr;
@@ -59,11 +54,20 @@ GPlayer::~GPlayer() {
     if (mUrl) {
         free(mUrl);
     }
-    LOGE(TAG, "CoreFlow : GPlayerImp destroyed");
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_RELEASED, 0, nullptr, nullptr);
+    if (playerJni) {
+        delete playerJni;
+        playerJni = nullptr;
+    }
+    LOGE(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
 void GPlayer::av_init(MediaInfo *header) {
+    LOGI(TAG, "CoreFlow : onInit header videoType:%d, videoWidth:%d, videoHeight:%d, videoFrameRate:%d,"
+              "audioType:%d, audioMode:%d, audioBitWidth:%d, audioSampleRate:%d, sampleNumPerFrame:%d",
+         header->videoType, header->videoWidth, header->videoHeight, header->videoFrameRate,
+         header->audioType, header->audioMode, header->audioBitWidth, header->audioSampleRate,
+         header->sampleNumPerFrame);
     inputSource->onInit(header);
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, header);
 }
@@ -76,7 +80,6 @@ uint32_t GPlayer::av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
     avData->flag = static_cast<uint8_t>(flag);
 
     uint32_t result = inputSource->onReceiveAudio(avData);
-    delete avData;
     playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_PACKET, result, nullptr,
                                  nullptr);
     return result;
@@ -90,7 +93,6 @@ uint32_t GPlayer::av_feed_video(uint8_t *pInputBuf, uint32_t dwInputDataSize,
     avData->flag = static_cast<uint8_t>(flag);
 
     uint32_t result = inputSource->onReceiveVideo(avData);
-    delete avData;
     playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_PACKET, result, nullptr,
                                  nullptr);
     return result;
@@ -104,9 +106,10 @@ void GPlayer::av_error(int code, char *msg) {
     playerJni->onMessageCallback(MSG_TYPE_ERROR, code, 0, msg, nullptr);
 }
 
-void GPlayer::prepare(std::string url) {
-    mUrl = static_cast<char *>(malloc(url.length()));
+void GPlayer::prepare(const std::string& url) {
+    mUrl = static_cast<char *>(malloc(url.length() + 1));
     memcpy(mUrl, url.c_str(), url.length());
+    mUrl[url.length()] = '\0';
 
     isDemuxing = true;
     demuxingThread = new DemuxingThread(std::bind(&GPlayer::startDemuxing, this,
@@ -137,7 +140,6 @@ void GPlayer::stop() {
     LOGI(TAG, "CoreFlow : decode threads were stopped!");
     codeInterceptor->onRelease();
     inputSource->flushBuffer();
-    outputSource->onRelease();
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_STOPPED, 0, nullptr, nullptr);
 }
 
@@ -198,17 +200,18 @@ void GPlayer::onAudioThreadStart() {
 }
 
 int GPlayer::processAudioBuffer() {
-    MediaData *inPacket;
+    MediaData *inPacket = nullptr;
     int ret = inputSource->readAudioBuffer(&inPacket);
     if (ret <= 0) {
         return 0;
     }
     int mediaSize = 0;
     int inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_AUDIO);
-    MediaData *outBuffer;
+    MediaData *outBuffer = nullptr;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
     if (ret >= 0) {
-        MediaData *desBuffer = new MediaData(outBuffer);
+        auto desBuffer = new MediaData();
+        MediaHelper::copy(outBuffer, desBuffer);
         mediaSize = outputSource->onReceiveAudio(desBuffer);
         playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_FRAME, mediaSize, nullptr,
                                      nullptr);
@@ -229,17 +232,18 @@ void GPlayer::onVideoThreadStart() {
 }
 
 int GPlayer::processVideoBuffer() {
-    MediaData *inPacket;
+    MediaData *inPacket = nullptr;
     int ret = inputSource->readVideoBuffer(&inPacket);
     if (ret <= 0) {
         return 0;
     }
     int mediaSize = 0;
     int inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_VIDEO);
-    MediaData *outBuffer;
+    MediaData *outBuffer = nullptr;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
     if (ret >= 0) {
-        MediaData *desBuffer = new MediaData(outBuffer);
+        auto desBuffer = new MediaData();
+        MediaHelper::copy(outBuffer, desBuffer);
         mediaSize = outputSource->onReceiveVideo(desBuffer);
         playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_FRAME, mediaSize, nullptr,
                                      nullptr);

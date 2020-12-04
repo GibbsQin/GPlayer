@@ -1,7 +1,9 @@
 package com.gibbs.gplayer;
 
 import android.opengl.GLSurfaceView;
+import android.os.Handler;
 import android.text.TextUtils;
+import android.view.SurfaceView;
 
 import com.gibbs.gplayer.listener.OnErrorListener;
 import com.gibbs.gplayer.listener.OnBufferChangedListener;
@@ -41,7 +43,7 @@ public class GPlayer implements IGPlayer {
     private boolean mIsProcessingSource;
     private State mPlayState = State.IDLE;
 
-    private GLSurfaceView mGLSurfaceView;
+    private SurfaceView mSurfaceView;
     private AudioRender mAudioRender;
     private VideoRender mVideoRender;
 
@@ -62,8 +64,16 @@ public class GPlayer implements IGPlayer {
     }
 
     @Override
-    public void setSurface(GLSurfaceView view) {
-        mGLSurfaceView = view;
+    public void setSurface(SurfaceView view) {
+        mSurfaceView = view;
+        mAudioRender = new PcmAudioRender(mMediaSource);
+        if (view instanceof GLSurfaceView) {
+            GLSurfaceView glSurfaceView = (GLSurfaceView) view;
+            mVideoRender = new YUVGLRenderer(glSurfaceView, mAudioRender, mMediaSource);
+            glSurfaceView.setEGLContextClientVersion(2);
+            glSurfaceView.setRenderer(mVideoRender);
+            glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        }
     }
 
     @Override
@@ -77,11 +87,11 @@ public class GPlayer implements IGPlayer {
     @Override
     public void prepare() {
         if (mPlayState != State.IDLE) {
-            LogUtils.e(TAG, "not idle");
+            LogUtils.e(TAG, "CoreFlow : not idle");
             return;
         }
         if (TextUtils.isEmpty(mUrl)) {
-            LogUtils.e(TAG, "invalid data source");
+            LogUtils.e(TAG, "CoreFlow : invalid data source");
             return;
         }
         LogUtils.i(TAG, "CoreFlow : prepare " + mUrl);
@@ -91,30 +101,30 @@ public class GPlayer implements IGPlayer {
     @Override
     public void start() {
         if (mPlayState != State.PREPARED && mPlayState != State.PAUSED) {
-            LogUtils.e(TAG, "not prepared or paused");
+            LogUtils.e(TAG, "CoreFlow : not prepared or paused");
             return;
         }
-        if (!mGLSurfaceView.getHolder().getSurface().isValid()) {
-            LogUtils.e(TAG, "invalid surface");
+        if (!mSurfaceView.getHolder().getSurface().isValid()) {
+            LogUtils.e(TAG, "CoreFlow : invalid surface");
+            // TODO
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            LogUtils.e(TAG, "CoreFlow : try again after 200 ms");
+            start();
             return;
-        }
-
-        LogUtils.i(TAG, "CoreFlow : start");
-        mAudioRender = new PcmAudioRender(mMediaSource);
-        mVideoRender = new YUVGLRenderer(mGLSurfaceView, mAudioRender, mMediaSource);
-        mGLSurfaceView.setEGLContextClientVersion(2);
-        mGLSurfaceView.setRenderer(mVideoRender);
-        if (mVideoRender instanceof YUVGLRenderer) {
-            mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         }
 
         mIsProcessingSource = true;
-        mAudioRender.init(mMediaSource.getMediaInfo());
-        mVideoRender.init(mMediaSource.getMediaInfo());
+        setPlayState(GPlayer.State.PLAYING);
 
         mAudioPlayThread = new AudioPlayThread();
+        mAudioPlayThread.setName("GPlayer_AudioPlayThread");
         mAudioPlayThread.start();
         mVideoPlayThread = new VideoPlayThread();
+        mAudioPlayThread.setName("GPlayer_VideoPlayThread");
         mVideoPlayThread.start();
 
         nStart(mChannelId);
@@ -124,7 +134,7 @@ public class GPlayer implements IGPlayer {
     public void stop() {
         if (mPlayState != State.PREPARING && mPlayState != State.PREPARED &&
                 mPlayState != State.PAUSED && mPlayState != State.PLAYING) {
-            LogUtils.e(TAG, "not playing");
+            LogUtils.e(TAG, "CoreFlow : not playing");
             return;
         }
         LogUtils.i(TAG, "CoreFlow : stop");
@@ -242,12 +252,18 @@ public class GPlayer implements IGPlayer {
                 e.printStackTrace();
             }
         }
-        release();
+        // TODO
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mMediaSource.flushBuffer();
+                release();
+            }
+        }, 200);
     }
 
     private void onReleased() {
         LogUtils.e(TAG, "CoreFlow : ----------onReleased----------");
-        mMediaSource.flushBuffer();
         setPlayState(State.IDLE);
     }
 
@@ -256,7 +272,7 @@ public class GPlayer implements IGPlayer {
         public void run() {
             super.run();
             LogUtils.i(TAG, "AudioPlayThread init " + getId());
-            setPlayState(GPlayer.State.PLAYING);
+            mAudioRender.init(mMediaSource.getMediaInfo());
             while (mIsProcessingSource) {
                 mAudioRender.render();
             }
@@ -270,7 +286,7 @@ public class GPlayer implements IGPlayer {
         public void run() {
             super.run();
             LogUtils.i(TAG, "VideoPlayThread init " + getId());
-            setPlayState(GPlayer.State.PLAYING);
+            mVideoRender.init(mMediaSource.getMediaInfo());
             while (mIsProcessingSource) {
                 mVideoRender.render();
             }
@@ -286,7 +302,6 @@ public class GPlayer implements IGPlayer {
 
     //call by jni
     public void onMessageCallback(int what, int arg1, int arg2, String msg1, String msg2, Object object) {
-        LogUtils.i(TAG, "CoreFlow : onMessageCallback " + what + " " + arg1 + " " + msg1);
         switch (what) {
             case MSG_TYPE_ERROR:
                 handleErrorMsg(arg1, msg1);
@@ -311,7 +326,7 @@ public class GPlayer implements IGPlayer {
 
     private void handleStateMsg(int state, Object object) {
         if (object instanceof MediaInfo) {
-
+            mMediaSource.setMediaInfo((MediaInfo) object);
         }
         State playState = State.values()[state];
         setPlayState(playState);

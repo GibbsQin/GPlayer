@@ -8,13 +8,15 @@
 
 class MediaData {
 public:
-    MediaData(uint32_t s, uint32_t s1, uint32_t s2);
+    MediaData();
 
-    MediaData(MediaData * src);
+    MediaData(uint32_t s, uint32_t s1, uint32_t s2);
 
     MediaData(uint8_t *d, uint32_t s, uint8_t *d1, uint32_t s1, uint8_t *d2, uint32_t s2);
 
     ~MediaData();
+
+    void print();
 
 public:
     uint8_t *data = nullptr;
@@ -24,11 +26,11 @@ public:
     uint8_t *data2 = nullptr;
     uint32_t size2 = 0;
 
-    uint64_t pts;
-    uint64_t dts;
-    uint32_t width;
-    uint32_t height;
-    uint8_t flag;//与FLAG_KEY_相关
+    uint64_t pts = 0;
+    uint64_t dts = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint8_t flag = 0;//与FLAG_KEY_相关
 };
 
 

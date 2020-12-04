@@ -88,7 +88,7 @@ Java_com_gibbs_gplayer_GPlayer_nSeekTo(JNIEnv *env, jobject thiz, jint channel_i
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jlong channel_id,
+Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jint channel_id,
                                      jboolean force) {
     LOGI("GPlayerJni", "nStop channelId : %d, force : %d", channel_id, force);
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
@@ -100,7 +100,7 @@ Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jlong channel_id
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jlong channel_id) {
+Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jint channel_id) {
     LOGI("GPlayerJni", "nDestroyAVSource channelId : %d", channel_id);
     MediaPipe::deleteFromMap(static_cast<int>(channel_id));
 }
@@ -113,9 +113,9 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nReadAudioSource(JNIEnv *env, jobje
     if (!targetPlayer) {
         return nullptr;
     }
-    MediaData *mediaData;
+    MediaData *mediaData = nullptr;
     targetPlayer->getFrameSource()->readAudioBuffer(&mediaData);
-    if (!mediaData) {
+    if (mediaData == nullptr) {
         return nullptr;
     }
     return MediaDataJni::createJObject(mediaData);
@@ -129,9 +129,9 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nReadVideoSource(JNIEnv *env, jobje
     if (!targetPlayer) {
         return nullptr;
     }
-    MediaData *mediaData;
+    MediaData *mediaData = nullptr;
     targetPlayer->getFrameSource()->readVideoBuffer(&mediaData);
-    if (!mediaData) {
+    if (mediaData == nullptr) {
         return nullptr;
     }
     return MediaDataJni::createJObject(mediaData);

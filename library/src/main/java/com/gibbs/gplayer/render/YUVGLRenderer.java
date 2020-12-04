@@ -171,6 +171,7 @@ public class YUVGLRenderer extends BaseVideoRender {
     @Override
     public void release() {
         super.release();
+        mSurfaceView.onPause();
         mInitialized = false;
         mIsFrameReady = false;
         mByteBufferY = null;

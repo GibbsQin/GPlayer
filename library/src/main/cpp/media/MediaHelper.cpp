@@ -2,7 +2,7 @@
 // Created by qinshenghua on 2020/12/4.
 //
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstring>
 #include "MediaHelper.h"
 

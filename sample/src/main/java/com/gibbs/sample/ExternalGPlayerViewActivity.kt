@@ -5,16 +5,13 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.WindowManager
 import com.gibbs.gplayer.GPlayer
-import com.gibbs.gplayer.listener.OnBufferChangedListener
-import com.gibbs.gplayer.listener.OnErrorListener
-import com.gibbs.gplayer.listener.OnPositionChangedListener
-import com.gibbs.gplayer.listener.OnStateChangedListener
+import com.gibbs.gplayer.listener.*
 import com.gibbs.gplayer.utils.LogUtils
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_external_gplayer.*
 import kotlinx.android.synthetic.main.layout_gplayer_top.*
 
-class ExternalGPlayerViewActivity : BaseActivity(), OnStateChangedListener,
+class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener,
         OnBufferChangedListener, OnPositionChangedListener, OnErrorListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,6 +24,7 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnStateChangedListener,
         LogUtils.i(TAG, "url = $url, name = $name")
         LogUtils.i(TAG, "useMediaCodec = $useMediaCodec")
         gl_surface_view.setDataSource(url)
+        gl_surface_view.setOnPreparedListener(this)
         gl_surface_view.setOnStateChangedListener(this)
         gl_surface_view.setOnErrorListener(this)
         gl_surface_view.setOnPositionChangedListener(this)
@@ -39,18 +37,22 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnStateChangedListener,
         }
     }
 
-    override fun onResume() {
-        LogUtils.i(TAG, "onResume")
-        super.onResume()
+    override fun onStart() {
+        super.onStart()
+        LogUtils.i(TAG, "onStart")
         gl_surface_view.onResume()
         gl_surface_view.prepare()
     }
 
-    override fun onPause() {
-        LogUtils.i(TAG, "onPause")
-        super.onPause()
+    override fun onStop() {
+        super.onStop()
+        LogUtils.i(TAG, "onStop")
         gl_surface_view.onPause()
         gl_surface_view.stop()
+    }
+
+    override fun onPrepared() {
+        gl_surface_view.start()
     }
 
     override fun onStateChanged(state: GPlayer.State) {

@@ -85,7 +85,7 @@ int CodecInterceptor::onInit(MediaInfo *header) {
             }
         }
         auto videoDataSize = header->videoWidth * header->videoHeight;
-        audioOutFrame = new MediaData(nullptr, static_cast<uint32_t>(videoDataSize),
+        videoOutFrame = new MediaData(nullptr, static_cast<uint32_t>(videoDataSize),
                                       nullptr, static_cast<uint32_t>(videoDataSize / 4),
                                       nullptr, static_cast<uint32_t>(videoDataSize / 4));
         videoDecoder->init(header);
@@ -152,9 +152,7 @@ void CodecInterceptor::onRelease() {
             delete audioDecoder;
             audioDecoder = nullptr;
         }
-        if (audioOutFrame) {
-            delete audioOutFrame;
-        }
+        delete audioOutFrame;
     }
 
     if (isVideoAvailable) {
@@ -163,11 +161,8 @@ void CodecInterceptor::onRelease() {
             delete videoDecoder;
             videoDecoder = nullptr;
         }
-        if (videoOutFrame) {
-            delete videoOutFrame;
-        }
+        delete videoOutFrame;
     }
     videoLock.unlock();
     audioLock.unlock();
-    LOGI(TAG, "CoreFlow : onRelease");
 }

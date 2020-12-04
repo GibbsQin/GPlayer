@@ -16,7 +16,7 @@ public class PcmAudioRender extends BaseAudioRender {
     public void render() {
         super.render();
         MediaData mediaData = mMediaSource.readAudioSource();
-        if (mediaData != null) {
+        if (mediaData != null && mediaData.size > 0) {
             write(mediaData.data, mediaData.size, mediaData.pts, AudioTrack.WRITE_BLOCKING);
             mMediaSource.removeFirstAudioPackage();
         }

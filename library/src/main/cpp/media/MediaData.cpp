@@ -5,8 +5,11 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <base/Log.h>
 #include "MediaData.h"
 #include "MediaHelper.h"
+
+MediaData::MediaData() = default;
 
 MediaData::MediaData(uint32_t s, uint32_t s1, uint32_t s2) {
     if (s > 0) {
@@ -18,10 +21,6 @@ MediaData::MediaData(uint32_t s, uint32_t s1, uint32_t s2) {
     if (s2 > 0) {
         data2 = static_cast<uint8_t *>(malloc(s2));
     }
-}
-
-MediaData::MediaData(MediaData *src) {
-    MediaHelper::copy(src, this);
 }
 
 MediaData::MediaData(uint8_t *d, uint32_t s, uint8_t *d1, uint32_t s1, uint8_t *d2, uint32_t s2) {
@@ -49,16 +48,20 @@ MediaData::MediaData(uint8_t *d, uint32_t s, uint8_t *d1, uint32_t s1, uint8_t *
 }
 
 MediaData::~MediaData() {
-    if (data) {
+    if (data != nullptr) {
         free(data);
         data = nullptr;
     }
-    if (data1) {
+    if (data1 != nullptr) {
         free(data1);
         data1 = nullptr;
     }
-    if (data2) {
+    if (data2 != nullptr) {
         free(data2);
         data2 = nullptr;
     }
+}
+
+void MediaData::print() {
+    LOGI("MediaData", "print MediaData %d %d %d", size, size1, size2);
 }

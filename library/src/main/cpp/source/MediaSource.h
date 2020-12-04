@@ -4,7 +4,7 @@
 
 #include <jni.h>
 #include <string>
-#include <queue>
+#include <deque>
 #include <mutex>
 #include "media/MediaData.h"
 extern "C" {
@@ -53,8 +53,8 @@ private:
 
 private:
     MediaInfo *mAVHeader;
-    std::queue<MediaData *> videoPacketQueue;
-    std::queue<MediaData *> audioPacketQueue;
+    std::deque<MediaData *> videoPacketQueue;
+    std::deque<MediaData *> audioPacketQueue;
     std::mutex mAudioLock;
     std::mutex mVideoLock;
 };
