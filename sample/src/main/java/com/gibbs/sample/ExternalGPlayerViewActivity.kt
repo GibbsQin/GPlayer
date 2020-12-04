@@ -4,21 +4,18 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.WindowManager
-import androidx.appcompat.app.AlertDialog
 import com.gibbs.gplayer.GPlayer
-import com.gibbs.gplayer.listener.OnStateChangedListener
-import com.gibbs.gplayer.media.MediaInfo
+import com.gibbs.gplayer.listener.OnBufferChangedListener
 import com.gibbs.gplayer.listener.OnErrorListener
-import com.gibbs.gplayer.listener.OnSourceSizeChangedListener
-import com.gibbs.gplayer.listener.OnTimeChangedListener
+import com.gibbs.gplayer.listener.OnPositionChangedListener
+import com.gibbs.gplayer.listener.OnStateChangedListener
 import com.gibbs.gplayer.utils.LogUtils
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_external_gplayer.*
-import kotlinx.android.synthetic.main.activity_external_gplayer.gl_surface_view
 import kotlinx.android.synthetic.main.layout_gplayer_top.*
 
 class ExternalGPlayerViewActivity : BaseActivity(), OnStateChangedListener,
-        OnSourceSizeChangedListener, OnTimeChangedListener, OnErrorListener {
+        OnBufferChangedListener, OnPositionChangedListener, OnErrorListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,11 +26,11 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnStateChangedListener,
         val name = intent.getStringExtra("name")
         LogUtils.i(TAG, "url = $url, name = $name")
         LogUtils.i(TAG, "useMediaCodec = $useMediaCodec")
-        gl_surface_view.url = url
-        gl_surface_view.setPlayStateChangedListener(this)
-//        gl_surface_view.setOnErrorListener(this)
-//        gl_surface_view.setOnTimeChangedListener(this)
-//        gl_surface_view.setOnSourceSizeChangedListener(this)
+        gl_surface_view.setDataSource(url)
+        gl_surface_view.setOnStateChangedListener(this)
+        gl_surface_view.setOnErrorListener(this)
+        gl_surface_view.setOnPositionChangedListener(this)
+        gl_surface_view.setOnBufferChangedListener(this)
         if (name != null) {
             title = name
         } else if (url != null) {
@@ -46,47 +43,44 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnStateChangedListener,
         LogUtils.i(TAG, "onResume")
         super.onResume()
         gl_surface_view.onResume()
-        gl_surface_view.startPlay()
+        gl_surface_view.prepare()
     }
 
     override fun onPause() {
         LogUtils.i(TAG, "onPause")
         super.onPause()
         gl_surface_view.onPause()
-        gl_surface_view.stopPlay()
+        gl_surface_view.stop()
     }
 
     override fun onStateChanged(state: GPlayer.State) {
         LogUtils.i(TAG, "onPlayStateChanged $state")
         if (state == GPlayer.State.PLAYING) {
             runOnUiThread {
-                val mediaInfo = gl_surface_view.mediaInfo
-                val durationMs = mediaInfo.getInteger(MediaInfo.KEY_DURATION, 24)
-                video_playback_seek_view.setDuration(durationMs)
+                video_playback_seek_view.setDuration(gl_surface_view.duration)
             }
         } else if (state == GPlayer.State.IDLE) {
             finish()
         }
     }
 
-    override fun onLocalAudioSizeChanged(size: Int) {
+    override fun onAudioFrameSizeChanged(size: Int) {
         runOnUiThread { audio_frame_progress.progress = size }
     }
 
-    override fun onLocalVideoSizeChanged(size: Int) {
+    override fun onVideoFrameSizeChanged(size: Int) {
         runOnUiThread { video_frame_progress.progress = size }
     }
 
-    override fun onRemoteAudioSizeChanged(size: Int) {
+    override fun onAudioPacketSizeChanged(size: Int) {
         runOnUiThread { audio_packet_progress.progress = size }
     }
 
-    override fun onRemoteVideoSizeChanged(size: Int) {
+    override fun onVideoPacketSizeChanged(size: Int) {
         runOnUiThread { video_packet_progress.progress = size }
     }
 
-    override fun onAudioTimeChanged(timeUs: Long) {}
-    override fun onVideoTimeChanged(timeUs: Long) {
+    override fun onPositionChanged(timeUs: Long) {
         runOnUiThread {
             val progress = (timeUs / 1000).toInt()
             if (progress > video_playback_seek_view.progress) {
@@ -114,19 +108,7 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnStateChangedListener,
     }
 
     private fun showInfoDialog() {
-        val mediaInfo = gl_surface_view.mediaInfo
-        val width = mediaInfo.getInteger(MediaInfo.KEY_WIDTH, 16)
-        val height = mediaInfo.getInteger(MediaInfo.KEY_HEIGHT, 9)
-        val sampleRate = mediaInfo.getInteger(MediaInfo.KEY_AUDIO_SAMPLE_RATE, 8000)
-        val numPerSample = mediaInfo.getInteger(MediaInfo.KEY_AUDIO_SAMPLE_NUM_PERFRAME, 1024)
-        val frameRate = mediaInfo.getInteger(MediaInfo.KEY_FRAME_RATE, 24)
-        val audioRate = if (numPerSample > 0) sampleRate / numPerSample else 0
-        val msg = String.format("audio rate:%s, video rate:%s, %s:%s\n%s", audioRate, frameRate,
-                width, height, mediaInfo.toString())
-        AlertDialog.Builder(this)
-                .setTitle("Media info")
-                .setMessage(msg)
-                .show()
+
     }
 
     companion object {

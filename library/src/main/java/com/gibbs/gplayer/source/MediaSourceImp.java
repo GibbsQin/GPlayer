@@ -16,7 +16,7 @@ public class MediaSourceImp implements MediaSource {
 
     @Override
     public MediaInfo getMediaInfo() {
-        return nGetAVHeader(mChannelId);
+        return nGetMediaInfo(mChannelId);
     }
 
     @Override
@@ -62,7 +62,7 @@ public class MediaSourceImp implements MediaSource {
         return nGetVideoBufferSize(mChannelId);
     }
 
-    private native MediaInfo nGetAVHeader(int channelId);
+    private native MediaInfo nGetMediaInfo(int channelId);
 
     private native MediaData nReadAudioSource(int channelId);
 

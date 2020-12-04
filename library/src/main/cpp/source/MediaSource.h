@@ -6,7 +6,10 @@
 #include <string>
 #include <queue>
 #include <mutex>
-#include "media/Media.h"
+#include "media/MediaData.h"
+extern "C" {
+#include <demuxing/avformat_def.h>
+}
 
 #define AV_SOURCE_EMPTY -2
 

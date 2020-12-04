@@ -1,49 +1,119 @@
 package com.gibbs.gplayer;
 
 import android.content.Context;
+import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
+import android.view.SurfaceHolder;
 import android.view.ViewGroup;
 
+import com.gibbs.gplayer.listener.OnErrorListener;
+import com.gibbs.gplayer.listener.OnBufferChangedListener;
+import com.gibbs.gplayer.listener.OnPreparedListener;
 import com.gibbs.gplayer.listener.OnStateChangedListener;
+import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.render.GestureGLSurfaceView;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayerView extends GestureGLSurfaceView implements OnStateChangedListener {
+public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnStateChangedListener {
     private static final String TAG = "GPlayerView";
 
     private GPlayer mGPlayer;
-    private OnStateChangedListener mPlayStateChangedListener;
+    private OnStateChangedListener mOnStateChangedListener;
 
     public GPlayerView(Context context) {
         super(context);
+        initGPlayer();
     }
 
     public GPlayerView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        initGPlayer();
     }
 
-    private void initGPlayer(String url, final boolean mediaCodec) {
+    private void initGPlayer() {
         if (mGPlayer != null) {
             LogUtils.e("GPlayerView", "initGPlayer has been init");
             return;
         }
-        mGPlayer = new GPlayer(this, url, mediaCodec);
-        mGPlayer.setPlayStateChangedListener(this);
+        mGPlayer = new GPlayer();
+        mGPlayer.setOnStateChangedListener(this);
+        getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                mGPlayer.setSurface(GPlayerView.this);
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                mGPlayer.setSurface(null);
+            }
+        });
     }
 
-    /**
-     * start to play
-     */
-    public void startPlay() {
+    @Override
+    public void setSurface(GLSurfaceView view) {
+        mGPlayer.setSurface(view);
+    }
+
+    @Override
+    public void setDataSource(String url) {
+        mGPlayer.setDataSource(url);
+    }
+
+    @Override
+    public void prepare() {
         mGPlayer.prepare();
     }
 
-    /**
-     * stop play
-     */
-    public void stopPlay() {
-        mGPlayer.finish(true);
+    @Override
+    public void start() {
+        mGPlayer.start();
+    }
+
+    @Override
+    public void stop() {
+        mGPlayer.stop();
+    }
+
+    @Override
+    public void pause() {
+        mGPlayer.pause();
+    }
+
+    @Override
+    public boolean isPlaying() {
+        return mGPlayer.isPlaying();
+    }
+
+    @Override
+    public void seekTo(int secondMs) {
+        mGPlayer.seekTo(secondMs);
+    }
+
+    @Override
+    public int getCurrentPosition() {
+        return mGPlayer.getCurrentPosition();
+    }
+
+    @Override
+    public int getDuration() {
+        return mGPlayer.getDuration();
+    }
+
+    @Override
+    public void setOnPreparedListener(OnPreparedListener listener) {
+        mGPlayer.setOnPreparedListener(listener);
+    }
+
+    @Override
+    public void setOnErrorListener(OnErrorListener listener) {
+        mGPlayer.setOnErrorListener(listener);
     }
 
     /**
@@ -51,51 +121,25 @@ public class GPlayerView extends GestureGLSurfaceView implements OnStateChangedL
      *
      * @param listener callback
      */
-    public void setPlayStateChangedListener(OnStateChangedListener listener) {
-        mPlayStateChangedListener = listener;
+    @Override
+    public void setOnStateChangedListener(OnStateChangedListener listener) {
+        mOnStateChangedListener = listener;
     }
 
-    /**
-     * get the media info
-     *
-     * @return media info
-     */
-    public MediaInfo getMediaInfo() {
-        return mGPlayer.getMediaInfo();
+    @Override
+    public void setOnPositionChangedListener(OnPositionChangedListener listener) {
+        mGPlayer.setOnPositionChangedListener(listener);
     }
 
-    /**
-     * get player url
-     *
-     * @return url
-     */
-    public String getUrl() {
-        return mGPlayer.getUrl();
-    }
-
-    /**
-     * set the file url(only support local file now)
-     *
-     * @param url  file path
-     */
-    public void setUrl(String url) {
-        setUrl(url, false);
-    }
-
-    /**
-     * set the file url(only support local file now)
-     *
-     * @param url        file path
-     * @param mediaCodec true : use mediacodec，false : use ffmpeg. valid when decode is true
-     */
-    public void setUrl(String url, boolean mediaCodec) {
-        initGPlayer(url, mediaCodec);
+    @Override
+    public void setOnBufferChangedListener(OnBufferChangedListener listener) {
+        mGPlayer.setOnBufferChangedListener(listener);
     }
 
     @Override
     public void onStateChanged(GPlayer.State state) {
-        if (mPlayStateChangedListener != null) {
-            mPlayStateChangedListener.onStateChanged(state);
+        if (mOnStateChangedListener != null) {
+            mOnStateChangedListener.onStateChanged(state);
         }
         if (state == GPlayer.State.PLAYING) {
             post(new Runnable() {

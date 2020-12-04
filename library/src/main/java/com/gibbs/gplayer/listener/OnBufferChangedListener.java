@@ -3,32 +3,32 @@ package com.gibbs.gplayer.listener;
 /**
  * media buffer size listener
  */
-public interface OnSourceSizeChangedListener {
+public interface OnBufferChangedListener {
     /**
      * audio decoded frame size changed
      *
      * @param size frame size
      */
-    void onLocalAudioSizeChanged(int size);
+    void onAudioFrameSizeChanged(int size);
 
     /**
      * video decoded frame size changed
      *
      * @param size frame size
      */
-    void onLocalVideoSizeChanged(int size);
+    void onVideoFrameSizeChanged(int size);
 
     /**
      * audio compressed frame size changed
      *
      * @param size frame size
      */
-    void onRemoteAudioSizeChanged(int size);
+    void onAudioPacketSizeChanged(int size);
 
     /**
      * video compressed frame size changed
      *
      * @param size frame size
      */
-    void onRemoteVideoSizeChanged(int size);
+    void onVideoPacketSizeChanged(int size);
 }

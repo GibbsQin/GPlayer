@@ -8,6 +8,7 @@
 #include <codec/MediaCodecVideoDecoder.h>
 #include <codec/MediaCodecAudioDecoder.h>
 #include "CodecInterceptor.h"
+
 extern "C" {
 #include <demuxing/avformat_def.h>
 }
@@ -35,7 +36,7 @@ int CodecInterceptor::onInit(MediaInfo *header) {
     bool ffmpegSupport = header->audioType > CODEC_START && header->audioType < CODEC_END;
     bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->audioType) != "";
     LOGI(TAG, "CoreFlow : onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
-            ffmpegSupport, mediaCodecSupport, mediaCodecFirst);
+         ffmpegSupport, mediaCodecSupport, mediaCodecFirst);
     isAudioAvailable = (ffmpegSupport || mediaCodecSupport);
     if (isAudioAvailable) {
         if (mediaCodecFirst) {
@@ -55,21 +56,11 @@ int CodecInterceptor::onInit(MediaInfo *header) {
                 LOGI(TAG, "new MediaCodecAudioDecoder");
             }
         }
-        auto audioDataSize = header->sampleNumPerFrame * header->audioBitWidth * header->audioChannels;
-        audioOutFrame.data = (uint8_t *) malloc(static_cast<size_t>(audioDataSize));
-        audioOutFrame.data1 = nullptr;
-        audioOutFrame.data2 = nullptr;
-        audioOutFrame.size = 0;
-        audioOutFrame.size1 = 0;
-        audioOutFrame.size2 = 0;
+        auto audioDataSize =
+                header->sampleNumPerFrame * header->audioBitWidth * header->audioChannels;
+        audioOutFrame = new MediaData(nullptr, static_cast<uint32_t>(audioDataSize), nullptr, 0,
+                                      nullptr, 0);
         audioDecoder->init(header);
-    } else {
-        audioOutFrame.data = nullptr;
-        audioOutFrame.data1 = nullptr;
-        audioOutFrame.data2 = nullptr;
-        audioOutFrame.size = 0;
-        audioOutFrame.size1 = 0;
-        audioOutFrame.size2 = 0;
     }
 
     ffmpegSupport = header->videoType > CODEC_START && header->videoType < CODEC_END;
@@ -94,20 +85,10 @@ int CodecInterceptor::onInit(MediaInfo *header) {
             }
         }
         auto videoDataSize = header->videoWidth * header->videoHeight;
-        videoOutFrame.data = (uint8_t *) malloc(static_cast<size_t>(videoDataSize));
-        videoOutFrame.data1 = (uint8_t *) malloc(static_cast<size_t>(videoDataSize / 4));
-        videoOutFrame.data2 = (uint8_t *) malloc(static_cast<size_t>(videoDataSize / 4));
-        videoOutFrame.size = 0;
-        videoOutFrame.size1 = 0;
-        videoOutFrame.size2 = 0;
+        audioOutFrame = new MediaData(nullptr, static_cast<uint32_t>(videoDataSize),
+                                      nullptr, static_cast<uint32_t>(videoDataSize / 4),
+                                      nullptr, static_cast<uint32_t>(videoDataSize / 4));
         videoDecoder->init(header);
-    } else {
-        videoOutFrame.data = nullptr;
-        videoOutFrame.data1 = nullptr;
-        videoOutFrame.data2 = nullptr;
-        videoOutFrame.size = 0;
-        videoOutFrame.size1 = 0;
-        videoOutFrame.size2 = 0;
     }
     videoLock.unlock();
     audioLock.unlock();
@@ -141,15 +122,15 @@ int CodecInterceptor::outputBuffer(MediaData **buffer, int type) {
     if (type == AV_TYPE_AUDIO) {
         audioLock.lock();
         if (isAudioAvailable) {
-            ret = audioDecoder->receive_frame(&audioOutFrame);
-            *buffer = &audioOutFrame;
+            ret = audioDecoder->receive_frame(audioOutFrame);
+            *buffer = audioOutFrame;
         }
         audioLock.unlock();
     } else if (type == AV_TYPE_VIDEO) {
         videoLock.lock();
         if (isVideoAvailable) {
-            ret = videoDecoder->receive_frame(&videoOutFrame);
-            *buffer = &videoOutFrame;
+            ret = videoDecoder->receive_frame(videoOutFrame);
+            *buffer = videoOutFrame;
         }
         videoLock.unlock();
     }
@@ -171,9 +152,8 @@ void CodecInterceptor::onRelease() {
             delete audioDecoder;
             audioDecoder = nullptr;
         }
-        if (audioOutFrame.data) {
-            free(audioOutFrame.data);
-            audioOutFrame.data = nullptr;
+        if (audioOutFrame) {
+            delete audioOutFrame;
         }
     }
 
@@ -183,17 +163,8 @@ void CodecInterceptor::onRelease() {
             delete videoDecoder;
             videoDecoder = nullptr;
         }
-        if (videoOutFrame.data) {
-            free(videoOutFrame.data);
-            videoOutFrame.data = nullptr;
-        }
-        if (videoOutFrame.data1) {
-            free(videoOutFrame.data1);
-            videoOutFrame.data1 = nullptr;
-        }
-        if (videoOutFrame.data2) {
-            free(videoOutFrame.data2);
-            videoOutFrame.data2 = nullptr;
+        if (videoOutFrame) {
+            delete videoOutFrame;
         }
     }
     videoLock.unlock();

@@ -1,9 +1,13 @@
 package com.gibbs.gplayer;
 
-import android.content.Context;
 import android.opengl.GLSurfaceView;
+import android.text.TextUtils;
 
+import com.gibbs.gplayer.listener.OnErrorListener;
+import com.gibbs.gplayer.listener.OnBufferChangedListener;
+import com.gibbs.gplayer.listener.OnPreparedListener;
 import com.gibbs.gplayer.listener.OnStateChangedListener;
+import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.render.AVSync;
 import com.gibbs.gplayer.render.AudioRender;
@@ -15,21 +19,24 @@ import com.gibbs.gplayer.source.MediaSource;
 import com.gibbs.gplayer.source.MediaSourceImp;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener {
+public class GPlayer implements IGPlayer, AVSync {
     private static final String TAG = "GPlayerJ";
+
+    private static final int MSG_TYPE_ERROR = 0;
+    private static final int MSG_TYPE_STATE = 1;
+    private static final int MSG_TYPE_TIME = 2;
+    private static final int MSG_TYPE_SIZE = 3;
 
     static {
         System.loadLibrary("gplayer");
     }
 
     public enum State {
-        IDLE, PREPARING, PREPARED, PLAYING, FINISHING, RELEASED
+        IDLE, PREPARING, PREPARED, PAUSED, PLAYING, STOPPING, STOPPED, RELEASED
     }
 
     private int mChannelId = hashCode();
     private String mUrl;
-
-    private Context mContext;
     private GLSurfaceView mGLSurfaceView;
 
     private AudioRender mAudioRender;
@@ -43,44 +50,99 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
     private AudioPlayThread mAudioPlayThread;
     private VideoPlayThread mVideoPlayThread;
     private boolean mIsProcessingSource;
-    private boolean mStartPlayWhenReady;
     private State mPlayState = State.IDLE;
 
-    private int mAudioPacketBufferCount;
-    private int mAudioFrameBufferCount;
-    private int mVideoPacketBufferCount;
-    private int mVideoFrameBufferCount;
-
+    private OnPreparedListener mOnPreparedListener;
+    private OnErrorListener mOnErrorListener;
     private OnStateChangedListener mOnStateChangedListener;
+    private OnPositionChangedListener mOnPositionChangedListener;
+    private OnBufferChangedListener mOnBufferChangedListener;
 
-    public GPlayer(GLSurfaceView view, String url) {
-        this(view, url, false);
+    public GPlayer() {
+        this(false);
     }
 
-    public GPlayer(GLSurfaceView view, String url, boolean mediaCodec) {
-        LogUtils.i(TAG, "CoreFlow : new GPlayer " + url);
-        mGLSurfaceView = view;
-        mContext = mGLSurfaceView.getContext();
+    public GPlayer(boolean mediaCodec) {
+        LogUtils.i(TAG, "CoreFlow : new GPlayer " + mediaCodec);
         mMediaSource = new MediaSourceImp(mChannelId);
-        mAudioRender = createAudioRender(mMediaSource);
-        mVideoRender = createVideoRender(mGLSurfaceView, mMediaSource);
-        mVideoRender.setOnVideoRenderChangedListener(this);
+        nInit(mChannelId, mediaCodec ? 2 : 0, this);
+    }
+
+    @Override
+    public void setSurface(GLSurfaceView view) {
+        mGLSurfaceView = view;
+    }
+
+    @Override
+    public void setDataSource(String url) {
+        mUrl = url;
+    }
+
+    /**
+     * start to play
+     */
+    @Override
+    public void prepare() {
+        if (mPlayState != State.IDLE) {
+            LogUtils.e(TAG, "not idle");
+            return;
+        }
+        if (TextUtils.isEmpty(mUrl)) {
+            LogUtils.e(TAG, "invalid data source");
+            return;
+        }
+        LogUtils.i(TAG, "CoreFlow : prepare " + mUrl);
+        nPrepare(mChannelId, mUrl);
+    }
+
+    @Override
+    public void start() {
+        if (mPlayState != State.PREPARED && mPlayState != State.PAUSED) {
+            LogUtils.e(TAG, "not prepared or paused");
+            return;
+        }
+        if (!mGLSurfaceView.getHolder().getSurface().isValid()) {
+            LogUtils.e(TAG, "invalid surface");
+            return;
+        }
+
+        LogUtils.i(TAG, "CoreFlow : start");
+        mAudioRender = new PcmAudioRender(mMediaSource);
+        mVideoRender = new YUVGLRenderer(mGLSurfaceView, mMediaSource);
         mVideoRender.setAVSync(this);
         mGLSurfaceView.setEGLContextClientVersion(2);
         mGLSurfaceView.setRenderer(mVideoRender);
         if (mVideoRender instanceof YUVGLRenderer) {
             mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         }
-        mUrl = url;
-        init(url, mediaCodec ? 2 : 0);
+
+        mIsProcessingSource = true;
+        mAudioRender.init(mMediaSource.getMediaInfo());
+        mVideoRender.init(mMediaSource.getMediaInfo());
+
+        mAudioPlayThread = new AudioPlayThread();
+        mAudioPlayThread.start();
+        mVideoPlayThread = new VideoPlayThread();
+        mVideoPlayThread.start();
+
+        nStart(mChannelId);
     }
 
-    private AudioRender createAudioRender(MediaSource source) {
-        return new PcmAudioRender(source);
+    @Override
+    public void stop() {
+        if (mPlayState != State.PREPARING && mPlayState != State.PREPARED &&
+                mPlayState != State.PAUSED && mPlayState != State.PLAYING) {
+            LogUtils.e(TAG, "not playing");
+            return;
+        }
+        LogUtils.i(TAG, "CoreFlow : stop");
+        setPlayState(State.STOPPING);
+        nStop(mChannelId, true);
     }
 
-    private VideoRender createVideoRender(GLSurfaceView view, MediaSource source) {
-        return new YUVGLRenderer(view, source);
+    @Override
+    public void pause() {
+        nPause(mChannelId);
     }
 
     /**
@@ -92,73 +154,44 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
         return mPlayState == State.PLAYING;
     }
 
-    /**
-     * start to play
-     */
-    public void prepare() {
-        if (mPlayState != State.IDLE) {
-            return;
-        }
-        if (mVideoRender != null && mVideoRender.isAvailable()) {
-            LogUtils.e(TAG, "preparing");
-            setPlayState(State.PREPARING);
-            nStart(mChannelId);
-        } else {
-            LogUtils.i(TAG, "waiting for GLSurfaceView ready");
-            mStartPlayWhenReady = true;
-        }
+    @Override
+    public void seekTo(int secondMs) {
+        nSeekTo(mChannelId, secondMs);
     }
 
-    /**
-     * stop play
-     */
-    public void finish() {
-        finish(true);
+    @Override
+    public int getCurrentPosition() {
+        return 0;
     }
 
-    /**
-     * stop play
-     */
-    public void finish(boolean force) {
-        LogUtils.i(TAG, "CoreFlow finishing channelId " + mChannelId);
-        if (!isPlaying() && !force) {
-            return;
-        }
-        setPlayState(State.FINISHING);
-        nStop(mChannelId, force);
+    @Override
+    public int getDuration() {
+        return 0;
     }
 
-    private void onInit() {
-        LogUtils.i(TAG, "----------onInit----------");
-        mIsProcessingSource = true;
-        mAudioRender.init(mMediaSource.getMediaInfo());
-        mVideoRender.init(mMediaSource.getMediaInfo());
-
-        mAudioPlayThread = new AudioPlayThread();
-        mAudioPlayThread.start();
-        mVideoPlayThread = new VideoPlayThread();
-        mVideoPlayThread.start();
+    @Override
+    public void setOnPreparedListener(OnPreparedListener listener) {
+        mOnPreparedListener = listener;
     }
 
-    private void onRelease() {
-        LogUtils.e(TAG, "----------onRelease----------");
-        mIsProcessingSource = false;
-        if (mAudioPlayThread != null && mAudioPlayThread.isAlive()) {
-            try {
-                mAudioPlayThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        if (mVideoPlayThread != null && mVideoPlayThread.isAlive()) {
-            try {
-                mVideoPlayThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        LogUtils.e(TAG, "CoreFlow : finished");
-        destroy();
+    @Override
+    public void setOnErrorListener(OnErrorListener listener) {
+        mOnErrorListener = listener;
+    }
+
+    @Override
+    public void setOnStateChangedListener(OnStateChangedListener listener) {
+        mOnStateChangedListener = listener;
+    }
+
+    @Override
+    public void setOnPositionChangedListener(OnPositionChangedListener listener) {
+        mOnPositionChangedListener = listener;
+    }
+
+    @Override
+    public void setOnBufferChangedListener(OnBufferChangedListener listener) {
+        mOnBufferChangedListener = listener;
     }
 
     public MediaInfo getMediaInfo() {
@@ -167,15 +200,6 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
 
     public String getUrl() {
         return mUrl;
-    }
-
-    /**
-     * set player state callback
-     *
-     * @param listener callback
-     */
-    public void setPlayStateChangedListener(OnStateChangedListener listener) {
-        mOnStateChangedListener = listener;
     }
 
     @Override
@@ -210,20 +234,6 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
         }
     }
 
-    @Override
-    public void onSurfaceCreated() {
-        LogUtils.i(TAG, "onSurfaceCreated");
-        if (mStartPlayWhenReady) {
-            prepare();
-            mStartPlayWhenReady = false;
-        }
-    }
-
-    @Override
-    public void onSurfaceChanged(int width, int height) {
-        LogUtils.i(TAG, "onSurfaceChanged");
-    }
-
     private void setPlayState(State state) {
         synchronized (this) {
             if (state == mPlayState) {
@@ -231,17 +241,54 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
             }
             mPlayState = state;
         }
-        LogUtils.e(TAG, "CoreFlow setPlayState state = " + state);
-        if (state == State.PREPARED) {
-            onInit();
-        } else if (state == State.RELEASED) {
-            onRelease();
-        } else if (mPlayState == State.IDLE) {
-            mMediaSource.flushBuffer();
+        LogUtils.e(TAG, "CoreFlow : setPlayState state = " + state);
+        switch (state) {
+            case PREPARED:
+                onPrepared();
+                break;
+            case STOPPED:
+                onStopped();
+                break;
+            case RELEASED:
+                onReleased();
+                break;
         }
         if (mOnStateChangedListener != null) {
             mOnStateChangedListener.onStateChanged(mPlayState);
         }
+    }
+
+    private void onPrepared() {
+        LogUtils.i(TAG, "CoreFlow : ----------onPrepared----------");
+        if (mOnPreparedListener != null) {
+            mOnPreparedListener.onPrepared();
+        }
+    }
+
+    private void onStopped() {
+        LogUtils.e(TAG, "CoreFlow : ----------onStopped----------");
+        mIsProcessingSource = false;
+        if (mAudioPlayThread != null && mAudioPlayThread.isAlive()) {
+            try {
+                mAudioPlayThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if (mVideoPlayThread != null && mVideoPlayThread.isAlive()) {
+            try {
+                mVideoPlayThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        release();
+    }
+
+    private void onReleased() {
+        LogUtils.e(TAG, "CoreFlow : ----------onReleased----------");
+        mMediaSource.flushBuffer();
+        setPlayState(State.IDLE);
     }
 
     private class AudioPlayThread extends Thread {
@@ -264,7 +311,7 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
             super.run();
             LogUtils.i(TAG, "VideoPlayThread init " + getId());
             setPlayState(GPlayer.State.PLAYING);
-            mFrameReleaseTimeHelper = new VideoFrameReleaseTimeHelper(mContext);
+            mFrameReleaseTimeHelper = new VideoFrameReleaseTimeHelper(mGLSurfaceView.getContext());
             mFrameReleaseTimeHelper.enable();
             mDeltaTimeUs = -1;
             while (mIsProcessingSource) {
@@ -277,30 +324,79 @@ public class GPlayer implements AVSync, VideoRender.OnVideoRenderChangedListener
         }
     }
 
-    private void init(String url, int flag) {
-        nInit(mChannelId, flag, url, this);
-    }
-
-    private void destroy() {
-        LogUtils.i(TAG, "destroy channelId " + mChannelId);
-        nDestroy(mChannelId);
-        setPlayState(GPlayer.State.IDLE);
+    private void release() {
+        LogUtils.i(TAG, "CoreFlow : release channelId " + mChannelId);
+        nRelease(mChannelId);
     }
 
     //call by jni
     public void onMessageCallback(int what, int arg1, int arg2, String msg1, String msg2, Object object) {
         LogUtils.i(TAG, "CoreFlow : onMessageCallback " + what + " " + arg1 + " " + msg1);
-        if (what == 1) {
-            State state = State.values()[arg1];
-            setPlayState(state);
+        switch (what) {
+            case MSG_TYPE_ERROR:
+                handleErrorMsg(arg1, msg1);
+                break;
+            case MSG_TYPE_STATE:
+                handleStateMsg(arg1);
+                break;
+            case MSG_TYPE_TIME:
+                handleTimeMsg(arg1);
+                break;
+            case MSG_TYPE_SIZE:
+                handleSizeMsg(arg1, arg2);
+                break;
         }
     }
 
-    private native void nInit(int channelId, int flag, String url, GPlayer player);
+    private void handleErrorMsg(int code, String errorMsg) {
+        if (mOnErrorListener != null) {
+            mOnErrorListener.onError(code, errorMsg);
+        }
+    }
 
-    private native void nStart(long channelId);
+    private void handleStateMsg(int state) {
+        State playState = State.values()[state];
+        setPlayState(playState);
+    }
 
-    private native void nStop(long channelId, boolean force);
+    private void handleTimeMsg(int time) {
+        if (mOnPositionChangedListener != null) {
+            mOnPositionChangedListener.onPositionChanged(time);
+        }
+    }
 
-    private native void nDestroy(long channelId);
+    private void handleSizeMsg(int type, int size) {
+        if (mOnBufferChangedListener != null) {
+            if (type == 1) {
+                mOnBufferChangedListener.onAudioPacketSizeChanged(size);
+            } else if (type == 2) {
+                mOnBufferChangedListener.onVideoPacketSizeChanged(size);
+            } else if (type == 3) {
+                mOnBufferChangedListener.onAudioFrameSizeChanged(size);
+            } else if (type == 4) {
+                mOnBufferChangedListener.onVideoFrameSizeChanged(size);
+            }
+        }
+    }
+
+    // 创建GPlayer.c实例
+    private native void nInit(int channelId, int flag, GPlayer player);
+
+    // 开始解封装
+    private native void nPrepare(int channelId, String url);
+
+    // 开始解码
+    private native void nStart(int channelId);
+
+    // 暂停解码和解封装
+    private native void nPause(int channelId);
+
+    // seek
+    private native void nSeekTo(int channelId, int secondMs);
+
+    // 停止解封装和解码
+    private native void nStop(int channelId, boolean force);
+
+    // 释放GPlayer.c实例
+    private native void nRelease(int channelId);
 }

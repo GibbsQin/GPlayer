@@ -14,7 +14,6 @@ abstract class BaseVideoRender implements VideoRender {
 
     MediaSource mMediaSource;
 
-    private OnVideoRenderChangedListener mOnVideoRenderChangedListener;
     private boolean mIsAvailable;
     AVSync mAVSync;
     long mMaxFrameIntervalMs = 0;
@@ -48,23 +47,12 @@ abstract class BaseVideoRender implements VideoRender {
     }
 
     @Override
-    public void setOnVideoRenderChangedListener(OnVideoRenderChangedListener listener) {
-        mOnVideoRenderChangedListener = listener;
-    }
-
-    @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         mIsAvailable = true;
-        if (mOnVideoRenderChangedListener != null) {
-            mOnVideoRenderChangedListener.onSurfaceCreated();
-        }
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        if (mOnVideoRenderChangedListener != null) {
-            mOnVideoRenderChangedListener.onSurfaceChanged(width, height);
-        }
     }
 
     @Override

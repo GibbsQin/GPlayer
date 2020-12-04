@@ -32,8 +32,8 @@ private:
     bool isVideoAvailable;
     VideoDecoder *videoDecoder{};
     AudioDecoder *audioDecoder{};
-    MediaData videoOutFrame{};
-    MediaData audioOutFrame{};
+    MediaData *videoOutFrame;
+    MediaData *audioOutFrame;
     std::mutex audioLock;
     std::mutex videoLock;
 };

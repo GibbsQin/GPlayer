@@ -8,18 +8,18 @@ class SimpleGPlayerViewActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_simple_gplayer)
         val url = intent.getStringExtra("url")
-        gl_surface_view.url = url
+        gl_surface_view.setDataSource(url)
     }
 
     override fun onResume() {
         super.onResume()
         gl_surface_view?.onResume()
-        gl_surface_view?.startPlay()
+        gl_surface_view?.prepare()
     }
 
     override fun onPause() {
         super.onPause()
         gl_surface_view?.onPause()
-        gl_surface_view?.stopPlay()
+        gl_surface_view?.stop()
     }
 }

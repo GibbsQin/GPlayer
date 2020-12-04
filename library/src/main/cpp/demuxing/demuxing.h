@@ -3,7 +3,6 @@
 
 #include "../codec/ffmpeg/libavcodec/avcodec.h"
 #include "../codec/ffmpeg/libavformat/avformat.h"
-#include "../media/Media.h"
 #include "avformat_def.h"
 
 uint64_t ffmpeg_pts2timeus(AVRational time_base, int64_t pts);

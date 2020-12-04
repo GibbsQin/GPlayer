@@ -5,7 +5,10 @@
 #ifndef GPLAYER_INTERCEPTOR_H
 #define GPLAYER_INTERCEPTOR_H
 
-#include "media/Media.h"
+#include "media/MediaData.h"
+extern "C" {
+#include <demuxing/avformat_def.h>
+}
 
 #define AV_TYPE_AUDIO 0
 #define AV_TYPE_VIDEO 1

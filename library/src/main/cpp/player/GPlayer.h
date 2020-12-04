@@ -10,6 +10,7 @@
 #include "DecodeThread.h"
 #include "DemuxingThread.h"
 #include "MediaSource.h"
+
 extern "C" {
 #include <demuxing/demuxing.h>
 }
@@ -20,18 +21,27 @@ extern "C" {
 
 #define MSG_TYPE_ERROR 0
 #define MSG_TYPE_STATE 1
+#define MSG_TYPE_TIME  2
+#define MSG_TYPE_SIZE  3
 
 #define STATE_IDLE      0
 #define STATE_PREPARING 1
 #define STATE_PREPARED  2
-#define STATE_PLAYING   3
-#define STATE_FINISHING 4
-#define STATE_RELEASED  5
+#define STATE_PAUSED    3
+#define STATE_PLAYING   4
+#define STATE_STOPPING  5
+#define STATE_STOPPED   6
+#define STATE_RELEASED  7
+
+#define MSG_TYPE_SIZE_AUDIO_PACKET 1
+#define MSG_TYPE_SIZE_VIDEO_PACKET 2
+#define MSG_TYPE_SIZE_AUDIO_FRAME  3
+#define MSG_TYPE_SIZE_VIDEO_FRAME  4
 
 class GPlayer {
 
 public:
-    GPlayer(int channelId, int flag, std::string url, jobject obj);
+    GPlayer(int channelId, int flag, jobject obj);
 
     ~GPlayer();
 
@@ -49,7 +59,14 @@ public:
     void av_error(int code, char *msg);
 
 public:
+
+    void prepare(std::string url);
+
     void start();
+
+    void pause();
+
+    void seekTo(uint32_t secondMs);
 
     void stop();
 
@@ -57,7 +74,7 @@ public:
 
     LoopFlag isDemuxingLoop();
 
-    MediaSource* getFrameSource();
+    MediaSource *getFrameSource();
 
 private:
     void startDecode();

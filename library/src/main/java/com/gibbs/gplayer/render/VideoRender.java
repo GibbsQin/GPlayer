@@ -16,12 +16,4 @@ public interface VideoRender extends GLSurfaceView.Renderer {
     void updateMvp(float[] mvp);
 
     boolean isAvailable();
-
-    void setOnVideoRenderChangedListener(OnVideoRenderChangedListener listener);
-
-    interface OnVideoRenderChangedListener {
-        void onSurfaceCreated();
-
-        void onSurfaceChanged(int width, int height);
-    }
 }

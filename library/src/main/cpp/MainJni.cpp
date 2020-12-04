@@ -37,15 +37,48 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_GPlayer_nInit(JNIEnv *env, jobject clazz, jint channelId, jint flag,
-                                     jstring url, jobject player) {
-    auto pGPlayerImp = new GPlayer(channelId, flag, JniHelper::getStringUTF(env, url), player);
+                                     jobject player) {
+    auto pGPlayerImp = new GPlayer(channelId, flag, player);
     MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nStart(JNIEnv *env, jobject thiz, jlong channel_id) {
-    LOGI("GPlayerJni", "nStart channelId : %lld", channel_id);
+Java_com_gibbs_gplayer_GPlayer_nPrepare(JNIEnv *env, jobject thiz, jint channel_id, jstring url) {
+    LOGI("GPlayerJni", "nPrepare channelId : %d", channel_id);
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return;
+    }
+    targetPlayer->prepare(JniHelper::getStringUTF(env, url));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nStart(JNIEnv *env, jobject thiz, jint channel_id) {
+    LOGI("GPlayerJni", "nStart channelId : %d", channel_id);
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return;
+    }
+    targetPlayer->start();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nPause(JNIEnv *env, jobject thiz, jint channel_id) {
+    LOGI("GPlayerJni", "nPause channelId : %d", channel_id);
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return;
+    }
+    targetPlayer->start();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nSeekTo(JNIEnv *env, jobject thiz, jint channel_id, jint second_ms) {
+    LOGI("GPlayerJni", "nSeekTo channelId : %d, %d", channel_id, second_ms);
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return;
@@ -57,7 +90,7 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jlong channel_id,
                                      jboolean force) {
-    LOGI("GPlayerJni", "nStop channelId : %lld, force : %d", channel_id, force);
+    LOGI("GPlayerJni", "nStop channelId : %d, force : %d", channel_id, force);
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return;
@@ -67,15 +100,15 @@ Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jlong channel_id
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nDestroy(JNIEnv *env, jobject clazz, jlong channel_id) {
-    LOGI("GPlayerJni", "nDestroyAVSource channelId : %lld", channel_id);
+Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jlong channel_id) {
+    LOGI("GPlayerJni", "nDestroyAVSource channelId : %d", channel_id);
     MediaPipe::deleteFromMap(static_cast<int>(channel_id));
 }
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nGetAVHeader(JNIEnv *env, jobject thiz,
-                                                          jint channel_id) {
+Java_com_gibbs_gplayer_source_MediaSourceImp_nGetMediaInfo(JNIEnv *env, jobject thiz,
+                                                           jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return nullptr;

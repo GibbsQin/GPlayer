@@ -3,13 +3,34 @@
 
 #include "../codec/ffmpeg/libavcodec/avcodec.h"
 #include "../codec/ffmpeg/libavformat/avformat.h"
-#include "../media/Media.h"
 
 typedef enum LoopFlag {
     LOOP,
     BREAK,
     CONTINUE,
 } LoopFlag;
+
+/**
+ * 媒体信息
+ */
+typedef struct MediaInfo {
+    int duration;           // 文件长度(毫秒)
+
+    int audioType;          // 音频编码类型
+    int audioCodecOption;   // 音频编码的参数
+    int audioProfile;       // 音频编码规格
+    int audioMode;          // 音频模式： 单声道/双声道
+    int audioChannels;      // 音频声道数
+    int audioBitWidth;      // 音频位宽
+    int audioSampleRate;    // 音频采样率
+    int sampleNumPerFrame;  // 每帧数据里的采样数
+
+    int videoType;          // 视频编码类型
+    int videoWidth;         // 视频像素宽度
+    int videoHeight;        // 视频像素高度
+    int videoFrameRate;     // 视频帧率
+    int videoRotate;        // 视频旋转角度
+} MediaInfo;
 
 typedef struct FfmpegCallback {
     void (*av_format_init)(int channel, AVFormatContext *ifmt_ctx, AVStream *audioStream,

@@ -1,7 +1,14 @@
 #ifndef GPLAYER_CODEC_H
 #define GPLAYER_CODEC_H
 
-#include "media/Media.h"
+#include "media/MediaData.h"
+extern "C" {
+#include <demuxing/avformat_def.h>
+}
+
+#define FLAG_KEY_FRAME 0x00000001
+#define FLAG_KEY_EXTRA_DATA 0x00000002
+#define FLAG_KEY_RENDERED 0x00000004
 
 #define TRY_AGAIN -11
 

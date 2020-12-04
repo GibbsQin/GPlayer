@@ -5,15 +5,20 @@
 #include "GPlayer.h"
 #include "MediaPipe.h"
 #include "DemuxingThread.h"
-#include <media/Media.h>
+#include "media/MediaData.h"
 #include <base/Log.h>
 #include <cstdint>
 #include <unistd.h>
 #include <interceptor/CodecInterceptor.h>
+#include <media/MediaHelper.h>
+
+extern "C" {
+#include <demuxing/avformat_def.h>
+}
 
 #define TAG "GPlayerC"
 
-GPlayer::GPlayer(int channelId, int flag, std::string url, jobject obj) {
+GPlayer::GPlayer(int channelId, int flag, jobject obj) {
     outputSource = new MediaSource();
     inputSource = new MediaSource();
     playerJni = new GPlayerJni(obj);
@@ -22,9 +27,6 @@ GPlayer::GPlayer(int channelId, int flag, std::string url, jobject obj) {
     mediaCodecFlag = (flag & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
     LOGI(TAG, "CoreFlow : new GPlayerImp mediaCodecFlag = %d", mediaCodecFlag);
     codeInterceptor = new CodecInterceptor(mediaCodecFlag);
-
-    mUrl = static_cast<char *>(malloc(url.length()));
-    memcpy(mUrl, url.c_str(), url.length());
     mChannelId = channelId;
     LOGI(TAG, "CoreFlow : start demuxing url %s, channel %d", mUrl, mChannelId);
 }
@@ -58,37 +60,40 @@ GPlayer::~GPlayer() {
         free(mUrl);
     }
     LOGE(TAG, "CoreFlow : GPlayerImp destroyed");
+    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_RELEASED, 0, nullptr, nullptr);
 }
 
 void GPlayer::av_init(MediaInfo *header) {
     inputSource->onInit(header);
-    startDecode();
+    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr);
 }
 
 uint32_t GPlayer::av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
                                 uint64_t u64InputPTS, uint64_t u64InputDTS, int flag) {
-    auto *avData = new MediaData();
-    avData->data = static_cast<uint8_t *>(malloc(dwInputDataSize));
-    memcpy(avData->data, pInputBuf, dwInputDataSize);
-    avData->size = dwInputDataSize;
+    auto *avData = new MediaData(pInputBuf, dwInputDataSize, nullptr, 0, nullptr, 0);
     avData->pts = u64InputPTS;
     avData->dts = u64InputDTS;
     avData->flag = static_cast<uint8_t>(flag);
 
-    return inputSource->onReceiveAudio(avData);
+    uint32_t result = inputSource->onReceiveAudio(avData);
+    delete avData;
+    playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_PACKET, result, nullptr,
+                                 nullptr);
+    return result;
 }
 
 uint32_t GPlayer::av_feed_video(uint8_t *pInputBuf, uint32_t dwInputDataSize,
                                 uint64_t u64InputPTS, uint64_t u64InputDTS, int flag) {
-    auto *avData = new MediaData();
-    avData->data = static_cast<uint8_t *>(malloc(dwInputDataSize));
-    memcpy(avData->data, pInputBuf, dwInputDataSize);
-    avData->size = dwInputDataSize;
+    auto *avData = new MediaData(pInputBuf, dwInputDataSize, nullptr, 0, nullptr, 0);
     avData->pts = u64InputPTS;
     avData->dts = u64InputDTS;
     avData->flag = static_cast<uint8_t>(flag);
 
-    return inputSource->onReceiveVideo(avData);
+    uint32_t result = inputSource->onReceiveVideo(avData);
+    delete avData;
+    playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_PACKET, result, nullptr,
+                                 nullptr);
+    return result;
 }
 
 void GPlayer::av_destroy() {
@@ -99,13 +104,28 @@ void GPlayer::av_error(int code, char *msg) {
     playerJni->onMessageCallback(MSG_TYPE_ERROR, code, 0, msg, nullptr);
 }
 
-void GPlayer::start() {
+void GPlayer::prepare(std::string url) {
+    mUrl = static_cast<char *>(malloc(url.length()));
+    memcpy(mUrl, url.c_str(), url.length());
+
     isDemuxing = true;
     demuxingThread = new DemuxingThread(std::bind(&GPlayer::startDemuxing, this,
                                                   std::placeholders::_1, std::placeholders::_2,
                                                   std::placeholders::_3, std::placeholders::_4),
                                         mUrl, mChannelId,
                                         MediaPipe::sFfmpegCallback, inputSource->getAVHeader());
+}
+
+void GPlayer::start() {
+    startDecode();
+}
+
+void GPlayer::pause() {
+
+}
+
+void GPlayer::seekTo(uint32_t secondMs) {
+
 }
 
 void GPlayer::stop() {
@@ -118,6 +138,7 @@ void GPlayer::stop() {
     codeInterceptor->onRelease();
     inputSource->flushBuffer();
     outputSource->onRelease();
+    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_STOPPED, 0, nullptr, nullptr);
 }
 
 void GPlayer::startDecode() {
@@ -137,10 +158,10 @@ void GPlayer::startDecode() {
     MediaInfo *header = inputSource->getAVHeader();
     int ret = codeInterceptor->onInit(header);
     if (ret > 0) {
-        playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0, "not support this codec", nullptr);
+        playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0,
+                                     const_cast<char *>("not support this codec"), nullptr);
     }
     outputSource->onInit(header);
-    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr);
 }
 
 void GPlayer::stopDecode() {
@@ -152,7 +173,6 @@ void GPlayer::stopDecode() {
         videoEngineThread->stop();
         videoEngineThread->join();
     }
-    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_RELEASED, 0, nullptr, nullptr);
 }
 
 void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback,
@@ -188,7 +208,10 @@ int GPlayer::processAudioBuffer() {
     MediaData *outBuffer;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
     if (ret >= 0) {
-        mediaSize = outputSource->onReceiveAudio(outBuffer);
+        MediaData *desBuffer = new MediaData(outBuffer);
+        mediaSize = outputSource->onReceiveAudio(desBuffer);
+        playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_FRAME, mediaSize, nullptr,
+                                     nullptr);
     }
     if (inputResult != TRY_AGAIN) {
         inputSource->popAudioBuffer();
@@ -216,7 +239,10 @@ int GPlayer::processVideoBuffer() {
     MediaData *outBuffer;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
     if (ret >= 0) {
-        mediaSize = outputSource->onReceiveVideo(outBuffer);
+        MediaData *desBuffer = new MediaData(outBuffer);
+        mediaSize = outputSource->onReceiveVideo(desBuffer);
+        playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_FRAME, mediaSize, nullptr,
+                                     nullptr);
     }
     if (inputResult != TRY_AGAIN) {
         inputSource->popVideoBuffer();
@@ -229,6 +255,6 @@ void GPlayer::onVideoThreadEnd() {
     LOGI(TAG, "stopVideoDecode");
 }
 
-MediaSource* GPlayer::getFrameSource() {
+MediaSource *GPlayer::getFrameSource() {
     return outputSource;
 }
