@@ -33,8 +33,8 @@ public class YUVGLRenderer extends BaseVideoRender {
 
     private volatile boolean mIsFrameReady = false;
 
-    public YUVGLRenderer(GLSurfaceView view, MediaSource source) {
-        super(source);
+    public YUVGLRenderer(GLSurfaceView view, AudioRender audioRender, MediaSource source) {
+        super(view.getContext(), audioRender, source);
         mSurfaceView = view;
     }
 

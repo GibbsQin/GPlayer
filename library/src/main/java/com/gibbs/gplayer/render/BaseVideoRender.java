@@ -1,5 +1,7 @@
 package com.gibbs.gplayer.render;
 
+import android.content.Context;
+
 import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.source.MediaSource;
 import com.gibbs.gplayer.utils.LogUtils;
@@ -19,8 +21,9 @@ abstract class BaseVideoRender implements VideoRender {
     long mMaxFrameIntervalMs = 0;
     long mFrameIntervalMs = 0;//帧之间的渲染间隔，平滑处理
 
-    BaseVideoRender(MediaSource source) {
+    BaseVideoRender(Context context, AudioRender audioRender, MediaSource source) {
         mMediaSource = source;
+        mAVSync = new AVSync(context, audioRender);
     }
 
     @Override
@@ -28,17 +31,14 @@ abstract class BaseVideoRender implements VideoRender {
         int rate = header.getInteger(MediaInfo.KEY_FRAME_RATE, 20);
         mFrameIntervalMs = 1000L / rate / 2;
         mMaxFrameIntervalMs = 1000L / rate * 9 / 10;
+        mAVSync.enable();
         LogUtils.i(TAG, "init mFrameIntervalMs = " + mFrameIntervalMs + ", mMaxFrameIntervalMs = " + mMaxFrameIntervalMs);
     }
 
     @Override
     public void release() {
         LogUtils.i(TAG, "release");
-    }
-
-    @Override
-    public void setAVSync(AVSync avSync) {
-        mAVSync = avSync;
+        mAVSync.disable();
     }
 
     @Override

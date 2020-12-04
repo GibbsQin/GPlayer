@@ -11,8 +11,6 @@ public interface VideoRender extends GLSurfaceView.Renderer {
 
     void release();
 
-    void setAVSync(AVSync avSync);
-
     void updateMvp(float[] mvp);
 
     boolean isAvailable();

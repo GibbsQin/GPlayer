@@ -9,17 +9,15 @@ import com.gibbs.gplayer.listener.OnPreparedListener;
 import com.gibbs.gplayer.listener.OnStateChangedListener;
 import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.media.MediaInfo;
-import com.gibbs.gplayer.render.AVSync;
 import com.gibbs.gplayer.render.AudioRender;
 import com.gibbs.gplayer.render.PcmAudioRender;
-import com.gibbs.gplayer.render.VideoFrameReleaseTimeHelper;
 import com.gibbs.gplayer.render.VideoRender;
 import com.gibbs.gplayer.render.YUVGLRenderer;
 import com.gibbs.gplayer.source.MediaSource;
 import com.gibbs.gplayer.source.MediaSourceImp;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayer implements IGPlayer, AVSync {
+public class GPlayer implements IGPlayer {
     private static final String TAG = "GPlayerJ";
 
     private static final int MSG_TYPE_ERROR = 0;
@@ -37,20 +35,15 @@ public class GPlayer implements IGPlayer, AVSync {
 
     private int mChannelId = hashCode();
     private String mUrl;
-    private GLSurfaceView mGLSurfaceView;
-
-    private AudioRender mAudioRender;
-    private VideoRender mVideoRender;
-
-    //AVSync
-    private VideoFrameReleaseTimeHelper mFrameReleaseTimeHelper;
-    private long mDeltaTimeUs;
-
     private MediaSource mMediaSource;
     private AudioPlayThread mAudioPlayThread;
     private VideoPlayThread mVideoPlayThread;
     private boolean mIsProcessingSource;
     private State mPlayState = State.IDLE;
+
+    private GLSurfaceView mGLSurfaceView;
+    private AudioRender mAudioRender;
+    private VideoRender mVideoRender;
 
     private OnPreparedListener mOnPreparedListener;
     private OnErrorListener mOnErrorListener;
@@ -108,8 +101,7 @@ public class GPlayer implements IGPlayer, AVSync {
 
         LogUtils.i(TAG, "CoreFlow : start");
         mAudioRender = new PcmAudioRender(mMediaSource);
-        mVideoRender = new YUVGLRenderer(mGLSurfaceView, mMediaSource);
-        mVideoRender.setAVSync(this);
+        mVideoRender = new YUVGLRenderer(mGLSurfaceView, mAudioRender, mMediaSource);
         mGLSurfaceView.setEGLContextClientVersion(2);
         mGLSurfaceView.setRenderer(mVideoRender);
         if (mVideoRender instanceof YUVGLRenderer) {
@@ -202,38 +194,6 @@ public class GPlayer implements IGPlayer, AVSync {
         return mUrl;
     }
 
-    @Override
-    public long getNowUs() {
-        //the timestamp of audio playing
-        if (mAudioRender == null) {
-            return System.nanoTime() / 1000;
-        }
-
-        return mAudioRender.getAudioTimeUs();
-    }
-
-    @Override
-    public long getRealTimeUsForMediaTime(long mediaTimeUs) {
-        long nowUs = getNowUs();
-        if (mDeltaTimeUs == -1) {
-            mDeltaTimeUs = nowUs - mediaTimeUs;
-        }
-        long earlyUs = mDeltaTimeUs + mediaTimeUs - nowUs;
-        long unadjustedFrameReleaseTimeNs = System.nanoTime() + (earlyUs * 1000);
-        long adjustedReleaseTimeNs = mFrameReleaseTimeHelper.adjustReleaseTime(
-                mDeltaTimeUs + mediaTimeUs, unadjustedFrameReleaseTimeNs);
-        return adjustedReleaseTimeNs / 1000;
-    }
-
-    @Override
-    public long getVsyncDurationNs() {
-        if (mFrameReleaseTimeHelper != null) {
-            return mFrameReleaseTimeHelper.getVsyncDurationNs();
-        } else {
-            return -1;
-        }
-    }
-
     private void setPlayState(State state) {
         synchronized (this) {
             if (state == mPlayState) {
@@ -311,15 +271,10 @@ public class GPlayer implements IGPlayer, AVSync {
             super.run();
             LogUtils.i(TAG, "VideoPlayThread init " + getId());
             setPlayState(GPlayer.State.PLAYING);
-            mFrameReleaseTimeHelper = new VideoFrameReleaseTimeHelper(mGLSurfaceView.getContext());
-            mFrameReleaseTimeHelper.enable();
-            mDeltaTimeUs = -1;
             while (mIsProcessingSource) {
                 mVideoRender.render();
             }
             mVideoRender.release();
-            mFrameReleaseTimeHelper.disable();
-            mFrameReleaseTimeHelper = null;
             LogUtils.i(TAG, "VideoPlayThread end " + getId());
         }
     }
