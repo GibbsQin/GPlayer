@@ -65,7 +65,7 @@ GPlayer::~GPlayer() {
 
 void GPlayer::av_init(MediaInfo *header) {
     inputSource->onInit(header);
-    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr);
+    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, header);
 }
 
 uint32_t GPlayer::av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,

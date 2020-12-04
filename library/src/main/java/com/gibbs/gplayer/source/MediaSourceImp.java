@@ -7,6 +7,7 @@ public class MediaSourceImp implements MediaSource {
     private static final String TAG = "MediaSourceImpJ";
 
     private int mChannelId;
+    private MediaInfo mMediaInfo;
     private MediaData mTopAudioFrame = null;
     private MediaData mTopVideoFrame = null;
 
@@ -16,7 +17,7 @@ public class MediaSourceImp implements MediaSource {
 
     @Override
     public MediaInfo getMediaInfo() {
-        return nGetMediaInfo(mChannelId);
+        return mMediaInfo;
     }
 
     @Override
@@ -33,6 +34,11 @@ public class MediaSourceImp implements MediaSource {
             mTopVideoFrame = nReadVideoSource(mChannelId);
         }
         return mTopVideoFrame;
+    }
+
+    @Override
+    public void setMediaInfo(MediaInfo mediaInfo) {
+        mMediaInfo = mediaInfo;
     }
 
     @Override
@@ -61,8 +67,6 @@ public class MediaSourceImp implements MediaSource {
     public int getVideoBufferSize() {
         return nGetVideoBufferSize(mChannelId);
     }
-
-    private native MediaInfo nGetMediaInfo(int channelId);
 
     private native MediaData nReadAudioSource(int channelId);
 

@@ -292,7 +292,7 @@ public class GPlayer implements IGPlayer {
                 handleErrorMsg(arg1, msg1);
                 break;
             case MSG_TYPE_STATE:
-                handleStateMsg(arg1);
+                handleStateMsg(arg1, object);
                 break;
             case MSG_TYPE_TIME:
                 handleTimeMsg(arg1);
@@ -309,7 +309,10 @@ public class GPlayer implements IGPlayer {
         }
     }
 
-    private void handleStateMsg(int state) {
+    private void handleStateMsg(int state, Object object) {
+        if (object instanceof MediaInfo) {
+
+        }
         State playState = State.values()[state];
         setPlayState(playState);
     }

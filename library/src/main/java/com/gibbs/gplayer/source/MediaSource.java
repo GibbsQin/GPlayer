@@ -10,6 +10,8 @@ public interface MediaSource {
 
     MediaData readVideoSource();
 
+    void setMediaInfo(MediaInfo mediaInfo);
+
     void removeFirstAudioPackage();
 
     void removeFirstVideoPackage();

@@ -107,18 +107,6 @@ Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jlong channe
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nGetMediaInfo(JNIEnv *env, jobject thiz,
-                                                           jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
-    if (!targetPlayer) {
-        return nullptr;
-    }
-    MediaInfo *header = targetPlayer->getFrameSource()->getAVHeader();
-    return MediaInfoJni::createJobject(header);
-}
-
-extern "C"
-JNIEXPORT jobject JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_nReadAudioSource(JNIEnv *env, jobject thiz,
                                                               jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
