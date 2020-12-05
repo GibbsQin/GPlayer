@@ -1,7 +1,7 @@
 #include <base/Log.h>
 #include "MediaPipe.h"
 
-#define TAG "GPlayerMgr"
+#define TAG "MediaPipe"
 
 std::map<long, GPlayer *> MediaPipe::sGPlayerMap;
 
@@ -84,7 +84,7 @@ void MediaPipe::deleteFromMap(int channelId) {
     delete targetPlayer;
     MediaPipe::sGPlayerMap[channelId] = nullptr;
     MediaPipe::sGPlayerMap.erase(static_cast<const long &>(channelId));
-    LOGE(TAG, "CoreFlow : deleteFromMap channelId %d, current sGPlayerMap size = %d", channelId,
+    LOGI(TAG, "CoreFlow : deleteFromMap channelId %d, current sGPlayerMap size = %d", channelId,
          MediaPipe::sGPlayerMap.size());
 }
 

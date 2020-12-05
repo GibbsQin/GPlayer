@@ -138,7 +138,8 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
     }
 
     AVCodecParameters *audio_codecpar = ifmt_ctx->streams[audio_stream_index]->codecpar;
-    int needAudioStreamFilter = audio_codecpar->codec_id == AV_CODEC_ID_AAC;
+    int needAudioStreamFilter = ifmt_ctx->iformat->extensions != NULL &&
+            audio_codecpar->codec_id == AV_CODEC_ID_AAC;
     unsigned char mADTSHeader[ADTS_HEADER_SIZE] = {0};
     ADTSContext mADTSContext;
     uint8_t *audioADTSData = NULL;
@@ -146,7 +147,7 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
         create_adts_context(&mADTSContext, audio_codecpar->extradata, audio_codecpar->extradata_size);
         audioADTSData = malloc(audio_codecpar->frame_size + ADTS_HEADER_SIZE);
     }
-    ffmpegLog(ANDROID_LOG_INFO, "needVideoStreamFilter %d, needAudioStreamFilter %d\n",
+    ffmpegLog(ANDROID_LOG_INFO, "CoreFlow : needVideoStreamFilter %d, needAudioStreamFilter %d\n",
               needVideoStreamFilter, needAudioStreamFilter);
 
     while (1) {

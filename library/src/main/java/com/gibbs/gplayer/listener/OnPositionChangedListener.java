@@ -9,5 +9,5 @@ public interface OnPositionChangedListener {
      *
      * @param timeUs timestamp
      */
-    void onPositionChanged(long timeUs);
+    void onPositionChanged(int timeMs);
 }

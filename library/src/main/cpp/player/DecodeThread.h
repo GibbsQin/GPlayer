@@ -5,7 +5,7 @@
 #include <functional>
 
 #define MAX_OUTPUT_FRAME_SIZE 5
-#define SLEEP_TIME_GAP 2
+#define SLEEP_TIME_GAP 10
 
 using namespace std;
 

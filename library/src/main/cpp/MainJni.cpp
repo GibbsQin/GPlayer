@@ -72,7 +72,7 @@ Java_com_gibbs_gplayer_GPlayer_nPause(JNIEnv *env, jobject thiz, jint channel_id
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->start();
+    targetPlayer->pause();
 }
 
 extern "C"
@@ -83,7 +83,7 @@ Java_com_gibbs_gplayer_GPlayer_nSeekTo(JNIEnv *env, jobject thiz, jint channel_i
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->start();
+    targetPlayer->seekTo(second_ms);
 }
 
 extern "C"

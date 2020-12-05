@@ -1,65 +1,56 @@
 package com.gibbs.sample
 
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.WindowManager
 import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.listener.*
 import com.gibbs.gplayer.utils.LogUtils
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_external_gplayer.*
 import kotlinx.android.synthetic.main.layout_gplayer_top.*
 
-class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener,
+class BufferTestActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener,
         OnBufferChangedListener, OnPositionChangedListener, OnErrorListener {
+    private val mGPlayer = GPlayer()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        setContentView(R.layout.activity_external_gplayer)
+        setContentView(R.layout.activity_buffer_test)
         val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
         val url = intent.getStringExtra("url")
         val name = intent.getStringExtra("name")
         LogUtils.i(TAG, "url = $url, name = $name")
         LogUtils.i(TAG, "useMediaCodec = $useMediaCodec")
-        gl_surface_view.setDataSource(url)
-        gl_surface_view.setOnPreparedListener(this)
-        gl_surface_view.setOnStateChangedListener(this)
-        gl_surface_view.setOnErrorListener(this)
-        gl_surface_view.setOnPositionChangedListener(this)
-        gl_surface_view.setOnBufferChangedListener(this)
-        if (name != null) {
-            title = name
-        } else if (url != null) {
-            val urlSplit = url.split("/".toRegex()).toTypedArray()
-            title = urlSplit[urlSplit.size - 1]
-        }
+        mGPlayer.setDataSource(url)
+        mGPlayer.setOnPreparedListener(this)
+        mGPlayer.setOnStateChangedListener(this)
+        mGPlayer.setOnErrorListener(this)
+        mGPlayer.setOnPositionChangedListener(this)
+        mGPlayer.setOnBufferChangedListener(this)
     }
 
     override fun onStart() {
         super.onStart()
         LogUtils.i(TAG, "onStart")
-        gl_surface_view.onResume()
-        gl_surface_view.prepare()
+        mGPlayer.prepare()
     }
 
     override fun onStop() {
         super.onStop()
         LogUtils.i(TAG, "onStop")
-        gl_surface_view.onPause()
-        gl_surface_view.stop()
+        mGPlayer.stop()
     }
 
     override fun onPrepared() {
-        gl_surface_view.start()
+        mGPlayer.start()
     }
 
     override fun onStateChanged(state: GPlayer.State) {
         LogUtils.i(TAG, "onPlayStateChanged $state")
         if (state == GPlayer.State.PLAYING) {
             runOnUiThread {
-                video_playback_seek_view.setDuration(gl_surface_view.duration)
+                LogUtils.i(TAG, "onPlayStateChanged duration = ${mGPlayer.duration}")
+                video_playback_seek_view.setDuration(mGPlayer.duration)
             }
         } else if (state == GPlayer.State.IDLE) {
             finish()
@@ -83,6 +74,7 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateC
     }
 
     override fun onPositionChanged(progress: Int) {
+        LogUtils.i(TAG, "onPositionChanged progress = $progress")
         runOnUiThread {
             if (progress > video_playback_seek_view.progress) {
                 video_playback_seek_view.progress = progress
@@ -92,27 +84,9 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateC
 
     override fun onError(errorCode: Int, errorMessage: String) {
         LogUtils.i(TAG, "onError $errorCode $errorMessage")
-        Snackbar.make(gl_surface_view, errorMessage, Snackbar.LENGTH_SHORT).show()
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.info_menu, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_menu_info) {
-            showInfoDialog()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
-    private fun showInfoDialog() {
-
     }
 
     companion object {
-        private const val TAG = "ExternalGPlayerViewActivity"
+        private const val TAG = "BufferTestActivity"
     }
 }

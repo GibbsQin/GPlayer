@@ -36,6 +36,9 @@
             android:name=".SimpleGPlayerViewActivity"
             android:label="SimpleGPlayer" />
         <activity
+            android:name=".BufferTestActivity"
+            android:label="BufferTest" />
+        <activity
             android:name=".IntroduceActivity"
             android:label="@string/software_introduce" />
     </application>

@@ -47,6 +47,7 @@ class PlayListActivity : BaseActivity() {
                     val intent : Intent = when (SettingsSPUtils.instance.getGPlayerStyle(this@PlayListActivity)) {
                         "simple" -> Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
                         "external" -> Intent(this@PlayListActivity, ExternalGPlayerViewActivity::class.java)
+                        "buffer" -> Intent(this@PlayListActivity, BufferTestActivity::class.java)
                         else -> Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
                     }
                     intent.putExtra("url", videoItem.videoPath)

@@ -10,7 +10,7 @@ extern "C"
 #include "Codec.h"
 
 //#define SAVE_DECODE_FILE 1
-//#define ENABLE_PARSER 1
+#define ENABLE_PARSER 1
 
 #define TAG "FfmpegAudioDecoder"
 

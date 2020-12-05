@@ -1,5 +1,6 @@
 package com.gibbs.gplayer.source;
 
+import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.media.MediaData;
 import com.gibbs.gplayer.media.MediaInfo;
 
@@ -10,9 +11,15 @@ public class MediaSourceImp implements MediaSource {
     private MediaInfo mMediaInfo;
     private MediaData mTopAudioFrame = null;
     private MediaData mTopVideoFrame = null;
+    private OnPositionChangedListener mOnPositionChangedListener;
 
     public MediaSourceImp(int channel) {
+        this(channel, null);
+    }
+
+    public MediaSourceImp(int channel, OnPositionChangedListener listener) {
         mChannelId = channel;
+        mOnPositionChangedListener = listener;
     }
 
     @Override
@@ -24,6 +31,9 @@ public class MediaSourceImp implements MediaSource {
     public MediaData readAudioSource() {
         if (mTopAudioFrame == null) {
             mTopAudioFrame = nReadAudioSource(mChannelId);
+            if (mOnPositionChangedListener != null && mTopAudioFrame != null) {
+                mOnPositionChangedListener.onPositionChanged((int) (mTopAudioFrame.pts / 1000));
+            }
         }
         return mTopAudioFrame;
     }

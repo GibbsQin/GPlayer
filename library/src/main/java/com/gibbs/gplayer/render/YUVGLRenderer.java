@@ -2,6 +2,7 @@ package com.gibbs.gplayer.render;
 
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.view.SurfaceView;
 
 import com.gibbs.gplayer.media.MediaData;
 import com.gibbs.gplayer.media.MediaInfo;
@@ -37,6 +38,20 @@ public class YUVGLRenderer extends BaseVideoRender {
         super(view.getContext(), audioRender, source);
         mSurfaceView = view;
     }
+
+    public static VideoRender createVideoRender(SurfaceView view, AudioRender audioRender, MediaSource mediaSource) {
+        VideoRender videoRender = null;
+        if (view instanceof GLSurfaceView) {
+            GLSurfaceView glSurfaceView = (GLSurfaceView) view;
+            videoRender = new YUVGLRenderer(glSurfaceView, audioRender, mediaSource);
+            glSurfaceView.setEGLContextClientVersion(2);
+            glSurfaceView.setRenderer(videoRender);
+            glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        }
+
+        return videoRender;
+    }
+
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {

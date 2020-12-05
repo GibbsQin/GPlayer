@@ -59,7 +59,7 @@ GPlayer::~GPlayer() {
         delete playerJni;
         playerJni = nullptr;
     }
-    LOGE(TAG, "CoreFlow : GPlayerImp destroyed");
+    LOGI(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
 void GPlayer::av_init(MediaInfo *header) {
@@ -196,7 +196,7 @@ LoopFlag GPlayer::isDemuxingLoop() {
 }
 
 void GPlayer::onAudioThreadStart() {
-    LOGI(TAG, "startAudioDecode");
+    LOGI(TAG, "onAudioThreadStart");
 }
 
 int GPlayer::processAudioBuffer() {
@@ -224,11 +224,11 @@ int GPlayer::processAudioBuffer() {
 }
 
 void GPlayer::onAudioThreadEnd() {
-    LOGI(TAG, "stopAudioDecode");
+    LOGI(TAG, "onAudioThreadEnd");
 }
 
 void GPlayer::onVideoThreadStart() {
-    LOGI(TAG, "startVideoDecode");
+    LOGI(TAG, "onVideoThreadStart");
 }
 
 int GPlayer::processVideoBuffer() {
@@ -256,7 +256,7 @@ int GPlayer::processVideoBuffer() {
 }
 
 void GPlayer::onVideoThreadEnd() {
-    LOGI(TAG, "stopVideoDecode");
+    LOGI(TAG, "onVideoThreadEnd");
 }
 
 MediaSource *GPlayer::getFrameSource() {

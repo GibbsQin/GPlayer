@@ -35,7 +35,7 @@ int CodecInterceptor::onInit(MediaInfo *header) {
     hasInit = true;
     bool ffmpegSupport = header->audioType > CODEC_START && header->audioType < CODEC_END;
     bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->audioType) != "";
-    LOGI(TAG, "CoreFlow : onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
+    LOGI(TAG, "onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
          ffmpegSupport, mediaCodecSupport, mediaCodecFirst);
     isAudioAvailable = (ffmpegSupport || mediaCodecSupport);
     if (isAudioAvailable) {

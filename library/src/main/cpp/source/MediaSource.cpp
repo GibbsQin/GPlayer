@@ -12,7 +12,7 @@ MediaSource::MediaSource() {
 
 MediaSource::~MediaSource() {
     delete mAVHeader;
-    LOGE(TAG, "CoreFlow : MediaSource destroyed %d %d",
+    LOGI(TAG, "CoreFlow : MediaSource destroyed %d %d",
             audioPacketQueue.size(), videoPacketQueue.size());
 }
 
@@ -69,13 +69,17 @@ int MediaSource::readVideoBuffer(MediaData **avData) {
 
 void MediaSource::popAudioBuffer() {
     mAudioLock.lock();
-    audioPacketQueue.pop_front();
+    if (audioPacketQueue.size() > 0) {
+        audioPacketQueue.pop_front();
+    }
     mAudioLock.unlock();
 }
 
 void MediaSource::popVideoBuffer() {
     mVideoLock.lock();
-    videoPacketQueue.pop_front();
+    if (videoPacketQueue.size() > 0) {
+        videoPacketQueue.pop_front();
+    }
     mVideoLock.unlock();
 }
 
