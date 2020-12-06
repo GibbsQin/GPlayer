@@ -21,6 +21,8 @@ public interface IGPlayer {
 
     void pause();
 
+    void release();
+
     boolean isPlaying();
 
     void seekTo(int secondMs);

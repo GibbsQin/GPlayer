@@ -40,6 +40,7 @@ Java_com_gibbs_gplayer_GPlayer_nInit(JNIEnv *env, jobject clazz, jint channelId,
                                      jobject player) {
     auto pGPlayerImp = new GPlayer(channelId, flag, player);
     MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
+    LOGI("GPlayerJni", "CoreFlow : nInit player count %d", MediaPipe::sGPlayerMap.size());
 }
 
 extern "C"

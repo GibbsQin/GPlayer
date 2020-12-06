@@ -1,6 +1,5 @@
 package com.gibbs.gplayer;
 
-import android.opengl.GLSurfaceView;
 import android.text.TextUtils;
 import android.view.SurfaceView;
 
@@ -61,6 +60,12 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
         LogUtils.i(TAG, "CoreFlow : new GPlayer " + mediaCodec);
         mMediaSource = new MediaSourceImp(mChannelId, this);
         nInit(mChannelId, mediaCodec ? 2 : 0, this);
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        release();
     }
 
     @Override
@@ -125,6 +130,12 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
     @Override
     public void pause() {
         nPause(mChannelId);
+    }
+
+    @Override
+    public void release() {
+        LogUtils.i(TAG, "CoreFlow : release channelId " + mChannelId);
+        nRelease(mChannelId);
     }
 
     /**
@@ -237,7 +248,6 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
             }
         }
         mMediaSource.flushBuffer();
-        release();
     }
 
     private void onReleased() {
@@ -301,11 +311,6 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
             mVideoRender.release();
             LogUtils.i(TAG, "VideoPlayThread stop " + getId());
         }
-    }
-
-    private void release() {
-        LogUtils.i(TAG, "CoreFlow : release channelId " + mChannelId);
-        nRelease(mChannelId);
     }
 
     //call by jni
