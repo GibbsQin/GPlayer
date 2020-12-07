@@ -159,7 +159,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
 
     @Override
     public int getDuration() {
-        return (int) mMediaSource.getDuration();
+        return mMediaSource.getDuration();
     }
 
     @Override

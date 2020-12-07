@@ -11,14 +11,16 @@ typedef enum LoopFlag {
 } LoopFlag;
 
 typedef struct FormatInfo {
-    AVFormatContext *fmt_ctx;
-    int audioStreamIndex;
-    int videoStreamIndex;
-    int subtitleStreamIndex;
+    AVCodecParameters *audcodecpar;
+    AVCodecParameters *vidcodecpar;
+    AVCodecParameters *subcodecpar;
+    int duration;
+    int vidrotate;
+    int vidframerate;
 } FormatInfo;
 
 typedef struct FfmpegCallback {
-    void (*av_format_init)(int channel, FormatInfo formatInfo);
+    void (*av_format_init)(int channel, FormatInfo *formatInfo);
 
     void (*av_format_extradata_audio)(int channel, AVFormatContext *ifmt_ctx, uint8_t *pInputBuf,
                                       uint32_t dwInputDataSize);

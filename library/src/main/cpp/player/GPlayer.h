@@ -46,7 +46,7 @@ public:
     ~GPlayer();
 
 public:
-    void av_init(FormatInfo formatInfo);
+    void av_init(FormatInfo *formatInfo);
 
     uint32_t av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
                            uint64_t u64InputPTS, uint64_t u64InputDTS, int flag);
@@ -70,7 +70,7 @@ public:
 
     void stop();
 
-    void startDemuxing(char *web_url, int channelId, FfmpegCallback callback);
+    void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo);
 
     LoopFlag isDemuxingLoop();
 

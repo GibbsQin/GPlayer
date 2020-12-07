@@ -21,7 +21,7 @@ public:
     ~MediaSource();
 
 public:
-    void onInit(FormatInfo formatInfo);
+    void onInit(FormatInfo *formatInfo);
 
     uint32_t onReceiveAudio(MediaData *inPacket);
 
@@ -30,7 +30,7 @@ public:
     void onRelease();
 
 public:
-    FormatInfo getFormatInfo();
+    FormatInfo* getFormatInfo();
 
     AVCodecParameters* getAudioAVCodecParameters();
 
@@ -58,7 +58,7 @@ private:
     void flushVideoBuffer();
 
 private:
-    FormatInfo mFormatInfo;
+    FormatInfo *mFormatInfo;
     std::deque<MediaData *> videoPacketQueue;
     std::deque<MediaData *> audioPacketQueue;
     std::mutex mAudioLock;

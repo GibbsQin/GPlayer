@@ -199,20 +199,18 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getFrameRate(JNIEnv *env, jobject t
     if (!targetPlayer) {
         return -1;
     }
-    FormatInfo formatInfo = targetPlayer->getFrameSource()->getFormatInfo();
-    AVStream *stream = formatInfo.fmt_ctx->streams[formatInfo.videoStreamIndex];
-    return (int) (stream->r_frame_rate.num / stream->r_frame_rate.den + 0.5f);
+    return targetPlayer->getFrameSource()->getFormatInfo()->vidframerate;
 }
 
 extern "C"
-JNIEXPORT jlong JNICALL
+JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getDuration(JNIEnv *env, jobject thiz,
                                                          jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getFormatInfo().fmt_ctx->duration;
+    return targetPlayer->getFrameSource()->getFormatInfo()->duration;
 }
 
 extern "C"
@@ -286,13 +284,6 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getRotate(JNIEnv *env, jobject thiz
     if (!targetPlayer) {
         return -1;
     }
-    FormatInfo formatInfo = targetPlayer->getFrameSource()->getFormatInfo();
-    AVStream *stream = formatInfo.fmt_ctx->streams[formatInfo.videoStreamIndex];
-    AVDictionaryEntry *tag = nullptr;
-    tag = av_dict_get(stream->metadata, "rotate", tag, AV_DICT_IGNORE_SUFFIX);
-    if (tag != nullptr) {
-        return atoi(tag->value);
-    }
 
-    return 0;
+    return targetPlayer->getFrameSource()->getFormatInfo()->vidrotate;
 }

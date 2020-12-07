@@ -24,7 +24,7 @@ CodecInterceptor::CodecInterceptor(bool mediaCodecFirst) {
 
 CodecInterceptor::~CodecInterceptor() = default;
 
-int CodecInterceptor::onInit(FormatInfo formatInfo) {
+int CodecInterceptor::onInit(FormatInfo *formatInfo) {
     audioLock.lock();
     videoLock.lock();
     if (hasInit) {
@@ -34,7 +34,7 @@ int CodecInterceptor::onInit(FormatInfo formatInfo) {
     }
     hasInit = true;
 
-    AVCodecParameters *audioParameters = formatInfo.fmt_ctx->streams[formatInfo.audioStreamIndex]->codecpar;
+    AVCodecParameters *audioParameters = formatInfo->audcodecpar;
     bool ffmpegSupport = audioParameters->codec_id > CODEC_START && audioParameters->codec_id < CODEC_END;
     bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) audioParameters->codec_id) != "";
     LOGI(TAG, "onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
@@ -65,7 +65,7 @@ int CodecInterceptor::onInit(FormatInfo formatInfo) {
         audioDecoder->init(audioParameters);
     }
 
-    AVCodecParameters *videoParameters = formatInfo.fmt_ctx->streams[formatInfo.videoStreamIndex]->codecpar;
+    AVCodecParameters *videoParameters = formatInfo->vidcodecpar;
     ffmpegSupport = videoParameters->codec_id > CODEC_START && videoParameters->codec_id < CODEC_END;
     mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) audioParameters->codec_id) != "";
     isVideoAvailable = (ffmpegSupport || mediaCodecSupport);

@@ -7,6 +7,6 @@
 
 uint64_t ffmpeg_pts2timeus(AVRational time_base, int64_t pts);
 
-void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback);
+void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, FormatInfo *formatInfo);
 
 #endif //GPLAYER_DEMUXING_H

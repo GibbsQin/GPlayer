@@ -19,7 +19,7 @@ public interface MediaSource {
 
     int getFrameRate();
 
-    long getDuration();
+    int getDuration();
 
     int getSampleRate();
 

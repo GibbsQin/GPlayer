@@ -7,7 +7,7 @@ std::map<long, GPlayer *> MediaPipe::sGPlayerMap;
 
 FfmpegCallback MediaPipe::sFfmpegCallback;
 
-void MediaPipe::av_format_init(int channel, FormatInfo formatInfo) {
+void MediaPipe::av_format_init(int channel, FormatInfo *formatInfo) {
     GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
         targetPlayer->av_init(formatInfo);

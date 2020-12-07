@@ -6,14 +6,22 @@
 
 MediaSource::MediaSource() {
     LOGI(TAG, "CoreFlow : create MediaSource");
+    mFormatInfo = static_cast<FormatInfo *>(malloc(sizeof(FormatInfo)));
+    mFormatInfo->audcodecpar = avcodec_parameters_alloc();
+    mFormatInfo->vidcodecpar = avcodec_parameters_alloc();
+    mFormatInfo->subcodecpar = avcodec_parameters_alloc();
 }
 
 MediaSource::~MediaSource() {
     LOGI(TAG, "CoreFlow : MediaSource destroyed %d %d",
-            audioPacketQueue.size(), videoPacketQueue.size());
+         audioPacketQueue.size(), videoPacketQueue.size());
+    avcodec_parameters_free(&mFormatInfo->audcodecpar);
+    avcodec_parameters_free(&mFormatInfo->vidcodecpar);
+    avcodec_parameters_free(&mFormatInfo->subcodecpar);
+    free(mFormatInfo);
 }
 
-void MediaSource::onInit(FormatInfo formatInfo) {
+void MediaSource::onInit(FormatInfo *formatInfo) {
     mFormatInfo = formatInfo;
 }
 
@@ -34,20 +42,20 @@ uint32_t MediaSource::onReceiveVideo(MediaData *inPacket) {
 void MediaSource::onRelease() {
 }
 
-FormatInfo MediaSource::getFormatInfo() {
+FormatInfo *MediaSource::getFormatInfo() {
     return mFormatInfo;
 }
 
-AVCodecParameters* MediaSource::getAudioAVCodecParameters() {
-    return mFormatInfo.fmt_ctx->streams[mFormatInfo.audioStreamIndex]->codecpar;
+AVCodecParameters *MediaSource::getAudioAVCodecParameters() {
+    return mFormatInfo->audcodecpar;
 }
 
-AVCodecParameters* MediaSource::getVideoAVCodecParameters() {
-    return mFormatInfo.fmt_ctx->streams[mFormatInfo.videoStreamIndex]->codecpar;
+AVCodecParameters *MediaSource::getVideoAVCodecParameters() {
+    return mFormatInfo->vidcodecpar;
 }
 
-AVCodecParameters* MediaSource::getSubtitleAVCodecParameters() {
-    return mFormatInfo.fmt_ctx->streams[mFormatInfo.subtitleStreamIndex]->codecpar;
+AVCodecParameters *MediaSource::getSubtitleAVCodecParameters() {
+    return mFormatInfo->subcodecpar;
 }
 
 int MediaSource::readAudioBuffer(MediaData **avData) {

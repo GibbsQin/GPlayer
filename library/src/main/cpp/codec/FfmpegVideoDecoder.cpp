@@ -14,9 +14,9 @@ FfmpegVideoDecoder::~FfmpegVideoDecoder() = default;
 void FfmpegVideoDecoder::init(AVCodecParameters *codecParameters) {
     av_register_all();
 
+    mCodec = avcodec_find_decoder(codecParameters->codec_id);
     mCodecContext = avcodec_alloc_context3(mCodec);
     avcodec_parameters_from_context(codecParameters, mCodecContext);
-    mCodec = avcodec_find_decoder(mCodecContext->codec_id);
 
     if (avcodec_open2(mCodecContext, mCodec, nullptr) < 0) {
         LOGE(TAG, "could not open encode-codec");

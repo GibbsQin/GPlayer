@@ -4,9 +4,9 @@
 
 #include "DemuxingThread.h"
 
-DemuxingThread::DemuxingThread(std::function<void(char*, int, FfmpegCallback)> func,
-                               char* url, int channelId, FfmpegCallback callback) {
-    mThread = new std::thread(func, url, channelId, callback);
+DemuxingThread::DemuxingThread(std::function<void(char *, int, FfmpegCallback, FormatInfo *)> func,
+                               char *url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo) {
+    mThread = new std::thread(func, url, channelId, callback, formatInfo);
 }
 
 DemuxingThread::~DemuxingThread() {

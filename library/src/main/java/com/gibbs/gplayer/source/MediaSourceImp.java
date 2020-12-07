@@ -72,7 +72,7 @@ public class MediaSourceImp implements MediaSource {
     }
 
     @Override
-    public long getDuration() {
+    public int getDuration() {
         return getDuration(mChannelId);
     }
 
@@ -127,7 +127,7 @@ public class MediaSourceImp implements MediaSource {
 
     private native int getFrameRate(int channelId);
 
-    private native long getDuration(int channelId);
+    private native int getDuration(int channelId);
 
     private native int getSampleRate(int channelId);
 

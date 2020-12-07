@@ -17,7 +17,7 @@ public:
 
     ~CodecInterceptor();
 
-    int onInit(FormatInfo formatInfo) override;
+    int onInit(FormatInfo *formatInfo) override;
 
     int inputBuffer(MediaData *buffer, int type) override;
 

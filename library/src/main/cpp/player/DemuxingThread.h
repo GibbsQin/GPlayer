@@ -16,8 +16,8 @@ using namespace std;
 
 class DemuxingThread {
 public:
-    DemuxingThread(std::function<void(char *, int, FfmpegCallback)> func,
-                   char *url, int channelId, FfmpegCallback callback);
+    DemuxingThread(std::function<void(char *, int, FfmpegCallback, FormatInfo *)> func,
+                   char *url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo);
 
     ~DemuxingThread();
 

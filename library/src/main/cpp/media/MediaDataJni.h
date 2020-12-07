@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <jni.h>
-#include <codec/ffmpeg/libavcodec/avcodec.h>
 #include "Codec.h"
 
 class MediaDataJni {

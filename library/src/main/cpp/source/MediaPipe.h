@@ -13,7 +13,7 @@ extern "C" {
 
 class MediaPipe {
 public:
-    static void av_format_init(int channel, FormatInfo formatInfo);
+    static void av_format_init(int channel, FormatInfo *formatInfo);
 
     static void av_format_extradata_audio(int channel, AVFormatContext *ifmt_ctx,
                                           uint8_t *pInputBuf, uint32_t dwInputDataSize);

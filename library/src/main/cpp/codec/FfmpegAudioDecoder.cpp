@@ -17,13 +17,13 @@ FfmpegAudioDecoder::~FfmpegAudioDecoder() = default;
 
 void FfmpegAudioDecoder::init(AVCodecParameters *codecParameters) {
     av_register_all();
-
-#ifdef ENABLE_PARSER
-    mParser = av_parser_init(mCodec->id);
-#endif
+    mCodec = avcodec_find_decoder(codecParameters->codec_id);
     mCodecContext = avcodec_alloc_context3(mCodec);
     avcodec_parameters_from_context(codecParameters, mCodecContext);
-    mCodec = avcodec_find_decoder(mCodecContext->codec_id);
+
+#ifdef ENABLE_PARSER
+    mParser = av_parser_init(mCodecContext->codec_id);
+#endif
 
     LOGI(TAG, "init sample_fmt=%d,sample_rate=%d,channel_layout=%lld,channels=%d,frame_size=%d",
          mCodecContext->sample_fmt, mCodecContext->sample_rate, mCodecContext->channel_layout,

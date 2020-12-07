@@ -62,8 +62,9 @@ GPlayer::~GPlayer() {
     LOGI(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
-void GPlayer::av_init(FormatInfo formatInfo) {
+void GPlayer::av_init(FormatInfo *formatInfo) {
     inputSource->onInit(formatInfo);
+    outputSource->onInit(formatInfo);
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, nullptr);
 }
 
@@ -109,9 +110,8 @@ void GPlayer::prepare(const std::string& url) {
     isDemuxing = true;
     demuxingThread = new DemuxingThread(std::bind(&GPlayer::startDemuxing, this,
                                                   std::placeholders::_1, std::placeholders::_2,
-                                                  std::placeholders::_3),
-                                        mUrl, mChannelId,
-                                        MediaPipe::sFfmpegCallback);
+                                                  std::placeholders::_3, std::placeholders::_4),
+                                        mUrl, mChannelId, MediaPipe::sFfmpegCallback, inputSource->getFormatInfo());
 }
 
 void GPlayer::start() {
@@ -171,8 +171,8 @@ void GPlayer::stopDecode() {
     }
 }
 
-void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback) {
-    ffmpeg_demuxing(web_url, channelId, callback);
+void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo) {
+    ffmpeg_demuxing(web_url, channelId, callback, inputSource->getFormatInfo());
 }
 
 LoopFlag GPlayer::isDemuxingLoop() {
