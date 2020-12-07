@@ -10,14 +10,14 @@
 #include "Codec.h"
 #include <media/NdkMediaCodec.h>
 
-class MediaCodecVideoDecoder : public VideoDecoder, public AudioDecoder {
+class MediaCodecVideoDecoder : public VideoDecoder {
 public:
 
     MediaCodecVideoDecoder();
 
     ~MediaCodecVideoDecoder();
 
-    void init(MediaInfo *header);
+    void init(AVCodecParameters *codecParameters);
 
     int send_packet(MediaData *inPacket);
 
@@ -28,7 +28,6 @@ public:
     void release();
 
 protected:
-    MediaInfo *mHeader{};
     AMediaCodec *mAMediaCodec{};
     int mWidth{};
     int mHeight{};

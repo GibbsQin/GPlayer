@@ -1,4 +1,3 @@
-#include <media/MediaInfoJni.h>
 #include <media/MediaDataJni.h>
 #include <base/Log.h>
 #include "MediaSource.h"
@@ -7,17 +6,15 @@
 
 MediaSource::MediaSource() {
     LOGI(TAG, "CoreFlow : create MediaSource");
-    mAVHeader = new MediaInfo();
 }
 
 MediaSource::~MediaSource() {
-    delete mAVHeader;
     LOGI(TAG, "CoreFlow : MediaSource destroyed %d %d",
             audioPacketQueue.size(), videoPacketQueue.size());
 }
 
-void MediaSource::onInit(MediaInfo *header) {
-    mAVHeader = header;
+void MediaSource::onInit(FormatInfo formatInfo) {
+    mFormatInfo = formatInfo;
 }
 
 uint32_t MediaSource::onReceiveAudio(MediaData *inPacket) {
@@ -37,8 +34,20 @@ uint32_t MediaSource::onReceiveVideo(MediaData *inPacket) {
 void MediaSource::onRelease() {
 }
 
-MediaInfo *MediaSource::getAVHeader() {
-    return mAVHeader;
+FormatInfo MediaSource::getFormatInfo() {
+    return mFormatInfo;
+}
+
+AVCodecParameters* MediaSource::getAudioAVCodecParameters() {
+    return mFormatInfo.fmt_ctx->streams[mFormatInfo.audioStreamIndex]->codecpar;
+}
+
+AVCodecParameters* MediaSource::getVideoAVCodecParameters() {
+    return mFormatInfo.fmt_ctx->streams[mFormatInfo.videoStreamIndex]->codecpar;
+}
+
+AVCodecParameters* MediaSource::getSubtitleAVCodecParameters() {
+    return mFormatInfo.fmt_ctx->streams[mFormatInfo.subtitleStreamIndex]->codecpar;
 }
 
 int MediaSource::readAudioBuffer(MediaData **avData) {

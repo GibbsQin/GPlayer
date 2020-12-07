@@ -42,7 +42,7 @@ static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, co
               pkt->size);
 }
 
-void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, MediaInfo *mediaInfo) {
+void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback) {
     ffmpegLog(ANDROID_LOG_INFO, "CoreFlow : ffmpeg_demuxing '%s'", filename);
     AVFormatContext *ifmt_ctx = NULL;
     AVPacket pkt;
@@ -51,6 +51,7 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
     int stream_index = 0;
     int audio_stream_index = -1;
     int video_stream_index = -1;
+    int subtitle_stream_index = -1;
     int *stream_mapping = NULL;
     uint32_t stream_mapping_size = 0;
 
@@ -99,7 +100,11 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
                 ffmpegLog(ANDROID_LOG_ERROR, "Error: audio_stream_index has been set to %d", audio_stream_index);
             }
         } else if (in_codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE) {
-            ffmpegLog(ANDROID_LOG_ERROR, "Error: subtitle media type");
+            if (subtitle_stream_index == -1) {
+                subtitle_stream_index = i;
+            } else {
+                ffmpegLog(ANDROID_LOG_ERROR, "Error: subtitle_stream_index has been set to %d", subtitle_stream_index);
+            }
         }
 
         stream_mapping[i] = stream_index++;
@@ -110,8 +115,12 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
     ffmpegLog(ANDROID_LOG_INFO, "extensions %s", ifmt_ctx->iformat->extensions);
 
     ffmpegLog(ANDROID_LOG_INFO, "av_init\n");
-    callback.av_format_init(channelId, ifmt_ctx, ifmt_ctx->streams[audio_stream_index],
-                            ifmt_ctx->streams[video_stream_index], mediaInfo);
+    FormatInfo formatInfo;
+    formatInfo.fmt_ctx = ifmt_ctx;
+    formatInfo.audioStreamIndex = audio_stream_index;
+    formatInfo.videoStreamIndex = video_stream_index;
+    formatInfo.subtitleStreamIndex = subtitle_stream_index;
+    callback.av_format_init(channelId, formatInfo);
     //send SPS PPS
     callback.av_format_extradata_video(channelId, ifmt_ctx,
                                        ifmt_ctx->streams[video_stream_index]->codecpar->extradata,
@@ -232,31 +241,4 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, Med
         callback.av_format_error(channelId, ret, av_err2str(ret));
     }
     ffmpegLog(ANDROID_LOG_INFO, "ending");
-}
-
-void ffmpeg_extra_audio_info(AVFormatContext *ifmt_ctx, AVStream *stream, MediaInfo *mediaInfo) {
-    mediaInfo->duration = (int) (ifmt_ctx->duration / 1000);
-    AVCodecParameters *in_codecpar = stream->codecpar;
-    mediaInfo->audioType = in_codecpar->codec_id;
-    mediaInfo->audioProfile = in_codecpar->profile;
-    mediaInfo->audioMode = (int) in_codecpar->channel_layout;
-    mediaInfo->audioChannels = in_codecpar->channels;
-    mediaInfo->audioBitWidth = in_codecpar->format;
-    mediaInfo->audioSampleRate = in_codecpar->sample_rate;
-    mediaInfo->sampleNumPerFrame = in_codecpar->frame_size;
-}
-
-void ffmpeg_extra_video_info(AVFormatContext *ifmt_ctx, AVStream *stream, MediaInfo *mediaInfo) {
-    AVCodecParameters *in_codecpar = stream->codecpar;
-    mediaInfo->videoType = in_codecpar->codec_id;
-    mediaInfo->videoWidth = in_codecpar->width;
-    mediaInfo->videoHeight = in_codecpar->height;
-    mediaInfo->videoFrameRate = (int) (stream->r_frame_rate.num / stream->r_frame_rate.den + 0.5f);
-    AVDictionaryEntry *tag = NULL;
-    tag = av_dict_get(stream->metadata, "rotate", tag, AV_DICT_IGNORE_SUFFIX);
-    if (tag != NULL) {
-        mediaInfo->videoRotate = atoi(tag->value);
-    } else {
-        mediaInfo->videoRotate = 0;
-    }
 }

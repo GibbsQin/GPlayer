@@ -18,7 +18,7 @@ public:
 
     ~FfmpegVideoDecoder();
 
-    virtual void init(MediaInfo *header) override;
+    virtual void init(AVCodecParameters *codecParameters) override;
 
     virtual int send_packet(MediaData *inPacket) override;
 
@@ -28,7 +28,6 @@ public:
 
 private:
     bool isInitSuccess;
-    MediaInfo mHeader{};
     AVCodec *mCodec;
     AVCodecContext *mCodecContext;
     AVFrame *mOutFrame;

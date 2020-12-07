@@ -1,16 +1,11 @@
 package com.gibbs.gplayer.source;
 
 import com.gibbs.gplayer.media.MediaData;
-import com.gibbs.gplayer.media.MediaInfo;
 
 public interface MediaSource {
-    MediaInfo getMediaInfo();
-
     MediaData readAudioSource();
 
     MediaData readVideoSource();
-
-    void setMediaInfo(MediaInfo mediaInfo);
 
     void removeFirstAudioPackage();
 
@@ -21,4 +16,22 @@ public interface MediaSource {
     int getAudioBufferSize();
 
     int getVideoBufferSize();
+
+    int getFrameRate();
+
+    long getDuration();
+
+    int getSampleRate();
+
+    int getSampleFormat();
+
+    long getChannelLayout();
+
+    int getChannels();
+
+    int getWidth();
+
+    int getHeight();
+
+    int getRotate();
 }

@@ -2,7 +2,6 @@ package com.gibbs.gplayer.render;
 
 import android.content.Context;
 
-import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.source.MediaSource;
 import com.gibbs.gplayer.utils.LogUtils;
 
@@ -27,8 +26,8 @@ abstract class BaseVideoRender implements VideoRender {
     }
 
     @Override
-    public void init(MediaInfo header) {
-        int rate = header.getInteger(MediaInfo.KEY_FRAME_RATE, 20);
+    public void init(MediaSource mediaSource) {
+        int rate = mediaSource.getFrameRate();
         mFrameIntervalMs = 1000L / rate / 2;
         mMaxFrameIntervalMs = 1000L / rate * 9 / 10;
         mAVSync.enable();

@@ -4,7 +4,6 @@
 
 #include <base/Log.h>
 #include <utils/JniHelper.h>
-#include <media/MediaInfoJni.h>
 #include "GPlayerJni.h"
 
 #define TAG "MediaSourceJni"
@@ -39,28 +38,6 @@ GPlayerJni::~GPlayerJni() {
 void
 GPlayerJni::onMessageCallback(int msgId, int arg1, int arg2, char *msg1, char *msg2) {
     onMessageCallback(msgId, arg1, arg2, msg1, msg2, (jobject)nullptr);
-}
-
-void GPlayerJni::onMessageCallback(int msgId, int arg1, int arg2, char *msg1, char *msg2,
-                                   MediaInfo *mediaInfo) {
-    if (playerJObj != nullptr && onMessageCallbackMethod != nullptr) {
-        bool attach = JniHelper::attachCurrentThread();
-
-        JNIEnv *env = JniHelper::getJNIEnv();
-        jstring jMsg1 = msg1 ? JniHelper::newStringUTF(env, msg1) : nullptr;
-        jstring jMsg2 = msg2 ? JniHelper::newStringUTF(env, msg2) : nullptr;
-        JniHelper::callVoidMethod(playerJObj, onMessageCallbackMethod, msgId, arg1, arg2, jMsg1,
-                                  jMsg2, MediaInfoJni::createJobject(mediaInfo));
-        if (jMsg1) {
-            env->DeleteLocalRef(jMsg1);
-        }
-        if (jMsg2) {
-            env->DeleteLocalRef(jMsg2);
-        }
-        if (attach) {
-            JniHelper::detachCurrentThread();
-        }
-    }
 }
 
 void

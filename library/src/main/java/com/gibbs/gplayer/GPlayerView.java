@@ -10,7 +10,6 @@ import com.gibbs.gplayer.listener.OnBufferChangedListener;
 import com.gibbs.gplayer.listener.OnPreparedListener;
 import com.gibbs.gplayer.listener.OnStateChangedListener;
 import com.gibbs.gplayer.listener.OnPositionChangedListener;
-import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.render.GestureGLSurfaceView;
 import com.gibbs.gplayer.utils.LogUtils;
 
@@ -127,6 +126,21 @@ public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnSta
     }
 
     @Override
+    public int getVideoWidth() {
+        return mGPlayer.getVideoWidth();
+    }
+
+    @Override
+    public int getVideoHeight() {
+        return mGPlayer.getVideoHeight();
+    }
+
+    @Override
+    public int getVideoRotate() {
+        return mGPlayer.getVideoRotate();
+    }
+
+    @Override
     public void setOnPreparedListener(OnPreparedListener listener) {
         mGPlayer.setOnPreparedListener(listener);
     }
@@ -172,10 +186,9 @@ public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnSta
     }
 
     private void resize() {
-        MediaInfo mediaInfo = mGPlayer.getMediaInfo();
-        int width = mediaInfo.getInteger(MediaInfo.KEY_WIDTH, 16);
-        int height = mediaInfo.getInteger(MediaInfo.KEY_HEIGHT, 9);
-        int rotate = mediaInfo.getInteger(MediaInfo.KEY_VIDEO_ROTATE, 0);
+        int width = getVideoWidth();
+        int height = getVideoHeight();
+        int rotate = getVideoRotate();
         ViewGroup.LayoutParams params = getLayoutParams();
         params.width = getWidth();
         if (rotate == 90 || rotate == 270) {

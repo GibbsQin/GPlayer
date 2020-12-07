@@ -11,23 +11,12 @@ FfmpegVideoDecoder::FfmpegVideoDecoder() {
 
 FfmpegVideoDecoder::~FfmpegVideoDecoder() = default;
 
-void FfmpegVideoDecoder::init(MediaInfo *header) {
-    LOGI(TAG, "init width=%d,height=%d,frameRate=%d", header->videoWidth, header->videoHeight, header->videoFrameRate);
-    mHeader = *header;
-
+void FfmpegVideoDecoder::init(AVCodecParameters *codecParameters) {
     av_register_all();
 
-    auto codecId = (AVCodecID) mHeader.videoType;
-    mCodec = avcodec_find_decoder(codecId);
     mCodecContext = avcodec_alloc_context3(mCodec);
-    mCodecContext->codec_id = codecId;
-    mCodecContext->codec_type = AVMEDIA_TYPE_VIDEO;
-    mCodecContext->pix_fmt = AV_PIX_FMT_YUV420P; //默认全都是YUV420P格式
-    mCodecContext->width = mHeader.videoWidth;
-    mCodecContext->height = mHeader.videoHeight;
-    mCodecContext->bit_rate = 0;
-    mCodecContext->time_base.den = mHeader.videoFrameRate;
-    mCodecContext->time_base.num = 1;
+    avcodec_parameters_from_context(codecParameters, mCodecContext);
+    mCodec = avcodec_find_decoder(mCodecContext->codec_id);
 
     if (avcodec_open2(mCodecContext, mCodec, nullptr) < 0) {
         LOGE(TAG, "could not open encode-codec");

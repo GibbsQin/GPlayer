@@ -6,6 +6,7 @@
 #define GPLAYER_DEMUXINGTHREAD_H
 
 #include <thread>
+
 extern "C" {
 #include "demuxing/demuxing.h"
 #include "demuxing/avformat_def.h"
@@ -15,8 +16,8 @@ using namespace std;
 
 class DemuxingThread {
 public:
-    DemuxingThread(std::function<void(char *, int, FfmpegCallback, MediaInfo *)> func,
-                   char *url, int channelId, FfmpegCallback callback, MediaInfo *mediaInfo);
+    DemuxingThread(std::function<void(char *, int, FfmpegCallback)> func,
+                   char *url, int channelId, FfmpegCallback callback);
 
     ~DemuxingThread();
 

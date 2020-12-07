@@ -9,7 +9,6 @@ import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.listener.OnPreparedListener;
 import com.gibbs.gplayer.listener.OnStateChangedListener;
 import com.gibbs.gplayer.media.MediaData;
-import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.render.AudioRender;
 import com.gibbs.gplayer.render.PcmAudioRender;
 import com.gibbs.gplayer.render.VideoRender;
@@ -160,7 +159,22 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
 
     @Override
     public int getDuration() {
-        return mMediaSource.getMediaInfo().getInteger(MediaInfo.KEY_DURATION, 0);
+        return (int) mMediaSource.getDuration();
+    }
+
+    @Override
+    public int getVideoWidth() {
+        return mMediaSource.getWidth();
+    }
+
+    @Override
+    public int getVideoHeight() {
+        return mMediaSource.getHeight();
+    }
+
+    @Override
+    public int getVideoRotate() {
+        return mMediaSource.getRotate();
     }
 
     @Override
@@ -191,10 +205,6 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
     @Override
     public void onPositionChanged(int timeUs) {
         onMessageCallback(MSG_TYPE_TIME, timeUs, 0, null, null, null);
-    }
-
-    public MediaInfo getMediaInfo() {
-        return mMediaSource.getMediaInfo();
     }
 
     public String getUrl() {
@@ -273,7 +283,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
                 }
             }
             LogUtils.i(TAG, "CoreFlow : start audio render");
-            mAudioRender.init(mMediaSource.getMediaInfo());
+            mAudioRender.init(mMediaSource);
             while (mIsProcessingSource) {
                 mAudioRender.render();
             }
@@ -304,7 +314,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
                 }
             }
             LogUtils.i(TAG, "CoreFlow : start video render");
-            mVideoRender.init(mMediaSource.getMediaInfo());
+            mVideoRender.init(mMediaSource);
             while (mIsProcessingSource) {
                 mVideoRender.render();
             }
@@ -320,7 +330,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
                 handleErrorMsg(arg1, msg1);
                 break;
             case MSG_TYPE_STATE:
-                handleStateMsg(arg1, object);
+                handleStateMsg(arg1);
                 break;
             case MSG_TYPE_TIME:
                 handleTimeMsg(arg1);
@@ -337,10 +347,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
         }
     }
 
-    private void handleStateMsg(int state, Object object) {
-        if (object instanceof MediaInfo) {
-            mMediaSource.setMediaInfo((MediaInfo) object);
-        }
+    private void handleStateMsg(int state) {
         State playState = State.values()[state];
         setPlayState(playState);
     }

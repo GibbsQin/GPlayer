@@ -11,32 +11,19 @@ FfmpegAudioDecoder::FfmpegAudioDecoder() {
 #endif
     mInPacket = nullptr;
     mOutFrame = nullptr;
-    mHeader = nullptr;
 }
 
 FfmpegAudioDecoder::~FfmpegAudioDecoder() = default;
 
-void FfmpegAudioDecoder::init(MediaInfo *header) {
-    LOGI(TAG, "init audioSampleRate=%d,sampleNumPerFrame=%d,audioBitWidth=%d,audioMode=%d",
-         header->audioSampleRate, header->sampleNumPerFrame, header->audioBitWidth,
-         header->audioMode);
-    mHeader = header;
-
+void FfmpegAudioDecoder::init(AVCodecParameters *codecParameters) {
     av_register_all();
 
-    auto codecId = (AVCodecID) mHeader->audioType;
-    mCodec = avcodec_find_decoder(codecId);
 #ifdef ENABLE_PARSER
     mParser = av_parser_init(mCodec->id);
 #endif
     mCodecContext = avcodec_alloc_context3(mCodec);
-    mCodecContext->codec_type = AVMEDIA_TYPE_AUDIO;
-    //采样数据的宽度
-    mCodecContext->sample_fmt = static_cast<AVSampleFormat>(header->audioBitWidth);
-    mCodecContext->sample_rate = mHeader->audioSampleRate; //音频采样率
-    mCodecContext->channel_layout = header->audioMode;//声道格式（单声道、双声道）
-    mCodecContext->channels = av_get_channel_layout_nb_channels(mCodecContext->channel_layout);//声道数
-    mCodecContext->frame_size = mHeader->sampleNumPerFrame;
+    avcodec_parameters_from_context(codecParameters, mCodecContext);
+    mCodec = avcodec_find_decoder(mCodecContext->codec_id);
 
     LOGI(TAG, "init sample_fmt=%d,sample_rate=%d,channel_layout=%lld,channels=%d,frame_size=%d",
          mCodecContext->sample_fmt, mCodecContext->sample_rate, mCodecContext->channel_layout,

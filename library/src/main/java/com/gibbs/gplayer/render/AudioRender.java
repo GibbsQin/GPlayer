@@ -1,13 +1,13 @@
 package com.gibbs.gplayer.render;
 
-import com.gibbs.gplayer.media.MediaInfo;
+import androidx.annotation.NonNull;
+
+import com.gibbs.gplayer.source.MediaSource;
 
 import java.nio.ByteBuffer;
 
-import androidx.annotation.NonNull;
-
 public interface AudioRender {
-    void init(MediaInfo mediaInfo);
+    void init(MediaSource mediaSource);
 
     void render();
 

@@ -5,7 +5,6 @@ import android.opengl.GLSurfaceView;
 import android.view.SurfaceView;
 
 import com.gibbs.gplayer.media.MediaData;
-import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.source.MediaSource;
 import com.gibbs.gplayer.utils.LogUtils;
 
@@ -101,12 +100,12 @@ public class YUVGLRenderer extends BaseVideoRender {
     }
 
     @Override
-    public void init(MediaInfo header) {
-        super.init(header);
-        int width = header.getInteger(MediaInfo.KEY_WIDTH, 0);
-        int height = header.getInteger(MediaInfo.KEY_HEIGHT, 0);
+    public void init(MediaSource mediaSource) {
+        super.init(mediaSource);
+        int width = mediaSource.getWidth();
+        int height = mediaSource.getHeight();
         updateVideoSize(width, height);
-        mYUVGLProgram.updateRotate(header.getInteger(MediaInfo.KEY_VIDEO_ROTATE, 0));
+        mYUVGLProgram.updateRotate(mediaSource.getRotate());
         mInitialized = true;
         LogUtils.d(TAG, "onInit");
     }

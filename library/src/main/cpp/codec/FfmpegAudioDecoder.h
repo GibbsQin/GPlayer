@@ -20,7 +20,7 @@ public:
 
     ~FfmpegAudioDecoder();
 
-    void init(MediaInfo *header) override;
+    void init(AVCodecParameters *codecParameters) override;
 
     virtual int send_packet(MediaData *inPacket) override;
 
@@ -33,7 +33,6 @@ private:
     FILE *audioFile;
 #endif
     bool isInitSuccess;
-    MediaInfo *mHeader;
 
     AVCodec *mCodec;
     AVCodecContext *mCodecContext;

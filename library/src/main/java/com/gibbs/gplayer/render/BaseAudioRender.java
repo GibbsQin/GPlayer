@@ -8,7 +8,6 @@ import android.os.Build;
 
 import androidx.annotation.NonNull;
 
-import com.gibbs.gplayer.media.MediaInfo;
 import com.gibbs.gplayer.source.MediaSource;
 import com.gibbs.gplayer.utils.LogUtils;
 
@@ -48,11 +47,9 @@ abstract class BaseAudioRender implements AudioRender {
     }
 
     @Override
-    public void init(MediaInfo mediaInfo) {
-        LogUtils.i(TAG, "init");
-        mSampleRate = mediaInfo.getInteger(MediaInfo.KEY_AUDIO_SAMPLE_RATE, 8000);
-        mSampleFormat = mediaInfo.getSampleFormat();
-        openAudioTrack(mediaInfo);
+    public void init(MediaSource mediaSource) {
+        openAudioTrack(mediaSource.getSampleRate(), mediaSource.getSampleFormat(),
+                (int) mediaSource.getChannelLayout(), mediaSource.getChannels());
     }
 
     @Override
@@ -116,10 +113,9 @@ abstract class BaseAudioRender implements AudioRender {
         return durationUs;
     }
 
-    private void openAudioTrack(MediaInfo mediaInfo) {
-        int sampleRate = mediaInfo.getInteger(MediaInfo.KEY_AUDIO_SAMPLE_RATE, 8000);
-        int channelLayout = mediaInfo.getChannelLayout();
-        int channels = mediaInfo.getInteger(MediaInfo.KEY_AUDIO_CHANNELS, 1);
+    private void openAudioTrack(int sampleRate, int sampleFormat, int channelLayout, int channels) {
+        mSampleRate = sampleRate;
+        mSampleFormat = sampleFormat;
         LogUtils.i(TAG, "openAudioTrack sampleRate = " + sampleRate + ", channelLayout = " +
                 channelLayout + ", channels = " + channels + ", sampleFormat = " + mSampleFormat);
         try {

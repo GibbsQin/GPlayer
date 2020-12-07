@@ -13,38 +13,6 @@ extern "C" {
 #define TRY_AGAIN -11
 
 /**
- * 音频编码器
- */
-class AudioEncoder {
-public:
-    virtual ~AudioEncoder() {};
-
-    /**
-    * 初始化
-    */
-    virtual void init(MediaInfo *header) = 0;
-
-    /**
-     * 往编码器输入一帧
-     * @param inFrame
-     * @return 结果
-     */
-    virtual int send_frame(MediaData *inFrame) = 0;
-
-    /**
-     * 从编码器获取解码后的一帧
-     * @param outPacket
-     * @return 结果
-     */
-    virtual int receive_packet(MediaData *outPacket) = 0;
-
-    /**
-     * 释放
-     */
-    virtual void release() = 0;
-};
-
-/**
  * 音频解码器
  */
 class AudioDecoder {
@@ -54,7 +22,7 @@ public:
     /**
      * 初始化
      */
-    virtual void init(MediaInfo *header) = 0;
+    virtual void init(AVCodecParameters *codecParameters) = 0;
 
     /**
      * 往解码器输入一帧
@@ -77,38 +45,6 @@ public:
 };
 
 /**
- * 视频编码器
- */
-class VideoEncoder {
-public:
-    virtual ~VideoEncoder() {};
-
-    /**
-     * 初始化
-     */
-    virtual void init(MediaInfo *header) = 0;
-
-    /**
-     * 往编码器输入一帧
-     * @param inFrame
-     * @return 结果
-     */
-    virtual int send_frame(MediaData *inFrame) = 0;
-
-    /**
-     * 从编码器获取解码后的一帧
-     * @param outPacket
-     * @return 结果
-     */
-    virtual int receive_packet(MediaData *outPacket) = 0;
-
-    /**
-     * 释放
-     */
-    virtual void release() = 0;
-};
-
-/**
  * 视频解码器
  */
 class VideoDecoder {
@@ -118,7 +54,7 @@ public:
     /**
      * 初始化
      */
-    virtual void init(MediaInfo *header) = 0;
+    virtual void init(AVCodecParameters *codecParameters) = 0;
 
     /**
      * 往解码器输入一帧

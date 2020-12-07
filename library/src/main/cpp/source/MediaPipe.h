@@ -5,6 +5,7 @@
 #include <map>
 #include "MediaSource.h"
 #include "player/GPlayer.h"
+
 extern "C" {
 #include <codec/ffmpeg/libavformat/avformat.h>
 #include <demuxing/demuxing.h>
@@ -12,8 +13,7 @@ extern "C" {
 
 class MediaPipe {
 public:
-    static void av_format_init(int channel, AVFormatContext *ifmt_ctx,
-                               AVStream *audioStream, AVStream *videoStream, MediaInfo *mediaInfo);
+    static void av_format_init(int channel, FormatInfo formatInfo);
 
     static void av_format_extradata_audio(int channel, AVFormatContext *ifmt_ctx,
                                           uint8_t *pInputBuf, uint32_t dwInputDataSize);

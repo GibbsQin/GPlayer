@@ -17,7 +17,7 @@ class Interceptor {
 public:
     virtual ~Interceptor(){};
 
-    virtual int onInit(MediaInfo* header) = 0;
+    virtual int onInit(FormatInfo formatInfo) = 0;
 
     virtual int inputBuffer(MediaData *buffer, int type) = 0;
 

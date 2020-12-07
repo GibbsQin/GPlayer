@@ -2,13 +2,11 @@ package com.gibbs.gplayer.source;
 
 import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.media.MediaData;
-import com.gibbs.gplayer.media.MediaInfo;
 
 public class MediaSourceImp implements MediaSource {
     private static final String TAG = "MediaSourceImpJ";
 
     private int mChannelId;
-    private MediaInfo mMediaInfo;
     private MediaData mTopAudioFrame = null;
     private MediaData mTopVideoFrame = null;
     private OnPositionChangedListener mOnPositionChangedListener;
@@ -20,11 +18,6 @@ public class MediaSourceImp implements MediaSource {
     public MediaSourceImp(int channel, OnPositionChangedListener listener) {
         mChannelId = channel;
         mOnPositionChangedListener = listener;
-    }
-
-    @Override
-    public MediaInfo getMediaInfo() {
-        return mMediaInfo;
     }
 
     @Override
@@ -44,11 +37,6 @@ public class MediaSourceImp implements MediaSource {
             mTopVideoFrame = nReadVideoSource(mChannelId);
         }
         return mTopVideoFrame;
-    }
-
-    @Override
-    public void setMediaInfo(MediaInfo mediaInfo) {
-        mMediaInfo = mediaInfo;
     }
 
     @Override
@@ -78,6 +66,51 @@ public class MediaSourceImp implements MediaSource {
         return nGetVideoBufferSize(mChannelId);
     }
 
+    @Override
+    public int getFrameRate() {
+        return getFrameRate(mChannelId);
+    }
+
+    @Override
+    public long getDuration() {
+        return getDuration(mChannelId);
+    }
+
+    @Override
+    public int getSampleRate() {
+        return getSampleRate(mChannelId);
+    }
+
+    @Override
+    public int getSampleFormat() {
+        return getSampleFormat(mChannelId);
+    }
+
+    @Override
+    public long getChannelLayout() {
+        return getChannelLayout(mChannelId);
+    }
+
+    @Override
+    public int getChannels() {
+        return getChannels(mChannelId);
+    }
+
+    @Override
+    public int getWidth() {
+        return getWidth(mChannelId);
+    }
+
+    @Override
+    public int getHeight() {
+        return getHeight(mChannelId);
+    }
+
+    @Override
+    public int getRotate() {
+        return getRotate(mChannelId);
+    }
+
     private native MediaData nReadAudioSource(int channelId);
 
     private native MediaData nReadVideoSource(int channelId);
@@ -91,4 +124,22 @@ public class MediaSourceImp implements MediaSource {
     private native int nGetAudioBufferSize(int channelId);
 
     private native int nGetVideoBufferSize(int channelId);
+
+    private native int getFrameRate(int channelId);
+
+    private native long getDuration(int channelId);
+
+    private native int getSampleRate(int channelId);
+
+    private native int getSampleFormat(int channelId);
+
+    private native long getChannelLayout(int channelId);
+
+    private native int getChannels(int channelId);
+
+    private native int getWidth(int channelId);
+
+    private native int getHeight(int channelId);
+
+    private native int getRotate(int channelId);
 }

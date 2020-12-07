@@ -15,18 +15,16 @@ MediaCodecAudioDecoder::MediaCodecAudioDecoder() = default;
 
 MediaCodecAudioDecoder::~MediaCodecAudioDecoder() = default;
 
-void MediaCodecAudioDecoder::init(MediaInfo *header) {
-    const char *mine = getMimeByCodeID((CODEC_TYPE)header->audioType);
+void MediaCodecAudioDecoder::init(AVCodecParameters *codecParameters) {
+    const char *mine = getMimeByCodeID(static_cast<CODEC_TYPE>(codecParameters->codec_id));
     mAMediaCodec = AMediaCodec_createDecoderByType(mine);
     if (!mAMediaCodec) {
         LOGE(TAG, "can not find mine %s", mine);
         return;
     }
 
-    mHeader = header;
-    mHeader->audioBitWidth = 2;
-    int sampleRate = mHeader->audioSampleRate;
-    int channelCount = mHeader->audioChannels;
+    int sampleRate = codecParameters->sample_rate;
+    int channelCount = codecParameters->channels;
     int profile = 2;
     LOGI(TAG, "init mine=%s,sampleRate=%d,channelCount=%d", mine, sampleRate, channelCount);
 

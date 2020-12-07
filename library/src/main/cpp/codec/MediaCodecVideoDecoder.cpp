@@ -15,17 +15,16 @@ MediaCodecVideoDecoder::MediaCodecVideoDecoder() = default;
 
 MediaCodecVideoDecoder::~MediaCodecVideoDecoder() = default;
 
-void MediaCodecVideoDecoder::init(MediaInfo *header) {
-    const char *mine = getMimeByCodeID((CODEC_TYPE) header->videoType);
+void MediaCodecVideoDecoder::init(AVCodecParameters *codecParameters) {
+    const char *mine = getMimeByCodeID((CODEC_TYPE) codecParameters->codec_id);
     mAMediaCodec = AMediaCodec_createDecoderByType(mine);
     if (!mAMediaCodec) {
         LOGE(TAG, "can not find mine %s", mine);
         return;
     }
 
-    mHeader = header;
-    mWidth = header->videoWidth;
-    mHeight = header->videoHeight;
+    mWidth = codecParameters->width;
+    mHeight = codecParameters->height;
 
     AMediaFormat *videoFormat = AMediaFormat_new();
     AMediaFormat_setString(videoFormat, AMEDIAFORMAT_KEY_MIME, mine);
@@ -112,7 +111,7 @@ MediaCodecVideoDecoder::extractFrame(uint8_t *outputBuf, MediaData *outFrame,
     outFrame->pts = info.presentationTimeUs;
     outFrame->dts = outFrame->pts;
     uint32_t ySize = mWidth * mHeight;
-    uint32_t frameSize = mHeader->videoWidth * mHeader->videoHeight;
+    uint32_t frameSize = mWidth * mHeight;
     memcpy(outFrame->data, outputBuf, frameSize);
     outFrame->size = frameSize;
     outFrame->size1 = 0;

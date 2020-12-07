@@ -62,14 +62,9 @@ GPlayer::~GPlayer() {
     LOGI(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
-void GPlayer::av_init(MediaInfo *header) {
-    LOGI(TAG, "CoreFlow : onInit header videoType:%d, videoWidth:%d, videoHeight:%d, videoFrameRate:%d,"
-              "audioType:%d, audioMode:%d, audioBitWidth:%d, audioSampleRate:%d, sampleNumPerFrame:%d",
-         header->videoType, header->videoWidth, header->videoHeight, header->videoFrameRate,
-         header->audioType, header->audioMode, header->audioBitWidth, header->audioSampleRate,
-         header->sampleNumPerFrame);
-    inputSource->onInit(header);
-    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, header);
+void GPlayer::av_init(FormatInfo formatInfo) {
+    inputSource->onInit(formatInfo);
+    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, nullptr);
 }
 
 uint32_t GPlayer::av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
@@ -114,9 +109,9 @@ void GPlayer::prepare(const std::string& url) {
     isDemuxing = true;
     demuxingThread = new DemuxingThread(std::bind(&GPlayer::startDemuxing, this,
                                                   std::placeholders::_1, std::placeholders::_2,
-                                                  std::placeholders::_3, std::placeholders::_4),
+                                                  std::placeholders::_3),
                                         mUrl, mChannelId,
-                                        MediaPipe::sFfmpegCallback, inputSource->getAVHeader());
+                                        MediaPipe::sFfmpegCallback);
 }
 
 void GPlayer::start() {
@@ -157,13 +152,12 @@ void GPlayer::startDecode() {
     videoEngineThread->setEndFunc(std::bind(&GPlayer::onVideoThreadEnd, this));
     videoEngineThread->start();
 
-    MediaInfo *header = inputSource->getAVHeader();
-    int ret = codeInterceptor->onInit(header);
+    int ret = codeInterceptor->onInit(inputSource->getFormatInfo());
     if (ret > 0) {
         playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0,
                                      const_cast<char *>("not support this codec"), nullptr);
     }
-    outputSource->onInit(header);
+    outputSource->onInit(inputSource->getFormatInfo());
 }
 
 void GPlayer::stopDecode() {
@@ -177,9 +171,8 @@ void GPlayer::stopDecode() {
     }
 }
 
-void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback,
-                            MediaInfo *mediaInfo) {
-    ffmpeg_demuxing(web_url, channelId, callback, mediaInfo);
+void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback) {
+    ffmpeg_demuxing(web_url, channelId, callback);
 }
 
 LoopFlag GPlayer::isDemuxingLoop() {

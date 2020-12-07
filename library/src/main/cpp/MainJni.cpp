@@ -2,7 +2,6 @@
 #include <utils/JniHelper.h>
 #include <base/Log.h>
 #include <source/MediaPipe.h>
-#include <media/MediaInfoJni.h>
 #include <media/MediaDataJni.h>
 
 //#define ENABLE_FFMPEG_JNI 1
@@ -19,7 +18,6 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     }
 
     MediaPipe::initFfmpegCallback();
-    MediaInfoJni::initClassAndMethodJni();
     MediaDataJni::initClassAndMethodJni();
 
 #ifdef ENABLE_FFMPEG_JNI
@@ -191,4 +189,110 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nGetVideoBufferSize(JNIEnv *env, jo
         return -1;
     }
     return targetPlayer->getFrameSource()->getVideoBufferSize();
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getFrameRate(JNIEnv *env, jobject thiz,
+                                                          jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    FormatInfo formatInfo = targetPlayer->getFrameSource()->getFormatInfo();
+    AVStream *stream = formatInfo.fmt_ctx->streams[formatInfo.videoStreamIndex];
+    return (int) (stream->r_frame_rate.num / stream->r_frame_rate.den + 0.5f);
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getDuration(JNIEnv *env, jobject thiz,
+                                                         jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    return targetPlayer->getFrameSource()->getFormatInfo().fmt_ctx->duration;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleRate(JNIEnv *env, jobject thiz,
+                                                           jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    return targetPlayer->getFrameSource()->getAudioAVCodecParameters()->sample_rate;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleFormat(JNIEnv *env, jobject thiz,
+                                                             jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    return targetPlayer->getFrameSource()->getAudioAVCodecParameters()->format;
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getChannelLayout(JNIEnv *env, jobject thiz,
+                                                              jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    return targetPlayer->getFrameSource()->getAudioAVCodecParameters()->channel_layout;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getChannels(JNIEnv *env, jobject thiz,
+                                                         jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    return targetPlayer->getFrameSource()->getAudioAVCodecParameters()->channels;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getWidth(JNIEnv *env, jobject thiz, jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    return targetPlayer->getFrameSource()->getVideoAVCodecParameters()->width;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getHeight(JNIEnv *env, jobject thiz, jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    return targetPlayer->getFrameSource()->getVideoAVCodecParameters()->height;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getRotate(JNIEnv *env, jobject thiz, jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+    FormatInfo formatInfo = targetPlayer->getFrameSource()->getFormatInfo();
+    AVStream *stream = formatInfo.fmt_ctx->streams[formatInfo.videoStreamIndex];
+    AVDictionaryEntry *tag = nullptr;
+    tag = av_dict_get(stream->metadata, "rotate", tag, AV_DICT_IGNORE_SUFFIX);
+    if (tag != nullptr) {
+        return atoi(tag->value);
+    }
+
+    return 0;
 }

@@ -31,6 +31,12 @@ public interface IGPlayer {
 
     int getDuration();
 
+    int getVideoWidth();
+
+    int getVideoHeight();
+
+    int getVideoRotate();
+
     void setOnPreparedListener(OnPreparedListener listener);
 
     void setOnErrorListener(OnErrorListener listener);

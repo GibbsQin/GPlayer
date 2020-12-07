@@ -24,7 +24,7 @@ CodecInterceptor::CodecInterceptor(bool mediaCodecFirst) {
 
 CodecInterceptor::~CodecInterceptor() = default;
 
-int CodecInterceptor::onInit(MediaInfo *header) {
+int CodecInterceptor::onInit(FormatInfo formatInfo) {
     audioLock.lock();
     videoLock.lock();
     if (hasInit) {
@@ -33,8 +33,10 @@ int CodecInterceptor::onInit(MediaInfo *header) {
         return -1;
     }
     hasInit = true;
-    bool ffmpegSupport = header->audioType > CODEC_START && header->audioType < CODEC_END;
-    bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->audioType) != "";
+
+    AVCodecParameters *audioParameters = formatInfo.fmt_ctx->streams[formatInfo.audioStreamIndex]->codecpar;
+    bool ffmpegSupport = audioParameters->codec_id > CODEC_START && audioParameters->codec_id < CODEC_END;
+    bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) audioParameters->codec_id) != "";
     LOGI(TAG, "onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
          ffmpegSupport, mediaCodecSupport, mediaCodecFirst);
     isAudioAvailable = (ffmpegSupport || mediaCodecSupport);
@@ -57,14 +59,15 @@ int CodecInterceptor::onInit(MediaInfo *header) {
             }
         }
         auto audioDataSize =
-                header->sampleNumPerFrame * header->audioBitWidth * header->audioChannels;
+                audioParameters->frame_size * audioParameters->format * audioParameters->channels;
         audioOutFrame = new MediaData(nullptr, static_cast<uint32_t>(audioDataSize), nullptr, 0,
                                       nullptr, 0);
-        audioDecoder->init(header);
+        audioDecoder->init(audioParameters);
     }
 
-    ffmpegSupport = header->videoType > CODEC_START && header->videoType < CODEC_END;
-    mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) header->videoType) != "";
+    AVCodecParameters *videoParameters = formatInfo.fmt_ctx->streams[formatInfo.videoStreamIndex]->codecpar;
+    ffmpegSupport = videoParameters->codec_id > CODEC_START && videoParameters->codec_id < CODEC_END;
+    mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) audioParameters->codec_id) != "";
     isVideoAvailable = (ffmpegSupport || mediaCodecSupport);
     if (isVideoAvailable) {
         if (mediaCodecFirst) {
@@ -84,11 +87,11 @@ int CodecInterceptor::onInit(MediaInfo *header) {
                 LOGI(TAG, "new MediaCodecVideoDecoder");
             }
         }
-        auto videoDataSize = header->videoWidth * header->videoHeight;
+        auto videoDataSize = videoParameters->width * videoParameters->height;
         videoOutFrame = new MediaData(nullptr, static_cast<uint32_t>(videoDataSize),
                                       nullptr, static_cast<uint32_t>(videoDataSize / 4),
                                       nullptr, static_cast<uint32_t>(videoDataSize / 4));
-        videoDecoder->init(header);
+        videoDecoder->init(videoParameters);
     }
     videoLock.unlock();
     audioLock.unlock();

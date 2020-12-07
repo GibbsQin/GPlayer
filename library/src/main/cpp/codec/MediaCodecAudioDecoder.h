@@ -6,6 +6,7 @@
 #define GPLAYER_MEDIACODECAUDIODECODER_H
 
 
+#include <codec/ffmpeg/libavcodec/avcodec.h>
 #include "MediaCodecVideoDecoder.h"
 
 class MediaCodecAudioDecoder : public AudioDecoder {
@@ -15,7 +16,7 @@ public:
 
     ~MediaCodecAudioDecoder();
 
-    void init(MediaInfo *header);
+    void init(AVCodecParameters *codecParameters);
 
     int send_packet(MediaData *inPacket);
 
@@ -26,7 +27,6 @@ public:
     void release();
 
 protected:
-    MediaInfo *mHeader{};
     AMediaCodec *mAMediaCodec{};
 };
 
