@@ -1,5 +1,7 @@
 package com.gibbs.gplayer;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.SurfaceView;
 
@@ -324,21 +326,27 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
     }
 
     //call by jni
-    public void onMessageCallback(int what, int arg1, int arg2, String msg1, String msg2, Object object) {
-        switch (what) {
-            case MSG_TYPE_ERROR:
-                handleErrorMsg(arg1, msg1);
-                break;
-            case MSG_TYPE_STATE:
-                handleStateMsg(arg1);
-                break;
-            case MSG_TYPE_TIME:
-                handleTimeMsg(arg1);
-                break;
-            case MSG_TYPE_SIZE:
-                handleSizeMsg(arg1, arg2);
-                break;
-        }
+    public void onMessageCallback(final int what, final int arg1, final int arg2, final String msg1,
+                                  final String msg2, final Object object) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                switch (what) {
+                    case MSG_TYPE_ERROR:
+                        handleErrorMsg(arg1, msg1);
+                        break;
+                    case MSG_TYPE_STATE:
+                        handleStateMsg(arg1);
+                        break;
+                    case MSG_TYPE_TIME:
+                        handleTimeMsg(arg1);
+                        break;
+                    case MSG_TYPE_SIZE:
+                        handleSizeMsg(arg1, arg2);
+                        break;
+                }
+            }
+        });
     }
 
     private void handleErrorMsg(int code, String errorMsg) {

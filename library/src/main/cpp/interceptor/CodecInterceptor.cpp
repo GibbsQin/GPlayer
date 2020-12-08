@@ -34,7 +34,8 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
     }
     hasInit = true;
 
-    AVCodecParameters *audioParameters = formatInfo->audcodecpar;
+    AVCodecParameters *audioParameters = avcodec_parameters_alloc();
+    avcodec_parameters_copy(audioParameters, formatInfo->audcodecpar);
     bool ffmpegSupport = audioParameters->codec_id > CODEC_START && audioParameters->codec_id < CODEC_END;
     bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) audioParameters->codec_id) != "";
     LOGI(TAG, "onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
@@ -65,7 +66,8 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
         audioDecoder->init(audioParameters);
     }
 
-    AVCodecParameters *videoParameters = formatInfo->vidcodecpar;
+    AVCodecParameters *videoParameters = avcodec_parameters_alloc();
+    avcodec_parameters_copy(videoParameters, formatInfo->vidcodecpar);
     ffmpegSupport = videoParameters->codec_id > CODEC_START && videoParameters->codec_id < CODEC_END;
     mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) audioParameters->codec_id) != "";
     isVideoAvailable = (ffmpegSupport || mediaCodecSupport);
@@ -99,6 +101,8 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
         return 1;
     }
 
+    avcodec_parameters_free(&audioParameters);
+    avcodec_parameters_free(&videoParameters);
     return 0;
 }
 
