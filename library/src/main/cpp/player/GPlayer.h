@@ -9,7 +9,8 @@
 #include <player/GPlayerJni.h>
 #include "DecodeThread.h"
 #include "DemuxingThread.h"
-#include "MediaSource.h"
+#include "InputSource.h"
+#include "OutputSource.h"
 
 extern "C" {
 #include <demuxing/demuxing.h>
@@ -48,11 +49,9 @@ public:
 public:
     void av_init(FormatInfo *formatInfo);
 
-    uint32_t av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
-                           uint64_t u64InputPTS, uint64_t u64InputDTS, int flag);
+    uint32_t av_feed_audio(AVPacket *packet);
 
-    uint32_t av_feed_video(uint8_t *pInputBuf, uint32_t dwInputDataSize,
-                           uint64_t u64InputPTS, uint64_t u64InputDTS, int flag);
+    uint32_t av_feed_video(AVPacket *packet);
 
     void av_destroy();
 
@@ -74,7 +73,7 @@ public:
 
     LoopFlag isDemuxingLoop();
 
-    MediaSource *getFrameSource();
+    OutputSource *getFrameSource();
 
 private:
     void startDecode();
@@ -94,8 +93,8 @@ private:
     void onVideoThreadEnd();
 
 private:
-    MediaSource *inputSource;
-    MediaSource *outputSource;
+    InputSource *inputSource;
+    OutputSource *outputSource;
     GPlayerJni *playerJni;
 
 private:

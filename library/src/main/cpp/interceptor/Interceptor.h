@@ -19,7 +19,7 @@ public:
 
     virtual int onInit(FormatInfo *formatInfo) = 0;
 
-    virtual int inputBuffer(MediaData *buffer, int type) = 0;
+    virtual int inputBuffer(AVPacket *buffer, int type) = 0;
 
     virtual int outputBuffer(MediaData **buffer, int type) = 0;
 

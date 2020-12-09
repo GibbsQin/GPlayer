@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <map>
-#include "MediaSource.h"
 #include "player/GPlayer.h"
 
 extern "C" {

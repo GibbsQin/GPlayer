@@ -20,7 +20,7 @@ public:
 
     virtual void init(AVCodecParameters *codecParameters) override;
 
-    virtual int send_packet(MediaData *inPacket) override;
+    virtual int send_packet(AVPacket *inPacket) override;
 
     virtual int receive_frame(MediaData *outFrame) override;
 
@@ -31,7 +31,6 @@ private:
     AVCodec *mCodec;
     AVCodecContext *mCodecContext;
     AVFrame *mOutFrame;
-    AVPacket *mInPacket;
 };
 
 

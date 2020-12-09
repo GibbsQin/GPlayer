@@ -9,9 +9,6 @@ extern "C"
 
 #include "Codec.h"
 
-//#define SAVE_DECODE_FILE 1
-#define ENABLE_PARSER 1
-
 #define TAG "FfmpegAudioDecoder"
 
 class FfmpegAudioDecoder : public AudioDecoder {
@@ -22,24 +19,16 @@ public:
 
     void init(AVCodecParameters *codecParameters) override;
 
-    virtual int send_packet(MediaData *inPacket) override;
+    virtual int send_packet(AVPacket *inPacket) override;
 
     virtual int receive_frame(MediaData *outFrame) override;
 
     void release() override;
 private:
 
-#ifdef SAVE_DECODE_FILE
-    FILE *audioFile;
-#endif
     bool isInitSuccess;
-
     AVCodec *mCodec;
     AVCodecContext *mCodecContext;
-#ifdef ENABLE_PARSER
-    AVCodecParserContext *mParser;
-#endif
-    AVPacket *mInPacket;
     AVFrame *mOutFrame;
 };
 

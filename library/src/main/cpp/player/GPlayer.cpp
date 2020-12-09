@@ -19,8 +19,8 @@ extern "C" {
 #define TAG "GPlayerC"
 
 GPlayer::GPlayer(int channelId, uint32_t flag, jobject obj) {
-    outputSource = new MediaSource();
-    inputSource = new MediaSource();
+    outputSource = new OutputSource();
+    inputSource = new InputSource();
     playerJni = new GPlayerJni(obj);
     audioEngineThread = nullptr;
     videoEngineThread = nullptr;
@@ -68,27 +68,15 @@ void GPlayer::av_init(FormatInfo *formatInfo) {
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, nullptr);
 }
 
-uint32_t GPlayer::av_feed_audio(uint8_t *pInputBuf, uint32_t dwInputDataSize,
-                                uint64_t u64InputPTS, uint64_t u64InputDTS, int flag) {
-    auto *avData = new MediaData(pInputBuf, dwInputDataSize, nullptr, 0, nullptr, 0);
-    avData->pts = u64InputPTS;
-    avData->dts = u64InputDTS;
-    avData->flag = static_cast<uint8_t>(flag);
-
-    uint32_t result = inputSource->onReceiveAudio(avData);
+uint32_t GPlayer::av_feed_audio(AVPacket *packet) {
+    uint32_t result = inputSource->onReceiveAudio(packet);
     playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_PACKET, result, nullptr,
                                  nullptr);
     return result;
 }
 
-uint32_t GPlayer::av_feed_video(uint8_t *pInputBuf, uint32_t dwInputDataSize,
-                                uint64_t u64InputPTS, uint64_t u64InputDTS, int flag) {
-    auto *avData = new MediaData(pInputBuf, dwInputDataSize, nullptr, 0, nullptr, 0);
-    avData->pts = u64InputPTS;
-    avData->dts = u64InputDTS;
-    avData->flag = static_cast<uint8_t>(flag);
-
-    uint32_t result = inputSource->onReceiveVideo(avData);
+uint32_t GPlayer::av_feed_video(AVPacket *packet) {
+    uint32_t result = inputSource->onReceiveVideo(packet);
     playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_PACKET, result, nullptr,
                                  nullptr);
     return result;
@@ -193,7 +181,7 @@ void GPlayer::onAudioThreadStart() {
 }
 
 int GPlayer::processAudioBuffer() {
-    MediaData *inPacket = nullptr;
+    AVPacket *inPacket = nullptr;
     int ret = inputSource->readAudioBuffer(&inPacket);
     if (ret <= 0) {
         return 0;
@@ -225,7 +213,7 @@ void GPlayer::onVideoThreadStart() {
 }
 
 int GPlayer::processVideoBuffer() {
-    MediaData *inPacket = nullptr;
+    AVPacket *inPacket = nullptr;
     int ret = inputSource->readVideoBuffer(&inPacket);
     if (ret <= 0) {
         return 0;
@@ -252,6 +240,6 @@ void GPlayer::onVideoThreadEnd() {
     LOGI(TAG, "onVideoThreadEnd");
 }
 
-MediaSource *GPlayer::getFrameSource() {
+OutputSource *GPlayer::getFrameSource() {
     return outputSource;
 }

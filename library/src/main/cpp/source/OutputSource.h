@@ -1,5 +1,5 @@
-#ifndef GPLAYER_MEDIASOURCE_H
-#define GPLAYER_MEDIASOURCE_H
+#ifndef GPLAYER_OUTPUTSOURCE_H
+#define GPLAYER_OUTPUTSOURCE_H
 
 
 #include <jni.h>
@@ -13,12 +13,12 @@ extern "C" {
 
 #define AV_SOURCE_EMPTY -2
 
-class MediaSource {
+class OutputSource {
 
 public:
-    MediaSource();
+    OutputSource();
 
-    ~MediaSource();
+    ~OutputSource();
 
 public:
     void onInit(FormatInfo *formatInfo);
@@ -66,4 +66,4 @@ private:
 };
 
 
-#endif //GPLAYER_MEDIASOURCE_H
+#endif //GPLAYER_OUTPUTSOURCE_H

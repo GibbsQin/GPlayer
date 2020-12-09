@@ -53,7 +53,7 @@ void MediaCodecAudioDecoder::init(AVCodecParameters *codecParameters) {
     LOGI(TAG, "start successfully");
 }
 
-int MediaCodecAudioDecoder::send_packet(MediaData *inPacket) {
+int MediaCodecAudioDecoder::send_packet(AVPacket *inPacket) {
     if (!mAMediaCodec) {
         return -1;
     }
@@ -61,9 +61,9 @@ int MediaCodecAudioDecoder::send_packet(MediaData *inPacket) {
     ssize_t bufferId = AMediaCodec_dequeueInputBuffer(mAMediaCodec, 2000);
     if (bufferId >= 0) {
         uint32_t flag = 0;
-        if ((inPacket->flag & FLAG_KEY_EXTRA_DATA) == FLAG_KEY_EXTRA_DATA) {
+        if ((inPacket->flags & FLAG_KEY_EXTRA_DATA) == FLAG_KEY_EXTRA_DATA) {
             flag = AMEDIACODEC_BUFFER_FLAG_CODEC_CONFIG;
-        } else if ((inPacket->flag & FLAG_KEY_FRAME) == FLAG_KEY_FRAME) {
+        } else if ((inPacket->flags & FLAG_KEY_FRAME) == FLAG_KEY_FRAME) {
             flag = AMEDIACODEC_BUFFER_FLAG_PARTIAL_FRAME;
         }
         // 获取buffer的索引

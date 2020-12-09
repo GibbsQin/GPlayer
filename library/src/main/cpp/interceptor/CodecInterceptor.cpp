@@ -106,7 +106,7 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
     return 0;
 }
 
-int CodecInterceptor::inputBuffer(MediaData *buffer, int type) {
+int CodecInterceptor::inputBuffer(AVPacket *buffer, int type) {
     int ret = -1;
     if (type == AV_TYPE_AUDIO) {
         audioLock.lock();

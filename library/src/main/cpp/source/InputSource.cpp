@@ -1,10 +1,9 @@
-#include <media/MediaDataJni.h>
 #include <base/Log.h>
-#include "MediaSource.h"
+#include "InputSource.h"
 
 #define TAG "MediaSourceC"
 
-MediaSource::MediaSource() {
+InputSource::InputSource() {
     LOGI(TAG, "CoreFlow : create MediaSource");
     mFormatInfo = static_cast<FormatInfo *>(malloc(sizeof(FormatInfo)));
     mFormatInfo->audcodecpar = avcodec_parameters_alloc();
@@ -12,7 +11,7 @@ MediaSource::MediaSource() {
     mFormatInfo->subcodecpar = avcodec_parameters_alloc();
 }
 
-MediaSource::~MediaSource() {
+InputSource::~InputSource() {
     LOGI(TAG, "CoreFlow : MediaSource destroyed %d %d",
          audioPacketQueue.size(), videoPacketQueue.size());
     avcodec_parameters_free(&mFormatInfo->audcodecpar);
@@ -21,70 +20,60 @@ MediaSource::~MediaSource() {
     free(mFormatInfo);
 }
 
-void MediaSource::onInit(FormatInfo *formatInfo) {
+void InputSource::onInit(FormatInfo *formatInfo) {
     mFormatInfo = formatInfo;
 }
 
-uint32_t MediaSource::onReceiveAudio(MediaData *inPacket) {
+uint32_t InputSource::onReceiveAudio(AVPacket *pkt) {
     uint32_t queueSize = 0;
-    audioPacketQueue.push_back(inPacket);
+    audioPacketQueue.push_back(pkt);
     queueSize = static_cast<uint32_t>(audioPacketQueue.size());
     return queueSize;
 }
 
-uint32_t MediaSource::onReceiveVideo(MediaData *inPacket) {
+uint32_t InputSource::onReceiveVideo(AVPacket *pkt) {
     uint32_t queueSize = 0;
-    videoPacketQueue.push_back(inPacket);
+    videoPacketQueue.push_back(pkt);
     queueSize = static_cast<uint32_t>(videoPacketQueue.size());
     return queueSize;
 }
 
-void MediaSource::onRelease() {
+void InputSource::onRelease() {
 }
 
-FormatInfo *MediaSource::getFormatInfo() {
+FormatInfo *InputSource::getFormatInfo() {
     return mFormatInfo;
 }
 
-AVCodecParameters *MediaSource::getAudioAVCodecParameters() {
+AVCodecParameters *InputSource::getAudioAVCodecParameters() {
     return mFormatInfo->audcodecpar;
 }
 
-AVCodecParameters *MediaSource::getVideoAVCodecParameters() {
+AVCodecParameters *InputSource::getVideoAVCodecParameters() {
     return mFormatInfo->vidcodecpar;
 }
 
-AVCodecParameters *MediaSource::getSubtitleAVCodecParameters() {
+AVCodecParameters *InputSource::getSubtitleAVCodecParameters() {
     return mFormatInfo->subcodecpar;
 }
 
-int MediaSource::readAudioBuffer(MediaData **avData) {
+int InputSource::readAudioBuffer(AVPacket **pkt) {
     if (audioPacketQueue.size() <= 0) {
         return AV_SOURCE_EMPTY;
     }
-    *avData = audioPacketQueue.front();
-    if (!(*avData)) {
-        LOGE(TAG, "readAudioBuffer item is null");
-        popAudioBuffer();
-        return 0;
-    }
+    *pkt = audioPacketQueue.front();
     return static_cast<int>(audioPacketQueue.size());
 }
 
-int MediaSource::readVideoBuffer(MediaData **avData) {
+int InputSource::readVideoBuffer(AVPacket **pkt) {
     if (videoPacketQueue.size() <= 0) {
         return AV_SOURCE_EMPTY;
     }
-    *avData = videoPacketQueue.front();
-    if (!(*avData)) {
-        LOGE(TAG, "readVideoBuffer item is null");
-        popVideoBuffer();
-        return 0;
-    }
+    *pkt = videoPacketQueue.front();
     return static_cast<int>(videoPacketQueue.size());
 }
 
-void MediaSource::popAudioBuffer() {
+void InputSource::popAudioBuffer() {
     mAudioLock.lock();
     if (audioPacketQueue.size() > 0) {
         audioPacketQueue.pop_front();
@@ -92,7 +81,7 @@ void MediaSource::popAudioBuffer() {
     mAudioLock.unlock();
 }
 
-void MediaSource::popVideoBuffer() {
+void InputSource::popVideoBuffer() {
     mVideoLock.lock();
     if (videoPacketQueue.size() > 0) {
         videoPacketQueue.pop_front();
@@ -100,7 +89,7 @@ void MediaSource::popVideoBuffer() {
     mVideoLock.unlock();
 }
 
-void MediaSource::flushBuffer() {
+void InputSource::flushBuffer() {
     LOGI(TAG, "CoreFlow : flushBuffer start");
     mVideoLock.lock();
     mAudioLock.lock();
@@ -111,22 +100,22 @@ void MediaSource::flushBuffer() {
     LOGI(TAG, "CoreFlow : flushBuffer end");
 }
 
-void MediaSource::flushVideoBuffer() {
+void InputSource::flushVideoBuffer() {
     if (videoPacketQueue.size() > 0) {
         videoPacketQueue.clear();
     }
 }
 
-void MediaSource::flushAudioBuffer() {
+void InputSource::flushAudioBuffer() {
     if (audioPacketQueue.size() > 0) {
         audioPacketQueue.clear();
     }
 }
 
-uint32_t MediaSource::getAudioBufferSize() {
+uint32_t InputSource::getAudioBufferSize() {
     return static_cast<uint32_t>(audioPacketQueue.size());
 }
 
-uint32_t MediaSource::getVideoBufferSize() {
+uint32_t InputSource::getVideoBufferSize() {
     return static_cast<uint32_t>(videoPacketQueue.size());
 }

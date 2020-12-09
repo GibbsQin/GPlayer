@@ -19,7 +19,7 @@ public:
 
     void init(AVCodecParameters *codecParameters);
 
-    int send_packet(MediaData *inPacket);
+    int send_packet(AVPacket *inPacket);
 
     int receive_frame(MediaData *outFrame);
 

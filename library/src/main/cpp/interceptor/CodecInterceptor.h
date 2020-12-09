@@ -19,7 +19,7 @@ public:
 
     int onInit(FormatInfo *formatInfo) override;
 
-    int inputBuffer(MediaData *buffer, int type) override;
+    int inputBuffer(AVPacket *buffer, int type) override;
 
     int outputBuffer(MediaData **buffer, int type) override;
 

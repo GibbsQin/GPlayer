@@ -29,7 +29,7 @@ public:
      * @param inPacket
      * @return 结果
      */
-    virtual int send_packet(MediaData *inPacket) = 0;
+    virtual int send_packet(AVPacket *inPacket) = 0;
 
     /**
      * 从解码器获取解码后的一帧
@@ -61,7 +61,7 @@ public:
      * @param inPacket
      * @return 结果
      */
-    virtual int send_packet(MediaData *inPacket) = 0;
+    virtual int send_packet(AVPacket *inPacket) = 0;
 
     /**
      * 从解码器获取解码后的一帧

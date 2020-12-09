@@ -6,7 +6,6 @@ FfmpegVideoDecoder::FfmpegVideoDecoder() {
     mCodec = nullptr;
     mCodecContext = nullptr;
     mOutFrame = nullptr;
-    mInPacket = nullptr;
 }
 
 FfmpegVideoDecoder::~FfmpegVideoDecoder() = default;
@@ -23,16 +22,12 @@ void FfmpegVideoDecoder::init(AVCodecParameters *codecParameters) {
         return;
     }
 
-    mInPacket = (AVPacket *) av_malloc(sizeof(AVPacket));
-    av_init_packet(mInPacket);
-    mInPacket->flags = AV_PKT_FLAG_KEY;
-
     mOutFrame = av_frame_alloc();
 
     isInitSuccess = true;
 }
 
-int FfmpegVideoDecoder::send_packet(MediaData *inPacket) {
+int FfmpegVideoDecoder::send_packet(AVPacket *inPacket) {
     if (inPacket == nullptr) {
         LOGE(TAG, "decode the param is nullptr");
         return -1;
@@ -43,16 +38,12 @@ int FfmpegVideoDecoder::send_packet(MediaData *inPacket) {
         return -2;
     }
 
-    mInPacket->data = inPacket->data;
-    mInPacket->size = inPacket->size;
-    mInPacket->pts = inPacket->pts;
-    mInPacket->dts = inPacket->dts;
-
-    int result = avcodec_send_packet(mCodecContext, mInPacket);
+    int result = avcodec_send_packet(mCodecContext, inPacket);
     if (result < 0) {
         LOGE(TAG, "Error: avcodec_send_packet %d %s", result, av_err2str(result));
         return result;
     }
+    av_packet_unref(inPacket);
 
     return 0;
 }
@@ -119,10 +110,6 @@ int FfmpegVideoDecoder::receive_frame(MediaData *outFrame) {
 
 void FfmpegVideoDecoder::release() {
     LOGI(TAG, "release");
-    if (mInPacket != nullptr) {
-        av_packet_unref(mInPacket);
-        mInPacket = nullptr;
-    }
 
     if (mOutFrame != nullptr) {
         av_frame_free(&mOutFrame);
