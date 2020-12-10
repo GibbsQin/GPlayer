@@ -6,8 +6,6 @@ import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.media.MediaData;
 
 public class MediaSourceImp implements MediaSource {
-    private static final String TAG = "MediaSourceImpJ";
-
     /**
      * ffmpeg sample fmt
      */
@@ -185,8 +183,6 @@ public class MediaSourceImp implements MediaSource {
     private native int getSampleRate(int channelId);
 
     private native int getSampleFormat(int channelId);
-
-    private native long getChannelLayout(int channelId);
 
     private native int getChannels(int channelId);
 

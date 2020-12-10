@@ -319,7 +319,6 @@ class YUVGLProgram {
         }
         _coord_buffer.asFloatBuffer().put(coordV);
         _coord_buffer.position(0);
-        LogUtils.i(TAG, "CoreFlow : updateRotate " + rotate + ", " + Arrays.toString(coordV));
     }
 
     private void checkGlError(String op) {

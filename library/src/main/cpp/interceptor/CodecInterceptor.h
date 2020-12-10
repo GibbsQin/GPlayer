@@ -28,8 +28,6 @@ public:
 private:
     bool hasInit;
     bool mediaCodecFirst;
-    bool isAudioAvailable;
-    bool isVideoAvailable;
     VideoDecoder *videoDecoder{};
     AudioDecoder *audioDecoder{};
     MediaData *videoOutFrame{};

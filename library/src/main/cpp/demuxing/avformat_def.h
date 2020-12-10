@@ -73,6 +73,6 @@ typedef enum CODEC_TYPE {
 #define MIME_AUDIO_RAW_AAC     "audio/mp4a-latm"       //- AAC audio (note, this is raw AAC packets, not packaged in LATM!)
 #define MIME_AUDIO_VORBIS      "audio/vorbis"          //- vorbis audio
 
-char *getMimeByCodeID(CODEC_TYPE type);
+char *get_mime_by_codec_id(CODEC_TYPE type);
 
 #endif //GPLAYER_AVFORMAT_DEF_H

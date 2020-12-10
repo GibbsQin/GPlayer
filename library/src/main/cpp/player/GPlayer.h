@@ -73,7 +73,9 @@ public:
 
     LoopFlag isDemuxingLoop();
 
-    OutputSource *getFrameSource();
+    InputSource *getInputSource();
+
+    OutputSource *getOutputSource();
 
 private:
     void startDecode();

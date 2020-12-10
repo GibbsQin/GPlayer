@@ -123,7 +123,6 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
             LogUtils.e(TAG, "CoreFlow : not playing");
             return;
         }
-        LogUtils.i(TAG, "CoreFlow : stop");
         setPlayState(State.STOPPING);
         nStop(mChannelId, true);
     }

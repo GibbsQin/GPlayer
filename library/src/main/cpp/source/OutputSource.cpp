@@ -6,23 +6,11 @@
 
 OutputSource::OutputSource() {
     LOGI(TAG, "CoreFlow : create OutputSource");
-    mFormatInfo = static_cast<FormatInfo *>(malloc(sizeof(FormatInfo)));
-    mFormatInfo->audcodecpar = avcodec_parameters_alloc();
-    mFormatInfo->vidcodecpar = avcodec_parameters_alloc();
-    mFormatInfo->subcodecpar = avcodec_parameters_alloc();
 }
 
 OutputSource::~OutputSource() {
     LOGI(TAG, "CoreFlow : OutputSource destroyed %d %d",
          audioPacketQueue.size(), videoPacketQueue.size());
-    avcodec_parameters_free(&mFormatInfo->audcodecpar);
-    avcodec_parameters_free(&mFormatInfo->vidcodecpar);
-    avcodec_parameters_free(&mFormatInfo->subcodecpar);
-    free(mFormatInfo);
-}
-
-void OutputSource::onInit(FormatInfo *formatInfo) {
-    mFormatInfo = formatInfo;
 }
 
 uint32_t OutputSource::onReceiveAudio(MediaData *inPacket) {
@@ -39,25 +27,6 @@ uint32_t OutputSource::onReceiveVideo(MediaData *inPacket) {
     queueSize = static_cast<uint32_t>(videoPacketQueue.size());
     LOGI(TAG, "queue video packet %lld", inPacket->pts);
     return queueSize;
-}
-
-void OutputSource::onRelease() {
-}
-
-FormatInfo *OutputSource::getFormatInfo() {
-    return mFormatInfo;
-}
-
-AVCodecParameters *OutputSource::getAudioAVCodecParameters() {
-    return mFormatInfo->audcodecpar;
-}
-
-AVCodecParameters *OutputSource::getVideoAVCodecParameters() {
-    return mFormatInfo->vidcodecpar;
-}
-
-AVCodecParameters *OutputSource::getSubtitleAVCodecParameters() {
-    return mFormatInfo->subcodecpar;
 }
 
 int OutputSource::readAudioBuffer(MediaData **avData) {
@@ -90,7 +59,7 @@ void OutputSource::popAudioBuffer() {
     mAudioLock.lock();
     if (audioPacketQueue.size() > 0) {
         audioPacketQueue.pop_front();
-        LOGI(TAG, "deque audio packet");
+        LOGI(TAG, "pop audio packet");
     }
     mAudioLock.unlock();
 }
@@ -99,20 +68,19 @@ void OutputSource::popVideoBuffer() {
     mVideoLock.lock();
     if (videoPacketQueue.size() > 0) {
         videoPacketQueue.pop_front();
-        LOGI(TAG, "deque video packet");
+        LOGI(TAG, "pop video packet");
     }
     mVideoLock.unlock();
 }
 
 void OutputSource::flushBuffer() {
-    LOGI(TAG, "CoreFlow : flushBuffer start");
     mVideoLock.lock();
     mAudioLock.lock();
     flushAudioBuffer();
     flushVideoBuffer();
     mAudioLock.unlock();
     mVideoLock.unlock();
-    LOGI(TAG, "CoreFlow : flushBuffer end");
+    LOGI(TAG, "CoreFlow : flushBuffer");
 }
 
 void OutputSource::flushVideoBuffer() {

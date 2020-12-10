@@ -1,7 +1,7 @@
 
 #include "avformat_def.h"
 
-char *getMimeByCodeID(CODEC_TYPE type) {
+char *get_mime_by_codec_id(CODEC_TYPE type) {
     switch (type) {
         case CODEC_VIDEO_MPEG2VIDEO:
             return MIME_VIDEO_MPEG2VIDEO;
@@ -32,7 +32,7 @@ char *getMimeByCodeID(CODEC_TYPE type) {
         case CODEC_AUDIO_VORBIS:
             return MIME_AUDIO_VORBIS;
         default:
-            return "";
+            return NULL;
     }
 }
 

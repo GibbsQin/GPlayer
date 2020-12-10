@@ -113,7 +113,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nReadAudioSource(JNIEnv *env, jobje
         return nullptr;
     }
     MediaData *mediaData = nullptr;
-    targetPlayer->getFrameSource()->readAudioBuffer(&mediaData);
+    targetPlayer->getOutputSource()->readAudioBuffer(&mediaData);
     if (mediaData == nullptr) {
         return nullptr;
     }
@@ -129,7 +129,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nReadVideoSource(JNIEnv *env, jobje
         return nullptr;
     }
     MediaData *mediaData = nullptr;
-    targetPlayer->getFrameSource()->readVideoBuffer(&mediaData);
+    targetPlayer->getOutputSource()->readVideoBuffer(&mediaData);
     if (mediaData == nullptr) {
         return nullptr;
     }
@@ -144,7 +144,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nRemoveFirstAudioPackage(JNIEnv *en
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->getFrameSource()->popAudioBuffer();
+    targetPlayer->getOutputSource()->popAudioBuffer();
 }
 
 extern "C"
@@ -155,7 +155,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nRemoveFirstVideoPackage(JNIEnv *en
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->getFrameSource()->popVideoBuffer();
+    targetPlayer->getOutputSource()->popVideoBuffer();
 }
 
 extern "C"
@@ -166,7 +166,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nFlushBuffer(JNIEnv *env, jobject t
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->getFrameSource()->flushBuffer();
+    targetPlayer->getOutputSource()->flushBuffer();
 }
 
 extern "C"
@@ -177,7 +177,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nGetAudioBufferSize(JNIEnv *env, jo
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getAudioBufferSize();
+    return targetPlayer->getOutputSource()->getAudioBufferSize();
 }
 
 extern "C"
@@ -188,7 +188,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nGetVideoBufferSize(JNIEnv *env, jo
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getVideoBufferSize();
+    return targetPlayer->getOutputSource()->getVideoBufferSize();
 }
 
 extern "C"
@@ -199,7 +199,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getFrameRate(JNIEnv *env, jobject t
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getFormatInfo()->vidframerate;
+    return targetPlayer->getInputSource()->getFormatInfo()->vidframerate;
 }
 
 extern "C"
@@ -210,7 +210,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getDuration(JNIEnv *env, jobject th
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getFormatInfo()->duration;
+    return targetPlayer->getInputSource()->getFormatInfo()->duration;
 }
 
 extern "C"
@@ -221,7 +221,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleRate(JNIEnv *env, jobject 
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getAudioAVCodecParameters()->sample_rate;
+    return targetPlayer->getInputSource()->getAudioAVCodecParameters()->sample_rate;
 }
 
 extern "C"
@@ -232,18 +232,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleFormat(JNIEnv *env, jobjec
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getAudioAVCodecParameters()->format;
-}
-
-extern "C"
-JNIEXPORT jlong JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getChannelLayout(JNIEnv *env, jobject thiz,
-                                                              jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getFrameSource()->getAudioAVCodecParameters()->channel_layout;
+    return targetPlayer->getInputSource()->getAudioAVCodecParameters()->format;
 }
 
 extern "C"
@@ -254,7 +243,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getChannels(JNIEnv *env, jobject th
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getAudioAVCodecParameters()->channels;
+    return targetPlayer->getInputSource()->getAudioAVCodecParameters()->channels;
 }
 
 extern "C"
@@ -264,7 +253,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getWidth(JNIEnv *env, jobject thiz,
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getVideoAVCodecParameters()->width;
+    return targetPlayer->getInputSource()->getVideoAVCodecParameters()->width;
 }
 
 extern "C"
@@ -274,7 +263,7 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getHeight(JNIEnv *env, jobject thiz
     if (!targetPlayer) {
         return -1;
     }
-    return targetPlayer->getFrameSource()->getVideoAVCodecParameters()->height;
+    return targetPlayer->getInputSource()->getVideoAVCodecParameters()->height;
 }
 
 extern "C"
@@ -285,5 +274,5 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getRotate(JNIEnv *env, jobject thiz
         return -1;
     }
 
-    return targetPlayer->getFrameSource()->getFormatInfo()->vidrotate;
+    return targetPlayer->getInputSource()->getFormatInfo()->vidrotate;
 }

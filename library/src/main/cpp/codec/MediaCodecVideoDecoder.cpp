@@ -16,7 +16,7 @@ MediaCodecVideoDecoder::MediaCodecVideoDecoder() = default;
 MediaCodecVideoDecoder::~MediaCodecVideoDecoder() = default;
 
 void MediaCodecVideoDecoder::init(AVCodecParameters *codecParameters) {
-    const char *mine = getMimeByCodeID((CODEC_TYPE) codecParameters->codec_id);
+    const char *mine = get_mime_by_codec_id((CODEC_TYPE) codecParameters->codec_id);
     mAMediaCodec = AMediaCodec_createDecoderByType(mine);
     if (!mAMediaCodec) {
         LOGE(TAG, "can not find mine %s", mine);

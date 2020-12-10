@@ -18,8 +18,6 @@ extern "C" {
 CodecInterceptor::CodecInterceptor(bool mediaCodecFirst) {
     this->mediaCodecFirst = mediaCodecFirst;
     hasInit = false;
-    isAudioAvailable = false;
-    isVideoAvailable = false;
 }
 
 CodecInterceptor::~CodecInterceptor() = default;
@@ -36,70 +34,42 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
 
     AVCodecParameters *audioParameters = avcodec_parameters_alloc();
     avcodec_parameters_copy(audioParameters, formatInfo->audcodecpar);
-    bool ffmpegSupport = audioParameters->codec_id > CODEC_START && audioParameters->codec_id < CODEC_END;
-    bool mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) audioParameters->codec_id) != "";
-    LOGI(TAG, "onInit ffmpegSupport %d, mediaCodecSupport = %d, mediaCodecFirst = %d",
-         ffmpegSupport, mediaCodecSupport, mediaCodecFirst);
-    isAudioAvailable = (ffmpegSupport || mediaCodecSupport);
-    if (isAudioAvailable) {
-        if (mediaCodecFirst) {
-            if (mediaCodecSupport) {
-                audioDecoder = new MediaCodecAudioDecoder();
-                LOGI(TAG, "new MediaCodecAudioDecoder");
-            } else {
-                audioDecoder = new FfmpegAudioDecoder();
-                LOGI(TAG, "new FfmpegAudioDecoder");
-            }
+    bool mediaCodecSupport = get_mime_by_codec_id((CODEC_TYPE) audioParameters->codec_id);
+    if (mediaCodecFirst) {
+        if (mediaCodecSupport) {
+            audioDecoder = new MediaCodecAudioDecoder();
         } else {
-            if (ffmpegSupport) {
-                audioDecoder = new FfmpegAudioDecoder();
-                LOGI(TAG, "new FfmpegAudioDecoder");
-            } else {
-                audioDecoder = new MediaCodecAudioDecoder();
-                LOGI(TAG, "new MediaCodecAudioDecoder");
-            }
+            audioDecoder = new FfmpegAudioDecoder();
         }
-        auto audioDataSize =
-                audioParameters->frame_size * audioParameters->format * audioParameters->channels;
-        audioOutFrame = new MediaData(nullptr, static_cast<uint32_t>(audioDataSize), nullptr, 0,
-                                      nullptr, 0);
-        audioDecoder->init(audioParameters);
+    } else {
+        audioDecoder = new FfmpegAudioDecoder();
     }
+    auto audioDataSize =
+            audioParameters->frame_size * audioParameters->format * audioParameters->channels;
+    audioOutFrame = new MediaData(nullptr, static_cast<uint32_t>(audioDataSize), nullptr, 0,
+                                  nullptr, 0);
+    audioDecoder->init(audioParameters);
 
     AVCodecParameters *videoParameters = avcodec_parameters_alloc();
     avcodec_parameters_copy(videoParameters, formatInfo->vidcodecpar);
-    ffmpegSupport = videoParameters->codec_id > CODEC_START && videoParameters->codec_id < CODEC_END;
-    mediaCodecSupport = getMimeByCodeID((CODEC_TYPE) audioParameters->codec_id) != "";
-    isVideoAvailable = (ffmpegSupport || mediaCodecSupport);
-    if (isVideoAvailable) {
-        if (mediaCodecFirst) {
-            if (mediaCodecSupport) {
-                videoDecoder = new MediaCodecVideoDecoder();
-                LOGI(TAG, "new MediaCodecVideoDecoder");
-            } else {
-                videoDecoder = new FfmpegVideoDecoder();
-                LOGI(TAG, "new FfmpegVideoDecoder");
-            }
+    mediaCodecSupport = get_mime_by_codec_id((CODEC_TYPE) audioParameters->codec_id);
+    if (mediaCodecFirst) {
+        if (mediaCodecSupport) {
+            videoDecoder = new MediaCodecVideoDecoder();
         } else {
-            if (ffmpegSupport) {
-                videoDecoder = new FfmpegVideoDecoder();
-                LOGI(TAG, "new FfmpegVideoDecoder");
-            } else {
-                videoDecoder = new MediaCodecVideoDecoder();
-                LOGI(TAG, "new MediaCodecVideoDecoder");
-            }
+            videoDecoder = new FfmpegVideoDecoder();
         }
-        auto videoDataSize = videoParameters->width * videoParameters->height;
-        videoOutFrame = new MediaData(nullptr, static_cast<uint32_t>(videoDataSize),
-                                      nullptr, static_cast<uint32_t>(videoDataSize / 4),
-                                      nullptr, static_cast<uint32_t>(videoDataSize / 4));
-        videoDecoder->init(videoParameters);
+    } else {
+        videoDecoder = new FfmpegVideoDecoder();
     }
+    auto videoDataSize = videoParameters->width * videoParameters->height;
+    videoOutFrame = new MediaData(nullptr, static_cast<uint32_t>(videoDataSize),
+                                  nullptr, static_cast<uint32_t>(videoDataSize / 4),
+                                  nullptr, static_cast<uint32_t>(videoDataSize / 4));
+    videoDecoder->init(videoParameters);
+
     videoLock.unlock();
     audioLock.unlock();
-    if (!isVideoAvailable || !isAudioAvailable) {
-        return 1;
-    }
 
     avcodec_parameters_free(&audioParameters);
     avcodec_parameters_free(&videoParameters);
@@ -110,15 +80,11 @@ int CodecInterceptor::inputBuffer(AVPacket *buffer, int type) {
     int ret = -1;
     if (type == AV_TYPE_AUDIO) {
         audioLock.lock();
-        if (isAudioAvailable) {
-            ret = audioDecoder->send_packet(buffer);
-        }
+        ret = audioDecoder->send_packet(buffer);
         audioLock.unlock();
     } else if (type == AV_TYPE_VIDEO) {
         videoLock.lock();
-        if (isVideoAvailable) {
-            ret = videoDecoder->send_packet(buffer);
-        }
+        ret = videoDecoder->send_packet(buffer);
         videoLock.unlock();
     }
     return ret;
@@ -128,17 +94,13 @@ int CodecInterceptor::outputBuffer(MediaData **buffer, int type) {
     int ret = -1;
     if (type == AV_TYPE_AUDIO) {
         audioLock.lock();
-        if (isAudioAvailable) {
-            ret = audioDecoder->receive_frame(audioOutFrame);
-            *buffer = audioOutFrame;
-        }
+        ret = audioDecoder->receive_frame(audioOutFrame);
+        *buffer = audioOutFrame;
         audioLock.unlock();
     } else if (type == AV_TYPE_VIDEO) {
         videoLock.lock();
-        if (isVideoAvailable) {
-            ret = videoDecoder->receive_frame(videoOutFrame);
-            *buffer = videoOutFrame;
-        }
+        ret = videoDecoder->receive_frame(videoOutFrame);
+        *buffer = videoOutFrame;
         videoLock.unlock();
     }
     return ret;
@@ -153,23 +115,19 @@ void CodecInterceptor::onRelease() {
         return;
     }
     hasInit = false;
-    if (isAudioAvailable) {
-        if (audioDecoder != nullptr) {
-            audioDecoder->release();
-            delete audioDecoder;
-            audioDecoder = nullptr;
-        }
-        delete audioOutFrame;
+    if (audioDecoder != nullptr) {
+        audioDecoder->release();
+        delete audioDecoder;
+        audioDecoder = nullptr;
     }
+    delete audioOutFrame;
 
-    if (isVideoAvailable) {
-        if (videoDecoder != nullptr) {
-            videoDecoder->release();
-            delete videoDecoder;
-            videoDecoder = nullptr;
-        }
-        delete videoOutFrame;
+    if (videoDecoder != nullptr) {
+        videoDecoder->release();
+        delete videoDecoder;
+        videoDecoder = nullptr;
     }
+    delete videoOutFrame;
     videoLock.unlock();
     audioLock.unlock();
 }

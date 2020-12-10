@@ -22,13 +22,11 @@ public:
     ~InputSource();
 
 public:
-    void onInit(FormatInfo *formatInfo);
+    void queueInfo(FormatInfo *formatInfo);
 
-    uint32_t onReceiveAudio(AVPacket *pkt);
+    uint32_t queueAudPkt(AVPacket *pkt);
 
-    uint32_t onReceiveVideo(AVPacket *pkt);
-
-    void onRelease();
+    uint32_t queueVidPkt(AVPacket *pkt);
 
 public:
     FormatInfo* getFormatInfo();
@@ -37,21 +35,19 @@ public:
 
     AVCodecParameters* getVideoAVCodecParameters();
 
-    AVCodecParameters* getSubtitleAVCodecParameters();
+    int dequeAudPkt(AVPacket **pkt);
 
-    int readAudioBuffer(AVPacket **pkt);
+    int dequeVidPkt(AVPacket **pkt);
 
-    int readVideoBuffer(AVPacket **pkt);
+    void popAudPkt();
 
-    void popAudioBuffer();
+    void popVidPkt();
 
-    void popVideoBuffer();
+    void flush();
 
-    void flushBuffer();
+    uint32_t getAudSize();
 
-    uint32_t getAudioBufferSize();
-
-    uint32_t getVideoBufferSize();
+    uint32_t getVidSize();
 
 private:
     void flushAudioBuffer();

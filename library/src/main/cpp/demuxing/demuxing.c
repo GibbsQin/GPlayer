@@ -134,7 +134,8 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
                                        (uint32_t) ifmt_ctx->streams[audio_stream_index]->codecpar->extradata_size);
 
     AVCodecParameters *video_codecpar = ifmt_ctx->streams[video_stream_index]->codecpar;
-    int needVideoStreamFilter = 0;
+    int needVideoStreamFilter = ifmt_ctx->iformat->extensions != NULL &&
+                                (video_codecpar->codec_id == AV_CODEC_ID_H264 || video_codecpar->codec_id == AV_CODEC_ID_HEVC);
     AVBSFContext *video_abs_ctx = NULL;
     const AVBitStreamFilter *video_abs_filter = NULL;
     if (needVideoStreamFilter) {
@@ -149,7 +150,8 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
     }
 
     AVCodecParameters *audio_codecpar = ifmt_ctx->streams[audio_stream_index]->codecpar;
-    int needAudioStreamFilter = 0;
+    int needAudioStreamFilter = ifmt_ctx->iformat->extensions != NULL &&
+                                audio_codecpar->codec_id == AV_CODEC_ID_AAC;
     unsigned char mADTSHeader[ADTS_HEADER_SIZE] = {0};
     ADTSContext mADTSContext;
     uint8_t *audioADTSData = NULL;

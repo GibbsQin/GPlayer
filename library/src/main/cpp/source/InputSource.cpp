@@ -20,11 +20,11 @@ InputSource::~InputSource() {
     free(mFormatInfo);
 }
 
-void InputSource::onInit(FormatInfo *formatInfo) {
+void InputSource::queueInfo(FormatInfo *formatInfo) {
     mFormatInfo = formatInfo;
 }
 
-uint32_t InputSource::onReceiveAudio(AVPacket *pkt) {
+uint32_t InputSource::queueAudPkt(AVPacket *pkt) {
     uint32_t queueSize = 0;
     audioPacketQueue.push_back(pkt);
     queueSize = static_cast<uint32_t>(audioPacketQueue.size());
@@ -32,15 +32,12 @@ uint32_t InputSource::onReceiveAudio(AVPacket *pkt) {
     return queueSize;
 }
 
-uint32_t InputSource::onReceiveVideo(AVPacket *pkt) {
+uint32_t InputSource::queueVidPkt(AVPacket *pkt) {
     uint32_t queueSize = 0;
     videoPacketQueue.push_back(pkt);
     queueSize = static_cast<uint32_t>(videoPacketQueue.size());
     LOGI(TAG, "queue video packet %lld", pkt->pts);
     return queueSize;
-}
-
-void InputSource::onRelease() {
 }
 
 FormatInfo *InputSource::getFormatInfo() {
@@ -55,11 +52,7 @@ AVCodecParameters *InputSource::getVideoAVCodecParameters() {
     return mFormatInfo->vidcodecpar;
 }
 
-AVCodecParameters *InputSource::getSubtitleAVCodecParameters() {
-    return mFormatInfo->subcodecpar;
-}
-
-int InputSource::readAudioBuffer(AVPacket **pkt) {
+int InputSource::dequeAudPkt(AVPacket **pkt) {
     if (audioPacketQueue.size() <= 0) {
         return AV_SOURCE_EMPTY;
     }
@@ -67,7 +60,7 @@ int InputSource::readAudioBuffer(AVPacket **pkt) {
     return static_cast<int>(audioPacketQueue.size());
 }
 
-int InputSource::readVideoBuffer(AVPacket **pkt) {
+int InputSource::dequeVidPkt(AVPacket **pkt) {
     if (videoPacketQueue.size() <= 0) {
         return AV_SOURCE_EMPTY;
     }
@@ -75,33 +68,32 @@ int InputSource::readVideoBuffer(AVPacket **pkt) {
     return static_cast<int>(videoPacketQueue.size());
 }
 
-void InputSource::popAudioBuffer() {
+void InputSource::popAudPkt() {
     mAudioLock.lock();
     if (audioPacketQueue.size() > 0) {
         audioPacketQueue.pop_front();
-        LOGI(TAG, "deque audio packet");
+        LOGI(TAG, "pop audio packet");
     }
     mAudioLock.unlock();
 }
 
-void InputSource::popVideoBuffer() {
+void InputSource::popVidPkt() {
     mVideoLock.lock();
     if (videoPacketQueue.size() > 0) {
         videoPacketQueue.pop_front();
-        LOGI(TAG, "deque video packet");
+        LOGI(TAG, "pop video packet");
     }
     mVideoLock.unlock();
 }
 
-void InputSource::flushBuffer() {
-    LOGI(TAG, "CoreFlow : flushBuffer start");
+void InputSource::flush() {
     mVideoLock.lock();
     mAudioLock.lock();
     flushAudioBuffer();
     flushVideoBuffer();
     mAudioLock.unlock();
     mVideoLock.unlock();
-    LOGI(TAG, "CoreFlow : flushBuffer end");
+    LOGI(TAG, "CoreFlow : flushBuffer");
 }
 
 void InputSource::flushVideoBuffer() {
@@ -116,10 +108,10 @@ void InputSource::flushAudioBuffer() {
     }
 }
 
-uint32_t InputSource::getAudioBufferSize() {
+uint32_t InputSource::getAudSize() {
     return static_cast<uint32_t>(audioPacketQueue.size());
 }
 
-uint32_t InputSource::getVideoBufferSize() {
+uint32_t InputSource::getVidSize() {
     return static_cast<uint32_t>(videoPacketQueue.size());
 }

@@ -2,6 +2,7 @@ package com.gibbs.gplayer;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
 
@@ -30,12 +31,6 @@ public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnSta
         initGPlayer();
     }
 
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        destroyGPlayer();
-    }
-
     private void initGPlayer() {
         if (mGPlayer != null) {
             LogUtils.e("GPlayerView", "initGPlayer has been init");
@@ -47,7 +42,7 @@ public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnSta
     }
 
     private void destroyGPlayer() {
-        mGPlayer = null;
+        mGPlayer.release();
     }
 
     @Override
@@ -183,6 +178,13 @@ public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnSta
                 }
             });
         }
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        LogUtils.i(TAG, "surfaceDestroyed");
+        super.surfaceDestroyed(holder);
+        destroyGPlayer();
     }
 
     private void resize() {

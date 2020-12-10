@@ -63,27 +63,26 @@ GPlayer::~GPlayer() {
 }
 
 void GPlayer::av_init(FormatInfo *formatInfo) {
-    inputSource->onInit(formatInfo);
-    outputSource->onInit(formatInfo);
+    inputSource->queueInfo(formatInfo);
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, nullptr);
 }
 
 uint32_t GPlayer::av_feed_audio(AVPacket *packet) {
-    uint32_t result = inputSource->onReceiveAudio(packet);
+    uint32_t result = inputSource->queueAudPkt(packet);
     playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_PACKET, result, nullptr,
                                  nullptr);
     return result;
 }
 
 uint32_t GPlayer::av_feed_video(AVPacket *packet) {
-    uint32_t result = inputSource->onReceiveVideo(packet);
+    uint32_t result = inputSource->queueVidPkt(packet);
     playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_PACKET, result, nullptr,
                                  nullptr);
     return result;
 }
 
 void GPlayer::av_destroy() {
-    inputSource->onRelease();
+
 }
 
 void GPlayer::av_error(int code, char *msg) {
@@ -115,19 +114,19 @@ void GPlayer::seekTo(uint32_t secondMs) {
 }
 
 void GPlayer::stop() {
-    LOGI(TAG, "CoreFlow : stopping");
     isDemuxing = false;
     demuxingThread->join();
     LOGI(TAG, "CoreFlow : demuxing thread is stopped!");
     stopDecode();
     LOGI(TAG, "CoreFlow : decode threads were stopped!");
     codeInterceptor->onRelease();
-    inputSource->flushBuffer();
+    inputSource->flush();
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_STOPPED, 0, nullptr, nullptr);
 }
 
 void GPlayer::startDecode() {
     LOGI(TAG, "CoreFlow : startDecode");
+    int ret = codeInterceptor->onInit(inputSource->getFormatInfo());
     audioEngineThread = new DecodeThread();
     audioEngineThread->setStartFunc(std::bind(&GPlayer::onAudioThreadStart, this));
     audioEngineThread->setUpdateFunc(std::bind(&GPlayer::processAudioBuffer, this));
@@ -140,12 +139,10 @@ void GPlayer::startDecode() {
     videoEngineThread->setEndFunc(std::bind(&GPlayer::onVideoThreadEnd, this));
     videoEngineThread->start();
 
-    int ret = codeInterceptor->onInit(inputSource->getFormatInfo());
     if (ret > 0) {
         playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0,
                                      const_cast<char *>("not support this codec"), nullptr);
     }
-    outputSource->onInit(inputSource->getFormatInfo());
 }
 
 void GPlayer::stopDecode() {
@@ -165,8 +162,8 @@ void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callbac
 
 LoopFlag GPlayer::isDemuxingLoop() {
     if (isDemuxing) {
-        uint32_t audioBufferSize = inputSource->getAudioBufferSize();
-        uint32_t videoBufferSize = inputSource->getVideoBufferSize();
+        uint32_t audioBufferSize = inputSource->getAudSize();
+        uint32_t videoBufferSize = inputSource->getVidSize();
         if (audioBufferSize < MAX_BUFFER_SIZE && videoBufferSize < MAX_BUFFER_SIZE) {
             return LOOP;
         } else {
@@ -182,7 +179,7 @@ void GPlayer::onAudioThreadStart() {
 
 int GPlayer::processAudioBuffer() {
     AVPacket *inPacket = nullptr;
-    int ret = inputSource->readAudioBuffer(&inPacket);
+    int ret = inputSource->dequeAudPkt(&inPacket);
     if (ret <= 0) {
         return 0;
     }
@@ -198,7 +195,7 @@ int GPlayer::processAudioBuffer() {
                                      nullptr);
     }
     if (inputResult >= 0) {
-        inputSource->popAudioBuffer();
+        inputSource->popAudPkt();
     }
 
     return mediaSize;
@@ -214,7 +211,7 @@ void GPlayer::onVideoThreadStart() {
 
 int GPlayer::processVideoBuffer() {
     AVPacket *inPacket = nullptr;
-    int ret = inputSource->readVideoBuffer(&inPacket);
+    int ret = inputSource->dequeVidPkt(&inPacket);
     if (ret <= 0) {
         return 0;
     }
@@ -230,7 +227,7 @@ int GPlayer::processVideoBuffer() {
                                      nullptr);
     }
     if (inputResult >= 0) {
-        inputSource->popVideoBuffer();
+        inputSource->popVidPkt();
     }
 
     return mediaSize;
@@ -240,6 +237,10 @@ void GPlayer::onVideoThreadEnd() {
     LOGI(TAG, "onVideoThreadEnd");
 }
 
-OutputSource *GPlayer::getFrameSource() {
+InputSource *GPlayer::getInputSource() {
+    return inputSource;
+}
+
+OutputSource *GPlayer::getOutputSource() {
     return outputSource;
 }
