@@ -27,7 +27,6 @@ public:
 private:
 
     bool isInitSuccess;
-    AVCodec *mCodec;
     AVCodecContext *mCodecContext;
     AVFrame *mOutFrame;
 };

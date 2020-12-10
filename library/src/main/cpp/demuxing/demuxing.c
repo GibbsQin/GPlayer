@@ -159,7 +159,9 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
     }
     ffmpegLog(ANDROID_LOG_INFO, "CoreFlow : needVideoStreamFilter %d, needAudioStreamFilter %d\n",
               needVideoStreamFilter, needAudioStreamFilter);
-
+    av_init_packet(&pkt);
+    pkt.data = NULL;
+    pkt.size = 0;
     while (1) {
         LoopFlag loop_flag = callback.av_format_loop_wait(channelId);
         if (loop_flag == CONTINUE) {
@@ -217,7 +219,7 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
             ffmpegLog(ANDROID_LOG_ERROR, "Error muxing packet\n");
             break;
         }
-//        av_packet_unref(&pkt);
+        av_packet_unref(&pkt);
     }
 
     ffmpegLog(ANDROID_LOG_INFO, "av_destroy\n");

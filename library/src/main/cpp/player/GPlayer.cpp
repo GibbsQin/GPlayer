@@ -197,7 +197,7 @@ int GPlayer::processAudioBuffer() {
         playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_FRAME, mediaSize, nullptr,
                                      nullptr);
     }
-    if (inputResult != TRY_AGAIN) {
+    if (inputResult >= 0) {
         inputSource->popAudioBuffer();
     }
 
@@ -229,7 +229,7 @@ int GPlayer::processVideoBuffer() {
         playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_FRAME, mediaSize, nullptr,
                                      nullptr);
     }
-    if (inputResult != TRY_AGAIN) {
+    if (inputResult >= 0) {
         inputSource->popVideoBuffer();
     }
 

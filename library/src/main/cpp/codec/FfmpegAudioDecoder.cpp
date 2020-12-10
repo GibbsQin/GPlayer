@@ -1,10 +1,8 @@
-
 #include "base/Log.h"
 #include "FfmpegAudioDecoder.h"
 
 FfmpegAudioDecoder::FfmpegAudioDecoder() {
     isInitSuccess = false;
-    mCodec = nullptr;
     mCodecContext = nullptr;
     mOutFrame = nullptr;
 }
@@ -13,17 +11,18 @@ FfmpegAudioDecoder::~FfmpegAudioDecoder() = default;
 
 void FfmpegAudioDecoder::init(AVCodecParameters *codecParameters) {
     av_register_all();
-    mCodec = avcodec_find_decoder(codecParameters->codec_id);
-    mCodecContext = avcodec_alloc_context3(mCodec);
-    avcodec_parameters_from_context(codecParameters, mCodecContext);
 
-    LOGI(TAG, "init sample_fmt=%d,sample_rate=%d,channel_layout=%lld,channels=%d,frame_size=%d",
-         mCodecContext->sample_fmt, mCodecContext->sample_rate, mCodecContext->channel_layout,
-         mCodecContext->channels, mCodecContext->frame_size);
-
-    int ret = avcodec_open2(mCodecContext, mCodec, nullptr);
+    AVCodec *codec = avcodec_find_decoder(codecParameters->codec_id);
+    mCodecContext = avcodec_alloc_context3(codec);
+    int ret = avcodec_parameters_from_context(codecParameters, mCodecContext);
     if (ret < 0) {
-        LOGE(TAG, "Error: avcodec_open2 code is %d", ret);
+        LOGE(TAG, "Error: avcodec_parameters_from_context code is %d %s", ret, av_err2str(ret));
+        return;
+    }
+
+    ret = avcodec_open2(mCodecContext, codec, nullptr);
+    if (ret < 0) {
+        LOGE(TAG, "Error: avcodec_open2 code is %d %s", ret, av_err2str(ret));
         return;
     }
 
@@ -44,7 +43,9 @@ int FfmpegAudioDecoder::send_packet(AVPacket *inPacket) {
 
     int ret = avcodec_send_packet(mCodecContext, inPacket);
     if (ret < 0) {
-        LOGE(TAG, "Error: avcodec_send_packet %d %s", ret, av_err2str(ret));
+        if (ret != AVERROR_EOF) {
+            LOGE(TAG, "Error: avcodec_send_packet %d %s %d", ret, av_err2str(ret), inPacket->size);
+        }
         return ret;
     }
     av_packet_unref(inPacket);
@@ -57,6 +58,7 @@ int FfmpegAudioDecoder::receive_frame(MediaData *outFrame) {
         LOGE(TAG, "Error: decode the param is nullptr");
         return -1;
     }
+    outFrame->size = 0;
 
     if (!isInitSuccess) {
         LOGE(TAG, "Error: decoder init error");
@@ -66,11 +68,10 @@ int FfmpegAudioDecoder::receive_frame(MediaData *outFrame) {
     int data_size = av_get_bytes_per_sample(mCodecContext->sample_fmt);
     if (data_size < 0) {
         /* This should not occur, checking just for paranoia */
-        LOGE(TAG, "Failed to calculate data size\n");
+        LOGE(TAG, "Error: Failed to calculate data size\n");
         return -3;
     }
 
-    int decodeResult = -1;
     int ret = 0;
     int totalSize = 0;
     int i;
@@ -91,14 +92,12 @@ int FfmpegAudioDecoder::receive_frame(MediaData *outFrame) {
             }
         }
         outFrame->size = static_cast<uint32_t>(totalSize);
-        outFrame->pts = mOutFrame->pts;
+        outFrame->pts = static_cast<uint64_t>(mOutFrame->pts);
         outFrame->dts = outFrame->pts;
-//        LOGE(TAG, "data_size = %d, nb_samples = %d, channels = %d, size = %d\n",
-//             data_size, mOutFrame->nb_samples, mCodecContext->channels, outFrame->size);
-        decodeResult = 0;
+        av_frame_unref(mOutFrame);
     }
 
-    return decodeResult;
+    return (outFrame->size > 0) ? 0 : -4;
 }
 
 void FfmpegAudioDecoder::release() {

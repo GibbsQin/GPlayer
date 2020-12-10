@@ -26,9 +26,10 @@ public:
 
     virtual void release() override;
 
+    void copy_mediadata_from_frame(MediaData *mediaData, AVFrame *frame);
+
 private:
     bool isInitSuccess;
-    AVCodec *mCodec;
     AVCodecContext *mCodecContext;
     AVFrame *mOutFrame;
 };

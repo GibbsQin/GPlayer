@@ -1,10 +1,10 @@
 #include <base/Log.h>
 #include "InputSource.h"
 
-#define TAG "MediaSourceC"
+#define TAG "InputSource"
 
 InputSource::InputSource() {
-    LOGI(TAG, "CoreFlow : create MediaSource");
+    LOGI(TAG, "CoreFlow : create InputSource");
     mFormatInfo = static_cast<FormatInfo *>(malloc(sizeof(FormatInfo)));
     mFormatInfo->audcodecpar = avcodec_parameters_alloc();
     mFormatInfo->vidcodecpar = avcodec_parameters_alloc();
@@ -12,7 +12,7 @@ InputSource::InputSource() {
 }
 
 InputSource::~InputSource() {
-    LOGI(TAG, "CoreFlow : MediaSource destroyed %d %d",
+    LOGI(TAG, "CoreFlow : InputSource destroyed %d %d",
          audioPacketQueue.size(), videoPacketQueue.size());
     avcodec_parameters_free(&mFormatInfo->audcodecpar);
     avcodec_parameters_free(&mFormatInfo->vidcodecpar);
@@ -28,6 +28,7 @@ uint32_t InputSource::onReceiveAudio(AVPacket *pkt) {
     uint32_t queueSize = 0;
     audioPacketQueue.push_back(pkt);
     queueSize = static_cast<uint32_t>(audioPacketQueue.size());
+    LOGI(TAG, "queue audio packet %lld", pkt->pts);
     return queueSize;
 }
 
@@ -35,6 +36,7 @@ uint32_t InputSource::onReceiveVideo(AVPacket *pkt) {
     uint32_t queueSize = 0;
     videoPacketQueue.push_back(pkt);
     queueSize = static_cast<uint32_t>(videoPacketQueue.size());
+    LOGI(TAG, "queue video packet %lld", pkt->pts);
     return queueSize;
 }
 
@@ -77,6 +79,7 @@ void InputSource::popAudioBuffer() {
     mAudioLock.lock();
     if (audioPacketQueue.size() > 0) {
         audioPacketQueue.pop_front();
+        LOGI(TAG, "deque audio packet");
     }
     mAudioLock.unlock();
 }
@@ -85,6 +88,7 @@ void InputSource::popVideoBuffer() {
     mVideoLock.lock();
     if (videoPacketQueue.size() > 0) {
         videoPacketQueue.pop_front();
+        LOGI(TAG, "deque video packet");
     }
     mVideoLock.unlock();
 }
