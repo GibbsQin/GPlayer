@@ -27,7 +27,7 @@
             android:name=".ExternalGPlayerViewActivity"
             android:label="GPlayer" />
         <activity
-            android:name=".PlayListActivity"
+            android:name=".MediaListActivity"
             android:label="Movies" />
         <activity
             android:name=".SettingsActivity"
@@ -36,8 +36,8 @@
             android:name=".SimpleGPlayerViewActivity"
             android:label="SimpleGPlayer" />
         <activity
-            android:name=".BufferTestActivity"
-            android:label="BufferTest" />
+            android:name=".PlayListActivity"
+            android:theme="@style/AppFullscreenTheme" />
         <activity
             android:name=".IntroduceActivity"
             android:label="@string/software_introduce" />

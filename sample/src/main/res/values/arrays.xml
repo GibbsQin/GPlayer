@@ -1,9 +1,4 @@
 <resources>
-    <string-array name="codec_layer">
-        <item>1</item>
-        <item>2</item>
-    </string-array>
-
     <string-array name="codec_type">
         <item>1</item>
         <item>2</item>
@@ -17,12 +12,12 @@
     <string-array name="gplayer_style">
         <item>simple</item>
         <item>external</item>
-        <item>buffer</item>
+        <item>list</item>
     </string-array>
 
     <string-array name="gplayer_style_name">
         <item>simple GPlayerView</item>
         <item>external GPlayerView</item>
-        <item>buffer test</item>
+        <item>play list</item>
     </string-array>
 </resources>

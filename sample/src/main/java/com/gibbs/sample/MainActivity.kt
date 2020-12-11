@@ -15,7 +15,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         mHandler.postDelayed({
-            startActivity(Intent(this@MainActivity, PlayListActivity::class.java))
+            startActivity(Intent(this@MainActivity, MediaListActivity::class.java))
             finish()
         }, 1000)
     }

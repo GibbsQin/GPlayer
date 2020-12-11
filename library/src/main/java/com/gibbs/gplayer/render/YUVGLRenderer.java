@@ -75,20 +75,15 @@ public class YUVGLRenderer implements VideoRender {
         if (mIsFrameReady) {
             mYUVGLProgram.drawFrame();
         } else {
-            mSurfaceView.queueEvent(new Runnable() {
-                @Override
-                public void run() {
-                    if (mByteBufferY != null && mByteBufferU != null && mByteBufferV != null) {
-                        synchronized (YUVGLRenderer.this) {
-                            mByteBufferY.position(0);
-                            mByteBufferU.position(0);
-                            mByteBufferV.position(0);
-                            mYUVGLProgram.buildTextures(mByteBufferY, mByteBufferU, mByteBufferV, mVideoWidth, mVideoHeight);
-                            mIsFrameReady = true;
-                        }
-                    }
+            if (mByteBufferY != null && mByteBufferU != null && mByteBufferV != null) {
+                synchronized (YUVGLRenderer.this) {
+                    mByteBufferY.position(0);
+                    mByteBufferU.position(0);
+                    mByteBufferV.position(0);
+                    mYUVGLProgram.buildTextures(mByteBufferY, mByteBufferU, mByteBufferV, mVideoWidth, mVideoHeight);
+                    mIsFrameReady = true;
                 }
-            });
+            }
         }
     }
 
@@ -152,7 +147,6 @@ public class YUVGLRenderer implements VideoRender {
 
     @Override
     public void release() {
-        mSurfaceView.onPause();
         mInitialized = false;
         mIsFrameReady = false;
         mByteBufferY = null;

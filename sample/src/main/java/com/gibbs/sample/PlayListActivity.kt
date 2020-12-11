@@ -1,35 +1,36 @@
 package com.gibbs.sample
 
-import android.Manifest
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.provider.MediaStore
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.request.RequestOptions
-import com.gibbs.gplayer.utils.LogUtils
-import com.gibbs.sample.model.PlayList
+import com.gibbs.gplayer.GPlayer
+import com.gibbs.gplayer.listener.OnPreparedListener
+import com.gibbs.gplayer.listener.OnStateChangedListener
 import com.gibbs.sample.widget.DividerItemDecoration
 import kotlinx.android.synthetic.main.activity_play_list.*
-import java.io.InputStream
 
-
-class PlayListActivity : BaseActivity() {
+class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener {
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
     private val mVideoList: MutableList<VideoItem> = ArrayList()
+    private var mPendingStart : Boolean = false
+    private var mPendingUrl : String = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        supportActionBar?.setDisplayHomeAsUpEnabled(false)
-        supportActionBar?.setDisplayShowHomeEnabled(false)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_play_list)
+        gl_surface_view.setOnPreparedListener(this)
+        gl_surface_view.setOnStateChangedListener(this)
+        val url = intent.getStringExtra("url")
+        gl_surface_view.setDataSource(url)
+
         mAdapter = object : RecyclerView.Adapter<VideoItemHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoItemHolder {
                 val view = LayoutInflater.from(this@PlayListActivity).inflate(R.layout.item_video, parent, false)
@@ -39,23 +40,15 @@ class PlayListActivity : BaseActivity() {
             override fun onBindViewHolder(holder: VideoItemHolder, position: Int) {
                 val videoItem = mVideoList[position]
                 holder.videoName.text = videoItem.name
-                Glide.with(this@PlayListActivity)
-                        .applyDefaultRequestOptions(RequestOptions().centerCrop().error(R.drawable.ic_video_play))
-                        .load(videoItem.videoPath)
-                        .into(holder.videoThumbnail)
                 holder.rootView.setOnClickListener {
-                    val intent : Intent = when (SettingsSPUtils.instance.getGPlayerStyle(this@PlayListActivity)) {
-                        "simple" -> Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
-                        "external" -> Intent(this@PlayListActivity, ExternalGPlayerViewActivity::class.java)
-                        "buffer" -> Intent(this@PlayListActivity, BufferTestActivity::class.java)
-                        else -> Intent(this@PlayListActivity, SimpleGPlayerViewActivity::class.java)
+                    if (gl_surface_view.isPlaying) {
+                        gl_surface_view.stop()
+                        mPendingStart = true
+                        mPendingUrl = videoItem.videoPath
+                    } else {
+                        gl_surface_view.setDataSource(videoItem.videoPath)
+                        gl_surface_view.prepare()
                     }
-                    intent.putExtra("url", videoItem.videoPath)
-                    intent.putExtra("name", videoItem.name)
-                    val useMediaCodec = SettingsSPUtils.instance.isMediaCodec(this@PlayListActivity)
-                    intent.putExtra("useMediaCodec", useMediaCodec)
-                    LogUtils.i("PlayListActivity", "useMediaCodec = $useMediaCodec")
-                    startActivity(intent)
                 }
             }
 
@@ -69,74 +62,36 @@ class PlayListActivity : BaseActivity() {
         dividerItemDecoration.setMarginLeft(136)
         dividerItemDecoration.setMarginRight(24)
         video_list.addItemDecoration(dividerItemDecoration)
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-                REQUEST_READ_EXTERNAL_STORAGE_PERMISSION)
+        mVideoList.add(VideoItem("http://cctvalih5ca.v.myalicdn.com/live/cctv1_2/index.m3u8", "cctv1"))
+        mVideoList.add(VideoItem("http://cctvalih5ca.v.myalicdn.com/live/cctv2_2/index.m3u8", "cctv2"))
+        mVideoList.add(VideoItem("http://cctvalih5ca.v.myalicdn.com/live/cctv3_2/index.m3u8", "cctv3"))
+        mAdapter!!.notifyDataSetChanged()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.setting_menu, menu)
-        return super.onCreateOptionsMenu(menu)
+    override fun onStart() {
+        super.onStart()
+        gl_surface_view.onResume()
+        gl_surface_view.prepare()
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_menu_setting) {
-            startActivity(Intent(this, SettingsActivity::class.java))
-            return true
-        }
-        return super.onOptionsItemSelected(item)
+    override fun onStop() {
+        super.onStop()
+        gl_surface_view.onPause()
+        gl_surface_view.stop()
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        LogUtils.i("PlayListActivity", "onRequestPermissionsResult requestCode = $requestCode," +
-                " permissions = ${permissions.contentToString()}, grantResults = ${grantResults.contentToString()}")
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_READ_EXTERNAL_STORAGE_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                val videoList = getVideoFromSDCard(this@PlayListActivity)
-                getVideoFromWeb(videoList)
-                mVideoList.addAll(videoList)
+    override fun onPrepared() {
+        gl_surface_view.start()
+    }
+
+    override fun onStateChanged(state: GPlayer.State?) {
+        if (state == GPlayer.State.STOPPED) {
+            if (mPendingStart) {
+                mPendingStart = false
+                gl_surface_view.setDataSource(mPendingUrl)
+                gl_surface_view.prepare()
             }
-            mAdapter!!.notifyDataSetChanged()
         }
-    }
-
-    override fun onBackPressed() {}
-
-    /**
-     * 从SD卡得到所有的视频地址
-     */
-    private fun getVideoFromSDCard(context: Context): MutableList<VideoItem> {
-        val list: MutableList<VideoItem> = ArrayList()
-        val projection = arrayOf(MediaStore.Video.Media.DATA, MediaStore.Video.Media.DISPLAY_NAME)
-        val cursor = context.contentResolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                projection, null, null, null)
-                ?: return list
-        while (cursor.moveToNext()) {
-            val path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA))
-            val name = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME))
-            val video = VideoItem(path, name)
-            list.add(video)
-        }
-        cursor.close()
-        return list
-    }
-
-    private fun getVideoFromWeb(list : MutableList<VideoItem>) {
-        val playList = PlayList.createPlayList(getJsonString())
-        for (link in playList.links) {
-            list.add(VideoItem(link.url, link.name))
-        }
-    }
-
-    private fun getJsonString(): String? {
-        val fileName = "playlist.json"
-
-        val inputStream: InputStream = assets.open(fileName)
-        val size: Int = inputStream.available()
-        val buffer = ByteArray(size)
-        inputStream.read(buffer)
-        inputStream.close()
-        return String(buffer)
     }
 
     private class VideoItem internal constructor(val videoPath: String, val name: String)
@@ -145,9 +100,5 @@ class PlayListActivity : BaseActivity() {
         val rootView: ConstraintLayout = itemView.findViewById(R.id.root_view)
         val videoThumbnail: AppCompatImageView = itemView.findViewById(R.id.video_thumbnail)
         val videoName: TextView = itemView.findViewById(R.id.video_name)
-    }
-
-    companion object {
-        private const val REQUEST_READ_EXTERNAL_STORAGE_PERMISSION = 1
     }
 }

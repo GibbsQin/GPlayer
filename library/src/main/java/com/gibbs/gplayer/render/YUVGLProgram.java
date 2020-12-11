@@ -317,6 +317,7 @@ class YUVGLProgram {
             _coord_buffer = ByteBuffer.allocateDirect(coordV.length * 4);
             _coord_buffer.order(ByteOrder.nativeOrder());
         }
+        _coord_buffer.clear();
         _coord_buffer.asFloatBuffer().put(coordV);
         _coord_buffer.position(0);
     }
