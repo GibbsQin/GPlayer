@@ -1,6 +1,7 @@
 package com.gibbs.gplayer.source;
 
 import android.media.AudioFormat;
+import android.media.AudioTrack;
 
 import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.media.MediaData;
@@ -22,9 +23,51 @@ public class MediaSourceImp implements MediaSource {
     private static final int FFMPEG_SAMPLE_FMT_S64 = 10;        ///< signed 64 bits
     private static final int FFMPEG_SAMPLE_FMT_S64P = 11;       ///< signed 64 bits, planar
 
+    private static class AudioSink {
+        int bufferSizeInBytes;
+        int durationMs;
+        long pendingRenderTimeMs;
+        long queueTimeNs;
+
+        AudioSink(int sampleRate, int channelLayout, int sampleFormat, int bytesPerSample) {
+            int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelLayout, sampleFormat);
+            bufferSizeInBytes = Math.round(minBufferSize * 1.0f / bytesPerSample) * bytesPerSample * 2;
+            durationMs = (int) (bufferSizeInBytes * 1.0f / (sampleRate * getBytesPerSample(sampleFormat)) * 1000);
+        }
+
+        int getBytesPerSample(int audioFormat) {
+            switch (audioFormat) {
+                case AudioFormat.ENCODING_PCM_8BIT:
+                    return 1;
+                case AudioFormat.ENCODING_PCM_16BIT:
+                case AudioFormat.ENCODING_IEC61937:
+                case AudioFormat.ENCODING_DEFAULT:
+                    return 2;
+                case AudioFormat.ENCODING_PCM_FLOAT:
+                    return 4;
+                case AudioFormat.ENCODING_INVALID:
+                default:
+                    throw new IllegalArgumentException("Bad audio format " + audioFormat);
+            }
+        }
+
+        void queueSample(long pts) {
+            pendingRenderTimeMs = pts;
+            queueTimeNs = System.nanoTime();
+        }
+
+        long getNow() {
+            long currentNs = System.nanoTime();
+            long passTimeMs = (currentNs - queueTimeNs) / 1000_000;
+            long startTimeMs = pendingRenderTimeMs - durationMs / 2;
+            return startTimeMs + passTimeMs;
+        }
+    }
+
     private int mChannelId;
     private MediaData mTopAudioFrame = null;
     private MediaData mTopVideoFrame = null;
+    private AudioSink mAudioSink;
     private OnPositionChangedListener mOnPositionChangedListener;
 
     public MediaSourceImp(int channel) {
@@ -34,6 +77,11 @@ public class MediaSourceImp implements MediaSource {
     public MediaSourceImp(int channel, OnPositionChangedListener listener) {
         mChannelId = channel;
         mOnPositionChangedListener = listener;
+    }
+
+    @Override
+    public void init() {
+        mAudioSink = new AudioSink(getSampleRate(), (int) getChannelLayout(), getSampleFormat(), 1024);
     }
 
     @Override
@@ -52,11 +100,26 @@ public class MediaSourceImp implements MediaSource {
         if (mTopVideoFrame == null) {
             mTopVideoFrame = nReadVideoSource(mChannelId);
         }
+        if (mTopVideoFrame == null) {
+            return null;
+        }
+        long nowMs = mAudioSink.getNow();
+        if (nowMs - 10 < mTopVideoFrame.pts) {
+            return mTopVideoFrame;
+        } else if (mTopVideoFrame.pts - (nowMs - 10) > 0) {
+            try {
+                Thread.sleep(mTopVideoFrame.pts - (nowMs - 10));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return readVideoSource();
+        }
         return mTopVideoFrame;
     }
 
     @Override
     public void removeFirstAudioPackage() {
+        mAudioSink.queueSample(mTopAudioFrame.pts);
         mTopAudioFrame = null;
         nRemoveFirstAudioPackage(mChannelId);
     }

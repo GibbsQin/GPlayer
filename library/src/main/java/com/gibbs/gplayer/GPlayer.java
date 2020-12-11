@@ -85,7 +85,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
      */
     @Override
     public void prepare() {
-        if (mPlayState != State.IDLE) {
+        if (mPlayState != State.IDLE && mPlayState != State.STOPPED) {
             LogUtils.e(TAG, "CoreFlow : not idle");
             return;
         }
@@ -237,6 +237,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
     }
 
     private void onPrepared() {
+        mMediaSource.init();
         if (mOnPreparedListener != null) {
             mOnPreparedListener.onPrepared();
         }

@@ -3,6 +3,8 @@ package com.gibbs.gplayer.source;
 import com.gibbs.gplayer.media.MediaData;
 
 public interface MediaSource {
+    void init();
+
     MediaData readAudioSource();
 
     MediaData readVideoSource();

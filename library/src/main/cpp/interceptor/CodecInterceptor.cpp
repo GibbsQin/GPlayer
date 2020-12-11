@@ -34,7 +34,8 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
 
     AVCodecParameters *audioParameters = avcodec_parameters_alloc();
     avcodec_parameters_copy(audioParameters, formatInfo->audcodecpar);
-    bool mediaCodecSupport = get_mime_by_codec_id((CODEC_TYPE) audioParameters->codec_id);
+    bool mediaCodecSupport = static_cast<bool>(get_mime_by_codec_id(
+            (CODEC_TYPE) audioParameters->codec_id));
     if (mediaCodecFirst) {
         if (mediaCodecSupport) {
             audioDecoder = new MediaCodecAudioDecoder();
@@ -52,7 +53,8 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
 
     AVCodecParameters *videoParameters = avcodec_parameters_alloc();
     avcodec_parameters_copy(videoParameters, formatInfo->vidcodecpar);
-    mediaCodecSupport = get_mime_by_codec_id((CODEC_TYPE) audioParameters->codec_id);
+    mediaCodecSupport = static_cast<bool>(get_mime_by_codec_id(
+            (CODEC_TYPE) audioParameters->codec_id));
     if (mediaCodecFirst) {
         if (mediaCodecSupport) {
             videoDecoder = new MediaCodecVideoDecoder();

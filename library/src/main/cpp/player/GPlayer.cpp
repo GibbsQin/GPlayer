@@ -102,6 +102,13 @@ void GPlayer::prepare(const std::string& url) {
 }
 
 void GPlayer::start() {
+    int ret = codeInterceptor->onInit(inputSource->getFormatInfo());
+
+    if (ret < 0) {
+        playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0,
+                                     const_cast<char *>("not support this codec"), nullptr);
+        return;
+    }
     startDecode();
 }
 
@@ -126,7 +133,6 @@ void GPlayer::stop() {
 
 void GPlayer::startDecode() {
     LOGI(TAG, "CoreFlow : startDecode");
-    int ret = codeInterceptor->onInit(inputSource->getFormatInfo());
     audioEngineThread = new DecodeThread();
     audioEngineThread->setStartFunc(std::bind(&GPlayer::onAudioThreadStart, this));
     audioEngineThread->setUpdateFunc(std::bind(&GPlayer::processAudioBuffer, this));
@@ -138,11 +144,6 @@ void GPlayer::startDecode() {
     videoEngineThread->setUpdateFunc(std::bind(&GPlayer::processVideoBuffer, this));
     videoEngineThread->setEndFunc(std::bind(&GPlayer::onVideoThreadEnd, this));
     videoEngineThread->start();
-
-    if (ret > 0) {
-        playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0,
-                                     const_cast<char *>("not support this codec"), nullptr);
-    }
 }
 
 void GPlayer::stopDecode() {
