@@ -3,10 +3,12 @@ package com.gibbs.gplayer.source;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
 
-import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.media.MediaData;
+import com.gibbs.gplayer.utils.LogUtils;
 
 public class MediaSourceImp implements MediaSource {
+    private static final String TAG = "MediaSourceImp";
+
     /**
      * ffmpeg sample fmt
      */
@@ -23,16 +25,20 @@ public class MediaSourceImp implements MediaSource {
     private static final int FFMPEG_SAMPLE_FMT_S64 = 10;        ///< signed 64 bits
     private static final int FFMPEG_SAMPLE_FMT_S64P = 11;       ///< signed 64 bits, planar
 
+    private static final int VSYNC_DURATION_MS = 32;
+    private static final int MAX_SLEEP_DURATION_MS = 50;
+
     private static class AudioSink {
         int bufferSizeInBytes;
         int durationMs;
         long pendingRenderTimeMs;
         long queueTimeNs;
 
-        AudioSink(int sampleRate, int channelLayout, int sampleFormat, int bytesPerSample) {
+        AudioSink(int sampleRate, int channelLayout, int sampleFormat, int bytesPerFrame) {
             int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelLayout, sampleFormat);
-            bufferSizeInBytes = Math.round(minBufferSize * 1.0f / bytesPerSample) * bytesPerSample * 2;
+            bufferSizeInBytes = Math.round(minBufferSize * 1.0f / bytesPerFrame + 0.5f) * bytesPerFrame;
             durationMs = (int) (bufferSizeInBytes * 1.0f / (sampleRate * getBytesPerSample(sampleFormat)) * 1000);
+            LogUtils.i(TAG, "durationMs = " + durationMs);
         }
 
         int getBytesPerSample(int audioFormat) {
@@ -68,29 +74,28 @@ public class MediaSourceImp implements MediaSource {
     private MediaData mTopAudioFrame = null;
     private MediaData mTopVideoFrame = null;
     private AudioSink mAudioSink;
-    private OnPositionChangedListener mOnPositionChangedListener;
 
     public MediaSourceImp(int channel) {
-        this(channel, null);
-    }
-
-    public MediaSourceImp(int channel, OnPositionChangedListener listener) {
         mChannelId = channel;
-        mOnPositionChangedListener = listener;
     }
 
     @Override
     public void init() {
-        mAudioSink = new AudioSink(getSampleRate(), (int) getChannelLayout(), getSampleFormat(), 1024);
+        int sampleRate = getSampleRate();
+        int channelLayout = (int) getChannelLayout();
+        int format = getSampleFormat();
+        int bytesPerSample = getBytesPerFrame();
+        LogUtils.i(TAG, "sampleRate = " + sampleRate);
+        LogUtils.i(TAG, "channelLayout = " + channelLayout);
+        LogUtils.i(TAG, "format = " + format);
+        LogUtils.i(TAG, "bytesPerSample = " + bytesPerSample);
+        mAudioSink = new AudioSink(sampleRate, channelLayout, format, bytesPerSample);
     }
 
     @Override
     public MediaData readAudioSource() {
         if (mTopAudioFrame == null) {
-            mTopAudioFrame = nReadAudioSource(mChannelId);
-            if (mOnPositionChangedListener != null && mTopAudioFrame != null) {
-                mOnPositionChangedListener.onPositionChanged((int) (mTopAudioFrame.pts / 1000));
-            }
+            mTopAudioFrame = readAudioSource(mChannelId);
         }
         return mTopAudioFrame;
     }
@@ -98,51 +103,63 @@ public class MediaSourceImp implements MediaSource {
     @Override
     public MediaData readVideoSource() {
         if (mTopVideoFrame == null) {
-            mTopVideoFrame = nReadVideoSource(mChannelId);
+            mTopVideoFrame = readVideoSource(mChannelId);
         }
         if (mTopVideoFrame == null) {
-            return null;
-        }
-        long nowMs = mAudioSink.getNow();
-        if (nowMs - 10 < mTopVideoFrame.pts) {
-            return mTopVideoFrame;
-        } else if (mTopVideoFrame.pts - (nowMs - 10) > 0) {
             try {
-                Thread.sleep(mTopVideoFrame.pts - (nowMs - 10));
+                Thread.sleep(20);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            return readVideoSource();
+            return null;
         }
-        return mTopVideoFrame;
+        long nowMs = mAudioSink.getNow();
+        long lateMs = mTopVideoFrame.pts - (nowMs - VSYNC_DURATION_MS);
+        if (lateMs < 0) {//视频落后，开始播放
+            return mTopVideoFrame;
+        } else if (lateMs < MAX_SLEEP_DURATION_MS) {
+            try {
+                Thread.sleep(lateMs);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return mTopVideoFrame;
+        } else {
+            try {
+                Thread.sleep(MAX_SLEEP_DURATION_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
     }
 
     @Override
     public void removeFirstAudioPackage() {
         mAudioSink.queueSample(mTopAudioFrame.pts);
         mTopAudioFrame = null;
-        nRemoveFirstAudioPackage(mChannelId);
+        removeFirstAudioPackage(mChannelId);
     }
 
     @Override
     public void removeFirstVideoPackage() {
         mTopVideoFrame = null;
-        nRemoveFirstVideoPackage(mChannelId);
+        removeFirstVideoPackage(mChannelId);
     }
 
     @Override
     public void flushBuffer() {
-        nFlushBuffer(mChannelId);
+        flushBuffer(mChannelId);
     }
 
     @Override
     public int getAudioBufferSize() {
-        return nGetAudioBufferSize(mChannelId);
+        return getAudioBufferSize(mChannelId);
     }
 
     @Override
     public int getVideoBufferSize() {
-        return nGetVideoBufferSize(mChannelId);
+        return getVideoBufferSize(mChannelId);
     }
 
     @Override
@@ -225,19 +242,24 @@ public class MediaSourceImp implements MediaSource {
         return getRotate(mChannelId);
     }
 
-    private native MediaData nReadAudioSource(int channelId);
+    @Override
+    public int getBytesPerFrame() {
+        return getBytesPerFrame(mChannelId);
+    }
 
-    private native MediaData nReadVideoSource(int channelId);
+    private native MediaData readAudioSource(int channelId);
 
-    private native void nRemoveFirstAudioPackage(int channelId);
+    private native MediaData readVideoSource(int channelId);
 
-    private native void nRemoveFirstVideoPackage(int channelId);
+    private native void removeFirstAudioPackage(int channelId);
 
-    private native void nFlushBuffer(int channelId);
+    private native void removeFirstVideoPackage(int channelId);
 
-    private native int nGetAudioBufferSize(int channelId);
+    private native void flushBuffer(int channelId);
 
-    private native int nGetVideoBufferSize(int channelId);
+    private native int getAudioBufferSize(int channelId);
+
+    private native int getVideoBufferSize(int channelId);
 
     private native int getFrameRate(int channelId);
 
@@ -254,4 +276,6 @@ public class MediaSourceImp implements MediaSource {
     private native int getHeight(int channelId);
 
     private native int getRotate(int channelId);
+
+    private native int getBytesPerFrame(int channelId);
 }

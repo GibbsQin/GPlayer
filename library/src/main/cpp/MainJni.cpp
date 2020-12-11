@@ -106,8 +106,8 @@ Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jint channel
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nReadAudioSource(JNIEnv *env, jobject thiz,
-                                                              jint channel_id) {
+Java_com_gibbs_gplayer_source_MediaSourceImp_readAudioSource(JNIEnv *env, jobject thiz,
+                                                             jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return nullptr;
@@ -122,8 +122,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nReadAudioSource(JNIEnv *env, jobje
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nReadVideoSource(JNIEnv *env, jobject thiz,
-                                                              jint channel_id) {
+Java_com_gibbs_gplayer_source_MediaSourceImp_readVideoSource(JNIEnv *env, jobject thiz,
+                                                             jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return nullptr;
@@ -138,8 +138,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nReadVideoSource(JNIEnv *env, jobje
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nRemoveFirstAudioPackage(JNIEnv *env, jobject thiz,
-                                                                      jint channel_id) {
+Java_com_gibbs_gplayer_source_MediaSourceImp_removeFirstAudioPackage(JNIEnv *env, jobject thiz,
+                                                                     jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return;
@@ -149,8 +149,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nRemoveFirstAudioPackage(JNIEnv *en
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nRemoveFirstVideoPackage(JNIEnv *env, jobject thiz,
-                                                                      jint channel_id) {
+Java_com_gibbs_gplayer_source_MediaSourceImp_removeFirstVideoPackage(JNIEnv *env, jobject thiz,
+                                                                     jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return;
@@ -160,8 +160,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nRemoveFirstVideoPackage(JNIEnv *en
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nFlushBuffer(JNIEnv *env, jobject thiz,
-                                                          jint channel_id) {
+Java_com_gibbs_gplayer_source_MediaSourceImp_flushBuffer(JNIEnv *env, jobject thiz,
+                                                         jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return;
@@ -171,8 +171,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nFlushBuffer(JNIEnv *env, jobject t
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nGetAudioBufferSize(JNIEnv *env, jobject thiz,
-                                                                 jint channel_id) {
+Java_com_gibbs_gplayer_source_MediaSourceImp_getAudioBufferSize(JNIEnv *env, jobject thiz,
+                                                                jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return -1;
@@ -182,8 +182,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_nGetAudioBufferSize(JNIEnv *env, jo
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_nGetVideoBufferSize(JNIEnv *env, jobject thiz,
-                                                                 jint channel_id) {
+Java_com_gibbs_gplayer_source_MediaSourceImp_getVideoBufferSize(JNIEnv *env, jobject thiz,
+                                                                jint channel_id) {
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
     if (!targetPlayer) {
         return -1;
@@ -275,4 +275,16 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getRotate(JNIEnv *env, jobject thiz
     }
 
     return targetPlayer->getInputSource()->getFormatInfo()->vidrotate;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_source_MediaSourceImp_getBytesPerFrame(JNIEnv *env, jobject thiz,
+                                                              jint channel_id) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return -1;
+    }
+
+    return targetPlayer->getInputSource()->getAudioAVCodecParameters()->frame_size;
 }

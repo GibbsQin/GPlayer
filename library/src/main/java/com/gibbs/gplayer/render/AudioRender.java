@@ -9,11 +9,9 @@ import java.nio.ByteBuffer;
 public interface AudioRender {
     void init(MediaSource mediaSource);
 
-    void render();
+    long render();
 
     void release();
 
     int write(@NonNull ByteBuffer outputBuffer, int size, long presentationTimeUs, int writeMode);
-
-    long getAudioTimeUs();
 }

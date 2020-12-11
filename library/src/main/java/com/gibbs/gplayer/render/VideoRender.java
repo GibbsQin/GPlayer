@@ -7,11 +7,7 @@ import com.gibbs.gplayer.source.MediaSource;
 public interface VideoRender extends GLSurfaceView.Renderer {
     void init(MediaSource mediaSource);
 
-    void render();
+    long render();
 
     void release();
-
-    void updateMvp(float[] mvp);
-
-    boolean isAvailable();
 }

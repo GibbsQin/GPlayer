@@ -13,11 +13,12 @@ import java.nio.ByteBuffer;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-public class YUVGLRenderer extends BaseVideoRender {
+public class YUVGLRenderer implements VideoRender {
     private final String TAG = "YUVGLRenderer";
 
     private static final boolean VERBOSE = false;
 
+    private MediaSource mMediaSource;
     private GLSurfaceView mSurfaceView;
     private YUVGLProgram mYUVGLProgram = new YUVGLProgram();
     private ByteBuffer mByteBufferY = null;
@@ -33,16 +34,16 @@ public class YUVGLRenderer extends BaseVideoRender {
 
     private volatile boolean mIsFrameReady = false;
 
-    public YUVGLRenderer(GLSurfaceView view, AudioRender audioRender, MediaSource source) {
-        super(view.getContext(), audioRender, source);
+    public YUVGLRenderer(GLSurfaceView view, MediaSource source) {
+        mMediaSource = source;
         mSurfaceView = view;
     }
 
-    public static VideoRender createVideoRender(SurfaceView view, AudioRender audioRender, MediaSource mediaSource) {
+    public static VideoRender createVideoRender(SurfaceView view, MediaSource mediaSource) {
         VideoRender videoRender = null;
         if (view instanceof GLSurfaceView) {
             GLSurfaceView glSurfaceView = (GLSurfaceView) view;
-            videoRender = new YUVGLRenderer(glSurfaceView, audioRender, mediaSource);
+            videoRender = new YUVGLRenderer(glSurfaceView, mediaSource);
             glSurfaceView.setEGLContextClientVersion(2);
             glSurfaceView.setRenderer(videoRender);
             glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
@@ -54,16 +55,13 @@ public class YUVGLRenderer extends BaseVideoRender {
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        super.onSurfaceCreated(gl, config);
         LogUtils.d(TAG, "YUVGLRenderer :: onSurfaceCreated");
         mYUVGLProgram.buildProgram();
         LogUtils.d(TAG, "YUVGLRenderer :: b" + "uildProgram done");
-        super.onSurfaceCreated(gl, config);
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        super.onSurfaceChanged(gl, width, height);
         LogUtils.d(TAG, "YUVGLRenderer :: onSurfaceChanged width = " + width + " height = " + height);
         //默认充满surface
         GLES20.glViewport(0, 0, width, height);
@@ -101,7 +99,6 @@ public class YUVGLRenderer extends BaseVideoRender {
 
     @Override
     public void init(MediaSource mediaSource) {
-        super.init(mediaSource);
         int width = mediaSource.getWidth();
         int height = mediaSource.getHeight();
         updateVideoSize(width, height);
@@ -111,38 +108,14 @@ public class YUVGLRenderer extends BaseVideoRender {
     }
 
     @Override
-    public void render() {
+    public long render() {
         if (!mInitialized) {
-            return;
+            return 0;
         }
 
         MediaData data = mMediaSource.readVideoSource();
         if (data == null) {
-            return;
-        }
-
-        //AVSync
-        long twiceVsyncDurationUs = 2 * mAVSync.getVsyncDurationNs() / 1000;
-        long realTimeUs = mAVSync.getRealTimeUsForMediaTime(data.pts); //映射到nowUs时间轴上
-        realTimeUs -= twiceVsyncDurationUs; //提前两个VSync时间播放
-        long lateUs = System.nanoTime() / 1000 - realTimeUs;
-
-        if (lateUs < -twiceVsyncDurationUs) {
-            // too early;
-            if (mFrameIntervalMs < mMaxFrameIntervalMs - INCREMENT_INTERVAL_MS) {
-                mFrameIntervalMs += INCREMENT_INTERVAL_MS;
-            }
-            try {
-                if (VERBOSE) LogUtils.i(TAG, "sleep for " + mFrameIntervalMs + " ms");
-                Thread.sleep(mFrameIntervalMs);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            return;
-        } else {
-            if (mFrameIntervalMs > INCREMENT_INTERVAL_MS) {
-                mFrameIntervalMs -= INCREMENT_INTERVAL_MS;
-            }
+            return 0;
         }
 
         if (VERBOSE) LogUtils.d(TAG, "render video : " + data.pts);
@@ -172,19 +145,13 @@ public class YUVGLRenderer extends BaseVideoRender {
 
         // request to render
         mSurfaceView.requestRender();
+        long renderTime = data.pts;
         mMediaSource.removeFirstVideoPackage();
-
-        try {
-            if (VERBOSE) LogUtils.i(TAG, "sleep for " + mFrameIntervalMs + " ms");
-            Thread.sleep(mFrameIntervalMs);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        return renderTime;
     }
 
     @Override
     public void release() {
-        super.release();
         mSurfaceView.onPause();
         mInitialized = false;
         mIsFrameReady = false;
@@ -198,12 +165,5 @@ public class YUVGLRenderer extends BaseVideoRender {
             this.mVideoWidth = width;
             this.mVideoHeight = height;
         }
-    }
-
-    @Override
-    public void updateMvp(float[] mvp) {
-        mYUVGLProgram.updateMvp(mvp);
-        //update render immediately
-        mSurfaceView.requestRender();
     }
 }

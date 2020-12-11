@@ -1,6 +1,7 @@
 package com.gibbs.gplayer;
 
 import android.content.Context;
+import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -11,10 +12,9 @@ import com.gibbs.gplayer.listener.OnBufferChangedListener;
 import com.gibbs.gplayer.listener.OnPreparedListener;
 import com.gibbs.gplayer.listener.OnStateChangedListener;
 import com.gibbs.gplayer.listener.OnPositionChangedListener;
-import com.gibbs.gplayer.render.GestureGLSurfaceView;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayerView extends GestureGLSurfaceView implements IGPlayer, OnStateChangedListener {
+public class GPlayerView extends GLSurfaceView implements IGPlayer, OnStateChangedListener {
     private static final String TAG = "GPlayerView";
 
     private GPlayer mGPlayer;

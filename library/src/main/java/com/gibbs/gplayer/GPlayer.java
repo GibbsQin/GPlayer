@@ -19,7 +19,7 @@ import com.gibbs.gplayer.source.MediaSource;
 import com.gibbs.gplayer.source.MediaSourceImp;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayer implements IGPlayer, OnPositionChangedListener {
+public class GPlayer implements IGPlayer {
     private static final String TAG = "GPlayerJ";
 
     private static final int MSG_TYPE_ERROR = 0;
@@ -59,7 +59,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
 
     public GPlayer(boolean mediaCodec) {
         LogUtils.i(TAG, "CoreFlow : new GPlayer " + mediaCodec);
-        mMediaSource = new MediaSourceImp(mChannelId, this);
+        mMediaSource = new MediaSourceImp(mChannelId);
         nInit(mChannelId, mediaCodec ? 2 : 0, this);
     }
 
@@ -71,8 +71,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
 
     @Override
     public void setSurface(SurfaceView view) {
-        mAudioRender = new PcmAudioRender(mMediaSource);
-        mVideoRender = YUVGLRenderer.createVideoRender(view, mAudioRender, mMediaSource);
+        mVideoRender = YUVGLRenderer.createVideoRender(view, mMediaSource);
     }
 
     @Override
@@ -203,11 +202,6 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
         mOnBufferChangedListener = listener;
     }
 
-    @Override
-    public void onPositionChanged(int timeUs) {
-        onMessageCallback(MSG_TYPE_TIME, timeUs, 0, null, null, null);
-    }
-
     public String getUrl() {
         return mUrl;
     }
@@ -238,6 +232,7 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
 
     private void onPrepared() {
         mMediaSource.init();
+        mAudioRender = new PcmAudioRender(mMediaSource);
         if (mOnPreparedListener != null) {
             mOnPreparedListener.onPrepared();
         }
@@ -286,8 +281,12 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
             }
             LogUtils.i(TAG, "CoreFlow : start audio render");
             mAudioRender.init(mMediaSource);
+            long renderTime;
             while (mIsProcessingSource) {
-                mAudioRender.render();
+                renderTime = mAudioRender.render();
+                if (renderTime > 0) {
+                    onMessageCallback(MSG_TYPE_TIME, (int) renderTime, 0, null, null, null);
+                }
             }
             mAudioRender.release();
             LogUtils.i(TAG, "AudioPlayThread stop " + getId());
@@ -361,6 +360,9 @@ public class GPlayer implements IGPlayer, OnPositionChangedListener {
     }
 
     private void handleTimeMsg(int time) {
+        if (mCurrentPosition == time) {
+            return;
+        }
         mCurrentPosition = time;
         if (mOnPositionChangedListener != null) {
             mOnPositionChangedListener.onPositionChanged(time);

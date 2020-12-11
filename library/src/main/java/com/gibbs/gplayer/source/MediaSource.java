@@ -36,4 +36,6 @@ public interface MediaSource {
     int getHeight();
 
     int getRotate();
+
+    int getBytesPerFrame();
 }

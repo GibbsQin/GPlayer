@@ -41,11 +41,6 @@ public interface IGPlayer {
 
     void setOnErrorListener(OnErrorListener listener);
 
-    /**
-     * set player state callback
-     *
-     * @param listener callback
-     */
     void setOnStateChangedListener(OnStateChangedListener listener);
 
     void setOnPositionChangedListener(OnPositionChangedListener listener);
