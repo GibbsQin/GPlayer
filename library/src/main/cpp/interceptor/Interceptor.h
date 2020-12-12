@@ -24,6 +24,8 @@ public:
     virtual int outputBuffer(MediaData **buffer, int type) = 0;
 
     virtual void onRelease() = 0;
+
+    virtual void enableMediaCodec() = 0;
 };
 
 #endif //GPLAYER_INTERCEPTOR_H

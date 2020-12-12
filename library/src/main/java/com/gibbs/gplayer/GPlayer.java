@@ -27,6 +27,8 @@ public class GPlayer implements IGPlayer {
     private static final int MSG_TYPE_TIME = 2;
     private static final int MSG_TYPE_SIZE = 3;
 
+    public static final int USE_MEDIA_CODEC = 2;
+
     static {
         System.loadLibrary("gplayer");
     }
@@ -61,7 +63,7 @@ public class GPlayer implements IGPlayer {
     public GPlayer(boolean mediaCodec) {
         LogUtils.i(TAG, "CoreFlow : new GPlayer " + mediaCodec);
         mMediaSource = new MediaSourceImp(mChannelId);
-        nInit(mChannelId, mediaCodec ? 2 : 0, this);
+        nInit(mChannelId, mediaCodec ? USE_MEDIA_CODEC : 0, this);
     }
 
     @Override
@@ -151,6 +153,11 @@ public class GPlayer implements IGPlayer {
     @Override
     public boolean isPlaying() {
         return mPlayState == State.PLAYING;
+    }
+
+    @Override
+    public void setFlags(int flags) {
+        nSetFlags(mChannelId, flags);
     }
 
     @Override
@@ -414,4 +421,6 @@ public class GPlayer implements IGPlayer {
 
     // 释放GPlayer.c实例
     private native void nRelease(int channelId);
+
+    private native void nSetFlags(int channelId, int flags);
 }

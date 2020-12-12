@@ -6,6 +6,7 @@ FfmpegAudioDecoder::FfmpegAudioDecoder() = default;
 FfmpegAudioDecoder::~FfmpegAudioDecoder() = default;
 
 void FfmpegAudioDecoder::init(AVCodecParameters *codecParameters) {
+    LOGI(TAG, "CoreFlow : init");
     av_register_all();
 
     AVCodec *codec = avcodec_find_decoder(codecParameters->codec_id);

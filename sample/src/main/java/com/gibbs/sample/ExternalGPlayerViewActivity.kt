@@ -24,6 +24,9 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateC
         val name = intent.getStringExtra("name")
         LogUtils.i(TAG, "url = $url, name = $name")
         LogUtils.i(TAG, "useMediaCodec = $useMediaCodec")
+        if (useMediaCodec) {
+            gl_surface_view.setFlags(GPlayer.USE_MEDIA_CODEC)
+        }
         gl_surface_view.setDataSource(url)
         gl_surface_view.setOnPreparedListener(this)
         gl_surface_view.setOnStateChangedListener(this)

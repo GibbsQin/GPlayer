@@ -3,10 +3,6 @@ package com.gibbs.gplayer.media;
 import java.nio.ByteBuffer;
 
 public class MediaData implements Comparable<MediaData> {
-    public static final int FLAG_KEY_FRAME = 0x00000001;
-    public static final int FLAG_KEY_EXTRA_DATA = 0x00000002;
-    public static final int FLAG_KEY_RENDERED = 0x00000004;
-
     public ByteBuffer data;
 
     public int size;

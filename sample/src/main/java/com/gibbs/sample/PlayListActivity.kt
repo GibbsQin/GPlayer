@@ -15,6 +15,7 @@ import com.gibbs.sample.model.VideoItem
 import com.gibbs.sample.model.VideoItemHolder
 import com.gibbs.sample.widget.DividerItemDecoration
 import kotlinx.android.synthetic.main.activity_play_list.*
+import kotlinx.android.synthetic.main.activity_play_list.gl_surface_view
 
 class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener {
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
@@ -29,6 +30,10 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
         gl_surface_view.setOnPreparedListener(this)
         gl_surface_view.setOnStateChangedListener(this)
         val url = intent.getStringExtra("url")
+        val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
+        if (useMediaCodec) {
+            gl_surface_view.setFlags(GPlayer.USE_MEDIA_CODEC)
+        }
         gl_surface_view.setDataSource(url)
 
         mAdapter = object : RecyclerView.Adapter<VideoItemHolder>() {

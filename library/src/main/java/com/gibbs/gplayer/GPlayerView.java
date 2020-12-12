@@ -112,6 +112,11 @@ public class GPlayerView extends GLSurfaceView implements IGPlayer, OnStateChang
     }
 
     @Override
+    public void setFlags(int flags) {
+        mGPlayer.setFlags(flags);
+    }
+
+    @Override
     public int getCurrentPosition() {
         return mGPlayer.getCurrentPosition();
     }

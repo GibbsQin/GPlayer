@@ -27,6 +27,8 @@ public interface IGPlayer {
 
     boolean isPlaying();
 
+    void setFlags(int flags);
+
     int getCurrentPosition();
 
     int getDuration();

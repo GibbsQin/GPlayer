@@ -24,7 +24,8 @@ GPlayer::GPlayer(int channelId, uint32_t flag, jobject obj) {
     playerJni = new GPlayerJni(obj);
     audioEngineThread = nullptr;
     videoEngineThread = nullptr;
-    LOGI(TAG, "CoreFlow : start demuxing channel %d, flag %d", mChannelId, flag);
+    mFlags = flag;
+    LOGI(TAG, "CoreFlow : start demuxing channel %d, flag %d", mChannelId, mFlags);
     mediaCodecFlag = (flag & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
     codeInterceptor = new CodecInterceptor(mediaCodecFlag);
     mChannelId = channelId;
@@ -138,6 +139,14 @@ void GPlayer::stop() {
     codeInterceptor->onRelease();
     inputSource->flush();
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_STOPPED, 0, nullptr, nullptr);
+}
+
+void GPlayer::setFlags(uint32_t flags) {
+    mFlags = flags;
+    mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
+    if (mediaCodecFlag) {
+        codeInterceptor->enableMediaCodec();
+    }
 }
 
 void GPlayer::startDecode() {

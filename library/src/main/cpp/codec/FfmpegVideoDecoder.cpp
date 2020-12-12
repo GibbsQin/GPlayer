@@ -6,6 +6,7 @@ FfmpegVideoDecoder::FfmpegVideoDecoder() = default;
 FfmpegVideoDecoder::~FfmpegVideoDecoder() = default;
 
 void FfmpegVideoDecoder::init(AVCodecParameters *codecParameters) {
+    LOGI(TAG, "CoreFlow : init");
     av_register_all();
 
     AVCodec *codec = avcodec_find_decoder(codecParameters->codec_id);

@@ -36,7 +36,7 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
     avcodec_parameters_copy(audioParameters, formatInfo->audcodecpar);
     bool mediaCodecSupport = static_cast<bool>(get_mime_by_codec_id(
             (CODEC_TYPE) audioParameters->codec_id));
-    if (mediaCodecFirst) {
+    if (/*mediaCodecFirst*/false) {
         if (mediaCodecSupport) {
             audioDecoder = new MediaCodecAudioDecoder();
         } else {
@@ -132,4 +132,8 @@ void CodecInterceptor::onRelease() {
     delete videoOutFrame;
     videoLock.unlock();
     audioLock.unlock();
+}
+
+void CodecInterceptor::enableMediaCodec() {
+    mediaCodecFirst = true;
 }

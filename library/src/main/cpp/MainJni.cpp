@@ -116,6 +116,16 @@ Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jint channel
 }
 
 extern "C"
+JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nSetFlags(JNIEnv *env, jobject thiz, jint channel_id, jint flags) {
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return;
+    }
+    targetPlayer->setFlags(flags);
+}
+
+extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_readAudioSource(JNIEnv *env, jobject thiz,
                                                              jint channel_id) {

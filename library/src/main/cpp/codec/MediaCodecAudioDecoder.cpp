@@ -26,7 +26,7 @@ void MediaCodecAudioDecoder::init(AVCodecParameters *codecParameters) {
     int sampleRate = codecParameters->sample_rate;
     int channelCount = codecParameters->channels;
     int profile = 2;
-    LOGI(TAG, "init mine=%s,sampleRate=%d,channelCount=%d", mine, sampleRate, channelCount);
+    LOGI(TAG, "CoreFlow : init mine=%s,sampleRate=%d,channelCount=%d", mine, sampleRate, channelCount);
 
     AMediaFormat *audioFormat = AMediaFormat_new();
     AMediaFormat_setString(audioFormat, AMEDIAFORMAT_KEY_MIME, mine);
@@ -34,6 +34,7 @@ void MediaCodecAudioDecoder::init(AVCodecParameters *codecParameters) {
     AMediaFormat_setInt32(audioFormat, AMEDIAFORMAT_KEY_CHANNEL_COUNT, channelCount);
     AMediaFormat_setInt32(audioFormat, AMEDIAFORMAT_KEY_AAC_PROFILE, profile);
     AMediaFormat_setInt32(audioFormat, AMEDIAFORMAT_KEY_IS_ADTS, 1);
+    AMediaFormat_setBuffer(audioFormat, "csd-0", codecParameters->extradata, codecParameters->extradata_size);
 
     media_status_t status = AMediaCodec_configure(mAMediaCodec, audioFormat, nullptr, nullptr, 0);
     if (status != AMEDIA_OK) {
@@ -61,9 +62,7 @@ int MediaCodecAudioDecoder::send_packet(AVPacket *inPacket) {
     ssize_t bufferId = AMediaCodec_dequeueInputBuffer(mAMediaCodec, 2000);
     if (bufferId >= 0) {
         uint32_t flag = 0;
-        if ((inPacket->flags & FLAG_KEY_EXTRA_DATA) == FLAG_KEY_EXTRA_DATA) {
-            flag = AMEDIACODEC_BUFFER_FLAG_CODEC_CONFIG;
-        } else if ((inPacket->flags & FLAG_KEY_FRAME) == FLAG_KEY_FRAME) {
+        if ((inPacket->flags & AV_PKT_FLAG_KEY) == AV_PKT_FLAG_KEY) {
             flag = AMEDIACODEC_BUFFER_FLAG_PARTIAL_FRAME;
         }
         // 获取buffer的索引

@@ -71,6 +71,8 @@ public:
 
     void stop();
 
+    void setFlags(uint32_t flags);
+
     void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo);
 
     LoopFlag loopWait(int64_t *seekUs);
@@ -106,6 +108,7 @@ private:
     char *mUrl{};
     int mChannelId;
     bool isDemuxing{};
+    uint32_t mFlags;
     DecodeThread *audioEngineThread;
     DecodeThread *videoEngineThread;
     DemuxingThread *demuxingThread{};

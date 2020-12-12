@@ -25,11 +25,13 @@ void MediaCodecVideoDecoder::init(AVCodecParameters *codecParameters) {
 
     mWidth = codecParameters->width;
     mHeight = codecParameters->height;
+    LOGI(TAG, "CoreFlow : init mine=%s,width=%d,height=%d", mine, mWidth, mHeight);
 
     AMediaFormat *videoFormat = AMediaFormat_new();
     AMediaFormat_setString(videoFormat, AMEDIAFORMAT_KEY_MIME, mine);
     AMediaFormat_setInt32(videoFormat, AMEDIAFORMAT_KEY_WIDTH, mWidth);
     AMediaFormat_setInt32(videoFormat, AMEDIAFORMAT_KEY_HEIGHT, mHeight);
+    AMediaFormat_setBuffer(videoFormat, "csd-0", codecParameters->extradata, codecParameters->extradata_size);
     media_status_t status = AMediaCodec_configure(mAMediaCodec, videoFormat, nullptr, nullptr, 0);
     if (status != AMEDIA_OK) {
         LOGE(TAG, "configure fail %d", status);
@@ -56,9 +58,7 @@ int MediaCodecVideoDecoder::send_packet(AVPacket *inPacket) {
     ssize_t bufferId = AMediaCodec_dequeueInputBuffer(mAMediaCodec, 500);
     if (bufferId >= 0) {
         uint32_t flag = 0;
-        if ((inPacket->flags & FLAG_KEY_EXTRA_DATA) == FLAG_KEY_EXTRA_DATA) {
-            flag = AMEDIACODEC_BUFFER_FLAG_CODEC_CONFIG;
-        } else if ((inPacket->flags & FLAG_KEY_FRAME) == FLAG_KEY_FRAME) {
+        if ((inPacket->flags & AV_PKT_FLAG_KEY) == AV_PKT_FLAG_KEY) {
             flag = AMEDIACODEC_BUFFER_FLAG_PARTIAL_FRAME;
         }
         // 获取buffer的索引
