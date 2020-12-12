@@ -28,25 +28,27 @@ GPlayer is a video player frame base on ffmpeg and mediacodec。GPlayer support 
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
-    private GPlayerView mVideoView;
-    mVideoView = findViewById(R.id.gl_surface_view);
-    mVideoView.setUrl(url);
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mVideoView != null) {
-            mVideoView.onResume();
-            mVideoView.startPlay();
-        }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_simple_gplayer)
+        val url = intent.getStringExtra("url")
+        gl_surface_view.setDataSource(url)
+        gl_surface_view.setOnPreparedListener(this)
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mVideoView != null) {
-            mVideoView.onPause();
-            mVideoView.stopPlay();
-        }
+    override fun onStart() {
+        super.onStart()
+        gl_surface_view.onResume()
+        gl_surface_view.prepare()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        gl_surface_view.onPause()
+        gl_surface_view.stop()
+    }
+
+    override fun onPrepared() {
+        gl_surface_view.start()
     }
 
