@@ -7,9 +7,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.*
-import android.widget.TextView
-import androidx.appcompat.widget.AppCompatImageView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -17,6 +14,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.gibbs.gplayer.utils.LogUtils
 import com.gibbs.sample.model.PlayList
+import com.gibbs.sample.model.VideoItem
+import com.gibbs.sample.model.VideoItemHolder
 import com.gibbs.sample.widget.DividerItemDecoration
 import kotlinx.android.synthetic.main.activity_media_list.*
 import java.io.InputStream
@@ -24,7 +23,7 @@ import java.io.InputStream
 
 class MediaListActivity : BaseActivity() {
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
-    private val mVideoList: MutableList<VideoItem> = ArrayList()
+    private val mVideoList: ArrayList<VideoItem> = ArrayList()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supportActionBar?.setDisplayHomeAsUpEnabled(false)
@@ -44,18 +43,7 @@ class MediaListActivity : BaseActivity() {
                         .load(videoItem.videoPath)
                         .into(holder.videoThumbnail)
                 holder.rootView.setOnClickListener {
-                    val intent : Intent = when (SettingsSPUtils.instance.getGPlayerStyle(this@MediaListActivity)) {
-                        "simple" -> Intent(this@MediaListActivity, SimpleGPlayerViewActivity::class.java)
-                        "external" -> Intent(this@MediaListActivity, ExternalGPlayerViewActivity::class.java)
-                        "list" -> Intent(this@MediaListActivity, PlayListActivity::class.java)
-                        else -> Intent(this@MediaListActivity, SimpleGPlayerViewActivity::class.java)
-                    }
-                    intent.putExtra("url", videoItem.videoPath)
-                    intent.putExtra("name", videoItem.name)
-                    val useMediaCodec = SettingsSPUtils.instance.isMediaCodec(this@MediaListActivity)
-                    intent.putExtra("useMediaCodec", useMediaCodec)
-                    LogUtils.i("PlayListActivity", "useMediaCodec = $useMediaCodec")
-                    startActivity(intent)
+                    startPlayer(videoItem)
                 }
             }
 
@@ -71,6 +59,22 @@ class MediaListActivity : BaseActivity() {
         video_list.addItemDecoration(dividerItemDecoration)
         ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
                 REQUEST_READ_EXTERNAL_STORAGE_PERMISSION)
+    }
+
+    private fun startPlayer(videoItem : VideoItem) {
+        val intent : Intent = when (SettingsSPUtils.instance.getGPlayerStyle(this@MediaListActivity)) {
+            "simple" -> Intent(this@MediaListActivity, SimpleGPlayerViewActivity::class.java)
+            "external" -> Intent(this@MediaListActivity, ExternalGPlayerViewActivity::class.java)
+            "list" -> Intent(this@MediaListActivity, PlayListActivity::class.java)
+            else -> Intent(this@MediaListActivity, SimpleGPlayerViewActivity::class.java)
+        }
+        intent.putExtra("url", videoItem.videoPath)
+        intent.putExtra("name", videoItem.name)
+        intent.putParcelableArrayListExtra("videoList", mVideoList)
+        val useMediaCodec = SettingsSPUtils.instance.isMediaCodec(this@MediaListActivity)
+        intent.putExtra("useMediaCodec", useMediaCodec)
+        LogUtils.i("PlayListActivity", "useMediaCodec = $useMediaCodec")
+        startActivity(intent)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -137,14 +141,6 @@ class MediaListActivity : BaseActivity() {
         inputStream.read(buffer)
         inputStream.close()
         return String(buffer)
-    }
-
-    private class VideoItem internal constructor(val videoPath: String, val name: String)
-
-    private class VideoItemHolder internal constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val rootView: ConstraintLayout = itemView.findViewById(R.id.root_view)
-        val videoThumbnail: AppCompatImageView = itemView.findViewById(R.id.video_thumbnail)
-        val videoName: TextView = itemView.findViewById(R.id.video_name)
     }
 
     companion object {

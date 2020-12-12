@@ -2,23 +2,23 @@ package com.gibbs.sample
 
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.TextView
-import androidx.appcompat.widget.AppCompatImageView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.listener.OnPreparedListener
 import com.gibbs.gplayer.listener.OnStateChangedListener
+import com.gibbs.sample.model.VideoItem
+import com.gibbs.sample.model.VideoItemHolder
 import com.gibbs.sample.widget.DividerItemDecoration
 import kotlinx.android.synthetic.main.activity_play_list.*
 
 class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener {
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
-    private val mVideoList: MutableList<VideoItem> = ArrayList()
+    private val mVideoList: ArrayList<VideoItem> = ArrayList()
     private var mPendingStart : Boolean = false
     private var mPendingUrl : String = ""
 
@@ -40,15 +40,12 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
             override fun onBindViewHolder(holder: VideoItemHolder, position: Int) {
                 val videoItem = mVideoList[position]
                 holder.videoName.text = videoItem.name
+                Glide.with(this@PlayListActivity)
+                        .applyDefaultRequestOptions(RequestOptions().centerCrop().error(R.drawable.ic_video_play))
+                        .load(videoItem.videoPath)
+                        .into(holder.videoThumbnail)
                 holder.rootView.setOnClickListener {
-                    if (gl_surface_view.isPlaying) {
-                        gl_surface_view.stop()
-                        mPendingStart = true
-                        mPendingUrl = videoItem.videoPath
-                    } else {
-                        gl_surface_view.setDataSource(videoItem.videoPath)
-                        gl_surface_view.prepare()
-                    }
+                    startPlay(videoItem)
                 }
             }
 
@@ -62,10 +59,20 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
         dividerItemDecoration.setMarginLeft(136)
         dividerItemDecoration.setMarginRight(24)
         video_list.addItemDecoration(dividerItemDecoration)
-        mVideoList.add(VideoItem("http://cctvalih5ca.v.myalicdn.com/live/cctv1_2/index.m3u8", "cctv1"))
-        mVideoList.add(VideoItem("http://cctvalih5ca.v.myalicdn.com/live/cctv2_2/index.m3u8", "cctv2"))
-        mVideoList.add(VideoItem("http://cctvalih5ca.v.myalicdn.com/live/cctv3_2/index.m3u8", "cctv3"))
+        val videoList = intent.getParcelableArrayListExtra<VideoItem>("videoList")
+        mVideoList.addAll(videoList!!)
         mAdapter!!.notifyDataSetChanged()
+    }
+
+    private fun startPlay(videoItem : VideoItem) {
+        if (gl_surface_view.isPlaying) {
+            gl_surface_view.stop()
+            mPendingStart = true
+            mPendingUrl = videoItem.videoPath
+        } else {
+            gl_surface_view.setDataSource(videoItem.videoPath)
+            gl_surface_view.prepare()
+        }
     }
 
     override fun onStart() {
@@ -92,13 +99,5 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
                 gl_surface_view.prepare()
             }
         }
-    }
-
-    private class VideoItem internal constructor(val videoPath: String, val name: String)
-
-    private class VideoItemHolder internal constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val rootView: ConstraintLayout = itemView.findViewById(R.id.root_view)
-        val videoThumbnail: AppCompatImageView = itemView.findViewById(R.id.video_thumbnail)
-        val videoName: TextView = itemView.findViewById(R.id.video_name)
     }
 }
