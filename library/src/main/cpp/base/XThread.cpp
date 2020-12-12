@@ -26,6 +26,14 @@ bool XThread::start() {
     return true;
 }
 
+void XThread::pause() {
+    mPausing = true;
+}
+
+void XThread::resume() {
+    mPausing = false;
+}
+
 bool XThread::stop() {
     if (!mRunning) {
         return true;

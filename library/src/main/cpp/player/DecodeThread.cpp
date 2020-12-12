@@ -17,6 +17,10 @@ void DecodeThread::handleRunning() {
     isStarted = true;
 
     while (mRunning) {
+        if (mPausing) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(MAX_SLEEP_TIME));
+            continue;
+        }
         if (!updateFunc) {
             break;
         }

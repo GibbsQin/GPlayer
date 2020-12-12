@@ -65,6 +65,8 @@ public:
 
     void pause();
 
+    void resume();
+
     void seekTo(uint32_t secondMs);
 
     void stop();
@@ -108,6 +110,7 @@ private:
     DecodeThread *videoEngineThread;
     DemuxingThread *demuxingThread{};
     Interceptor *codeInterceptor;
+    bool mIsPausing;
 };
 
 

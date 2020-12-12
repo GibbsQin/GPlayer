@@ -76,6 +76,17 @@ Java_com_gibbs_gplayer_GPlayer_nPause(JNIEnv *env, jobject thiz, jint channel_id
 
 extern "C"
 JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nResume(JNIEnv *env, jobject thiz, jint channel_id) {
+    LOGI("GPlayerJni", "nResume channelId : %d", channel_id);
+    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    if (!targetPlayer) {
+        return;
+    }
+    targetPlayer->resume();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_GPlayer_nSeekTo(JNIEnv *env, jobject thiz, jint channel_id, jint second_ms) {
     LOGI("GPlayerJni", "nSeekTo channelId : %d, %d", channel_id, second_ms);
     auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];

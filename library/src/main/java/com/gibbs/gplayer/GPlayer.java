@@ -94,21 +94,23 @@ public class GPlayer implements IGPlayer {
 
     @Override
     public synchronized void start() {
-        if (mPlayState != State.PREPARED && mPlayState != State.PAUSED) {
-            LogUtils.e(TAG, "CoreFlow : not prepared or paused");
-            return;
+        if (mPlayState == State.PREPARED) {
+            LogUtils.i(TAG, "CoreFlow : start");
+            nStart(mChannelId);
+            setPlayState(GPlayer.State.PLAYING);
+
+            mIsProcessingSource = true;
+            mAudioPlayThread = new AudioPlayThread();
+            mAudioPlayThread.setName("GPlayer_AudioPlayThread");
+            mAudioPlayThread.start();
+            mVideoPlayThread = new VideoPlayThread();
+            mVideoPlayThread.setName("GPlayer_VideoPlayThread");
+            mVideoPlayThread.start();
+        } else if (mPlayState == State.PAUSED) {
+            LogUtils.i(TAG, "CoreFlow : resume");
+            nResume(mChannelId);
+            setPlayState(GPlayer.State.PLAYING);
         }
-
-        nStart(mChannelId);
-        setPlayState(GPlayer.State.PLAYING);
-
-        mIsProcessingSource = true;
-        mAudioPlayThread = new AudioPlayThread();
-        mAudioPlayThread.setName("GPlayer_AudioPlayThread");
-        mAudioPlayThread.start();
-        mVideoPlayThread = new VideoPlayThread();
-        mVideoPlayThread.setName("GPlayer_VideoPlayThread");
-        mVideoPlayThread.start();
     }
 
     @Override
@@ -124,7 +126,9 @@ public class GPlayer implements IGPlayer {
 
     @Override
     public synchronized void pause() {
+        LogUtils.i(TAG, "CoreFlow : pause");
         nPause(mChannelId);
+        setPlayState(State.PAUSED);
     }
 
     @Override
@@ -397,6 +401,9 @@ public class GPlayer implements IGPlayer {
 
     // 暂停解码和解封装
     private native void nPause(int channelId);
+
+    // 恢复解码和解封装
+    private native void nResume(int channelId);
 
     // seek
     private native void nSeekTo(int channelId, int secondMs);

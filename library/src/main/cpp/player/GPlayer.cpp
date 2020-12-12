@@ -28,6 +28,7 @@ GPlayer::GPlayer(int channelId, uint32_t flag, jobject obj) {
     mediaCodecFlag = (flag & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
     codeInterceptor = new CodecInterceptor(mediaCodecFlag);
     mChannelId = channelId;
+    mIsPausing = false;
 }
 
 GPlayer::~GPlayer() {
@@ -113,7 +114,15 @@ void GPlayer::start() {
 }
 
 void GPlayer::pause() {
+    mIsPausing = true;
+    audioEngineThread->pause();
+    videoEngineThread->pause();
+}
 
+void GPlayer::resume() {
+    mIsPausing = false;
+    audioEngineThread->resume();
+    videoEngineThread->resume();
 }
 
 void GPlayer::seekTo(uint32_t secondMs) {

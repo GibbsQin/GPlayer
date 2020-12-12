@@ -5,6 +5,7 @@ import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.ViewGroup;
 
 import com.gibbs.gplayer.listener.OnErrorListener;
@@ -14,7 +15,7 @@ import com.gibbs.gplayer.listener.OnStateChangedListener;
 import com.gibbs.gplayer.listener.OnPositionChangedListener;
 import com.gibbs.gplayer.utils.LogUtils;
 
-public class GPlayerView extends GLSurfaceView implements IGPlayer, OnStateChangedListener {
+public class GPlayerView extends GLSurfaceView implements IGPlayer, OnStateChangedListener, View.OnClickListener {
     private static final String TAG = "GPlayerView";
 
     private GPlayer mGPlayer;
@@ -22,12 +23,12 @@ public class GPlayerView extends GLSurfaceView implements IGPlayer, OnStateChang
     private boolean mHasSetRender = false;
 
     public GPlayerView(Context context) {
-        super(context);
-        initGPlayer();
+        this(context, null);
     }
 
     public GPlayerView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        setOnClickListener(this);
         initGPlayer();
     }
 
@@ -168,6 +169,15 @@ public class GPlayerView extends GLSurfaceView implements IGPlayer, OnStateChang
     @Override
     public void setOnBufferChangedListener(OnBufferChangedListener listener) {
         mGPlayer.setOnBufferChangedListener(listener);
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (getState() == GPlayer.State.PAUSED) {
+            start();
+        } else if (getState() == GPlayer.State.PLAYING) {
+            pause();
+        }
     }
 
     @Override

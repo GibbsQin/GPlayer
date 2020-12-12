@@ -6,6 +6,7 @@
 
 #define MAX_OUTPUT_FRAME_SIZE 5
 #define SLEEP_TIME_GAP 10
+#define MAX_SLEEP_TIME 50
 
 using namespace std;
 
