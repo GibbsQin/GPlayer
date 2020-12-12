@@ -46,6 +46,7 @@ public class GPlayer implements IGPlayer {
     private State mPlayState = State.IDLE;
     private State mTargetState = State.IDLE;
     private int mCurrentPositionUs;
+    private Handler mHandler = new Handler(Looper.getMainLooper());
 
     private AudioRender mAudioRender = null;
     private VideoRender mVideoRender = null;
@@ -99,7 +100,6 @@ public class GPlayer implements IGPlayer {
         if (mPlayState == State.PREPARED) {
             LogUtils.i(TAG, "CoreFlow : start");
             nStart(mChannelId);
-            setPlayState(GPlayer.State.PLAYING);
 
             mIsProcessingSource = true;
             mAudioPlayThread = new AudioPlayThread();
@@ -331,17 +331,24 @@ public class GPlayer implements IGPlayer {
             LogUtils.i(TAG, "CoreFlow : start video render");
             mVideoRender.init(mMediaSource);
             while (mIsProcessingSource) {
-                mVideoRender.render();
+                long renderTime = mVideoRender.render();
+                notifyRenderStarted(renderTime);
             }
             mVideoRender.release();
             LogUtils.i(TAG, "CoreFlow : stop video render");
         }
     }
 
+    private void notifyRenderStarted(long renderTime) {
+        if (renderTime > 0 && mPlayState == State.PREPARED) {
+            onMessageCallback(MSG_TYPE_STATE, State.PLAYING.ordinal(), 0, null, null, null);
+        }
+    }
+
     //call by jni
     public void onMessageCallback(final int what, final int arg1, final int arg2, final String msg1,
                                   final String msg2, final Object object) {
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
                 switch (what) {

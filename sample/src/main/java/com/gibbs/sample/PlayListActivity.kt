@@ -15,7 +15,6 @@ import com.gibbs.sample.model.VideoItem
 import com.gibbs.sample.model.VideoItemHolder
 import com.gibbs.sample.widget.DividerItemDecoration
 import kotlinx.android.synthetic.main.activity_play_list.*
-import kotlinx.android.synthetic.main.activity_play_list.gl_surface_view
 
 class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener {
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
@@ -82,13 +81,13 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
 
     override fun onStart() {
         super.onStart()
-        gl_surface_view.onResume()
+        gl_surface_view.playerView.onResume()
         gl_surface_view.prepare()
     }
 
     override fun onStop() {
         super.onStop()
-        gl_surface_view.onPause()
+        gl_surface_view.playerView.onPause()
         gl_surface_view.stop()
     }
 

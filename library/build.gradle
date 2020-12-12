@@ -19,8 +19,6 @@ android {
         externalNativeBuild {
             cmake {
                 arguments '-DANDROID_PLATFORM=android-21'
-                cFlags "-fPIC"
-                cppFlags "-fPIC -frtti -fexceptions"
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
             }
         }

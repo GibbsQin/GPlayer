@@ -25,7 +25,7 @@ public:
 
     void onRelease() override;
 
-    void enableMediaCodec();
+    void enableMediaCodec() override;
 
 private:
     bool hasInit;
