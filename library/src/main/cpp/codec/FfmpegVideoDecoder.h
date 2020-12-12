@@ -29,9 +29,9 @@ public:
     void copy_mediadata_from_frame(MediaData *mediaData, AVFrame *frame);
 
 private:
-    bool isInitSuccess;
-    AVCodecContext *mCodecContext;
-    AVFrame *mOutFrame;
+    bool isInitSuccess{};
+    AVCodecContext *mCodecContext{};
+    AVFrame *mOutFrame{};
 };
 
 

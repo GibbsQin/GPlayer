@@ -101,13 +101,13 @@ public class GPlayerView extends GLSurfaceView implements IGPlayer, OnStateChang
     }
 
     @Override
-    public boolean isPlaying() {
-        return mGPlayer.isPlaying();
+    public void seekTo(int secondMs) {
+        mGPlayer.seekTo(secondMs);
     }
 
     @Override
-    public void seekTo(int secondMs) {
-        mGPlayer.seekTo(secondMs);
+    public boolean isPlaying() {
+        return mGPlayer.isPlaying();
     }
 
     @Override
@@ -133,6 +133,11 @@ public class GPlayerView extends GLSurfaceView implements IGPlayer, OnStateChang
     @Override
     public int getVideoRotate() {
         return mGPlayer.getVideoRotate();
+    }
+
+    @Override
+    public GPlayer.State getState() {
+        return mGPlayer.getState();
     }
 
     @Override

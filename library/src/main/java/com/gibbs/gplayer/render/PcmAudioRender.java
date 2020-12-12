@@ -24,7 +24,7 @@ public class PcmAudioRender implements AudioRender {
     }
 
     @Override
-    public void init(MediaSource mediaSource) {
+    public synchronized void init(MediaSource mediaSource) {
         int sampleRate = mediaSource.getSampleRate();
         int channelLayout = (int) mediaSource.getChannelLayout();
         int format = mediaSource.getSampleFormat();
@@ -45,7 +45,7 @@ public class PcmAudioRender implements AudioRender {
     }
 
     @Override
-    public void release() {
+    public synchronized void release() {
         LogUtils.i(TAG, "release");
         stopAudioTrack();
     }

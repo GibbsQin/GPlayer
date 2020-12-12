@@ -150,6 +150,9 @@ public class MediaSourceImp implements MediaSource {
     @Override
     public void flushBuffer() {
         flushBuffer(mChannelId);
+        mAudioSink = null;
+        mTopVideoFrame = null;
+        mTopAudioFrame = null;
     }
 
     @Override

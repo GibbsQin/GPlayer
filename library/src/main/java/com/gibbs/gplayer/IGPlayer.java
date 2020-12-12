@@ -23,9 +23,9 @@ public interface IGPlayer {
 
     void release();
 
-    boolean isPlaying();
-
     void seekTo(int secondMs);
+
+    boolean isPlaying();
 
     int getCurrentPosition();
 
@@ -36,6 +36,8 @@ public interface IGPlayer {
     int getVideoHeight();
 
     int getVideoRotate();
+
+    GPlayer.State getState();
 
     void setOnPreparedListener(OnPreparedListener listener);
 

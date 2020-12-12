@@ -26,9 +26,9 @@ public:
     void release() override;
 private:
 
-    bool isInitSuccess;
-    AVCodecContext *mCodecContext;
-    AVFrame *mOutFrame;
+    bool isInitSuccess{};
+    AVCodecContext *mCodecContext{};
+    AVFrame *mOutFrame{};
 };
 
 

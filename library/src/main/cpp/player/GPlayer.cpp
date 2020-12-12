@@ -203,7 +203,7 @@ int GPlayer::processAudioBuffer() {
 }
 
 void GPlayer::onAudioThreadEnd() {
-    LOGI(TAG, "onAudioThreadEnd");
+    LOGI(TAG, "CoreFlow : onAudioThreadEnd");
 }
 
 void GPlayer::onVideoThreadStart() {
@@ -235,7 +235,7 @@ int GPlayer::processVideoBuffer() {
 }
 
 void GPlayer::onVideoThreadEnd() {
-    LOGI(TAG, "onVideoThreadEnd");
+    LOGI(TAG, "CoreFlow : onVideoThreadEnd");
 }
 
 InputSource *GPlayer::getInputSource() {

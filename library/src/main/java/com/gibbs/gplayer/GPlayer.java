@@ -42,6 +42,7 @@ public class GPlayer implements IGPlayer {
     private VideoPlayThread mVideoPlayThread;
     private boolean mIsProcessingSource;
     private State mPlayState = State.IDLE;
+    private State mTargetState = State.IDLE;
     private int mCurrentPosition;
 
     private AudioRender mAudioRender = null;
@@ -64,12 +65,6 @@ public class GPlayer implements IGPlayer {
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        release();
-    }
-
-    @Override
     public void setSurface(SurfaceView view) {
         mVideoRender = YUVGLRenderer.createVideoRender(view, mMediaSource);
     }
@@ -83,7 +78,7 @@ public class GPlayer implements IGPlayer {
      * start to play
      */
     @Override
-    public void prepare() {
+    public synchronized void prepare() {
         if (mPlayState != State.IDLE && mPlayState != State.STOPPED) {
             LogUtils.e(TAG, "CoreFlow : not idle");
             return;
@@ -93,11 +88,12 @@ public class GPlayer implements IGPlayer {
             return;
         }
         LogUtils.i(TAG, "CoreFlow : prepare " + mUrl);
+        setPlayState(State.PREPARING);
         nPrepare(mChannelId, mUrl);
     }
 
     @Override
-    public void start() {
+    public synchronized void start() {
         if (mPlayState != State.PREPARED && mPlayState != State.PAUSED) {
             LogUtils.e(TAG, "CoreFlow : not prepared or paused");
             return;
@@ -116,7 +112,7 @@ public class GPlayer implements IGPlayer {
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         if (mPlayState != State.PREPARING && mPlayState != State.PREPARED &&
                 mPlayState != State.PAUSED && mPlayState != State.PLAYING) {
             LogUtils.e(TAG, "CoreFlow : not playing");
@@ -127,29 +123,29 @@ public class GPlayer implements IGPlayer {
     }
 
     @Override
-    public void pause() {
+    public synchronized void pause() {
         nPause(mChannelId);
     }
 
     @Override
-    public void release() {
-        LogUtils.i(TAG, "CoreFlow : release channelId " + mChannelId);
-        nRelease(mChannelId);
+    public synchronized void release() {
+        if (mPlayState == State.STOPPED) {
+            LogUtils.i(TAG, "CoreFlow : release channelId " + mChannelId);
+            nRelease(mChannelId);
+        } else {
+            LogUtils.i(TAG, "CoreFlow : target to release");
+            mTargetState = State.RELEASED;
+        }
     }
 
-    /**
-     * is this player playing
-     *
-     * @return true playing, false not playing
-     */
+    @Override
+    public synchronized void seekTo(int secondMs) {
+        nSeekTo(mChannelId, secondMs);
+    }
+
     @Override
     public boolean isPlaying() {
         return mPlayState == State.PLAYING;
-    }
-
-    @Override
-    public void seekTo(int secondMs) {
-        nSeekTo(mChannelId, secondMs);
     }
 
     @Override
@@ -175,6 +171,11 @@ public class GPlayer implements IGPlayer {
     @Override
     public int getVideoRotate() {
         return mMediaSource.getRotate();
+    }
+
+    @Override
+    public State getState() {
+        return mPlayState;
     }
 
     @Override
@@ -206,14 +207,12 @@ public class GPlayer implements IGPlayer {
         return mUrl;
     }
 
-    private void setPlayState(State state) {
-        synchronized (this) {
-            if (state == mPlayState) {
-                return;
-            }
-            mPlayState = state;
+    private synchronized void setPlayState(State state) {
+        if (mPlayState == state) {
+            return;
         }
-        LogUtils.e(TAG, "CoreFlow : setPlayState state = " + state);
+        LogUtils.e(TAG, "CoreFlow : setPlayState from " + mPlayState + " to " + state);
+        mPlayState = state;
         switch (state) {
             case PREPARED:
                 onPrepared();
@@ -255,6 +254,9 @@ public class GPlayer implements IGPlayer {
             }
         }
         mMediaSource.flushBuffer();
+        if (mTargetState == State.RELEASED) {
+            release();
+        }
     }
 
     private void onReleased() {
@@ -289,7 +291,7 @@ public class GPlayer implements IGPlayer {
                 }
             }
             mAudioRender.release();
-            LogUtils.i(TAG, "AudioPlayThread stop " + getId());
+            LogUtils.i(TAG, "CoreFlow : stop audio render");
         }
     }
 
@@ -320,7 +322,7 @@ public class GPlayer implements IGPlayer {
                 mVideoRender.render();
             }
             mVideoRender.release();
-            LogUtils.i(TAG, "VideoPlayThread stop " + getId());
+            LogUtils.i(TAG, "CoreFlow : stop video render");
         }
     }
 
@@ -356,6 +358,7 @@ public class GPlayer implements IGPlayer {
 
     private void handleStateMsg(int state) {
         State playState = State.values()[state];
+        LogUtils.i(TAG, "CoreFlow : handleStateMsg " + playState);
         setPlayState(playState);
     }
 

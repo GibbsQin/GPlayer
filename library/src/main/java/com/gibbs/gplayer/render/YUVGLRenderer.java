@@ -93,7 +93,7 @@ public class YUVGLRenderer implements VideoRender {
     }
 
     @Override
-    public void init(MediaSource mediaSource) {
+    public synchronized void init(MediaSource mediaSource) {
         int width = mediaSource.getWidth();
         int height = mediaSource.getHeight();
         updateVideoSize(width, height);
@@ -146,7 +146,7 @@ public class YUVGLRenderer implements VideoRender {
     }
 
     @Override
-    public void release() {
+    public synchronized void release() {
         mInitialized = false;
         mIsFrameReady = false;
         mByteBufferY = null;

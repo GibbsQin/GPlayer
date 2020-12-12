@@ -1,11 +1,7 @@
 #include "base/Log.h"
 #include "FfmpegVideoDecoder.h"
 
-FfmpegVideoDecoder::FfmpegVideoDecoder() {
-    isInitSuccess = false;
-    mCodecContext = nullptr;
-    mOutFrame = nullptr;
-}
+FfmpegVideoDecoder::FfmpegVideoDecoder() = default;
 
 FfmpegVideoDecoder::~FfmpegVideoDecoder() = default;
 

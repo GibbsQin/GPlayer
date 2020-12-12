@@ -1,11 +1,7 @@
 #include "base/Log.h"
 #include "FfmpegAudioDecoder.h"
 
-FfmpegAudioDecoder::FfmpegAudioDecoder() {
-    isInitSuccess = false;
-    mCodecContext = nullptr;
-    mOutFrame = nullptr;
-}
+FfmpegAudioDecoder::FfmpegAudioDecoder() = default;
 
 FfmpegAudioDecoder::~FfmpegAudioDecoder() = default;
 
