@@ -36,7 +36,7 @@ typedef struct FfmpegCallback {
 
     void (*av_format_error)(int channel, int code, char *msg);
 
-    LoopFlag (*av_format_loop_wait)(int channel);
+    LoopFlag (*av_format_loop_wait)(int channel, int64_t *seekUs);
 } FfmpegCallback;
 
 typedef enum CODEC_TYPE {

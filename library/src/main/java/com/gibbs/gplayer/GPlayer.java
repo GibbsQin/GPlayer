@@ -43,7 +43,7 @@ public class GPlayer implements IGPlayer {
     private boolean mIsProcessingSource;
     private State mPlayState = State.IDLE;
     private State mTargetState = State.IDLE;
-    private int mCurrentPosition;
+    private int mCurrentPositionUs;
 
     private AudioRender mAudioRender = null;
     private VideoRender mVideoRender = null;
@@ -144,6 +144,7 @@ public class GPlayer implements IGPlayer {
 
     @Override
     public synchronized void seekTo(int secondMs) {
+        LogUtils.i(TAG, "CoreFlow : seekTo " + secondMs);
         nSeekTo(mChannelId, secondMs);
     }
 
@@ -154,7 +155,7 @@ public class GPlayer implements IGPlayer {
 
     @Override
     public int getCurrentPosition() {
-        return mCurrentPosition;
+        return mCurrentPositionUs;
     }
 
     @Override
@@ -310,7 +311,7 @@ public class GPlayer implements IGPlayer {
                 }
                 while (mMediaSource.getVideoBufferSize() > 0) {
                     MediaData mediaData = mMediaSource.readVideoSource();
-                    if (mediaData.pts < mCurrentPosition) {
+                    if (mediaData.pts < mCurrentPositionUs) {
                         mMediaSource.removeFirstVideoPackage();
                     }
                 }
@@ -367,10 +368,10 @@ public class GPlayer implements IGPlayer {
     }
 
     private void handleTimeMsg(int time) {
-        if (mCurrentPosition == time) {
+        if (mCurrentPositionUs == time) {
             return;
         }
-        mCurrentPosition = time;
+        mCurrentPositionUs = time;
         if (mOnPositionChangedListener != null) {
             mOnPositionChangedListener.onPositionChanged(time);
         }

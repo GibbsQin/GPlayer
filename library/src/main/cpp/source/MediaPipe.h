@@ -28,7 +28,7 @@ public:
 
     static void av_format_error(int channel, int code, char *msg);
 
-    static LoopFlag av_format_loop_wait(int channel);
+    static LoopFlag av_format_loop_wait(int channel, int64_t *seekUs);
 
     static std::map<long, GPlayer *> sGPlayerMap;
 

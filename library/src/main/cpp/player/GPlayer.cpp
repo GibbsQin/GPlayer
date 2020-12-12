@@ -125,8 +125,8 @@ void GPlayer::resume() {
     videoEngineThread->resume();
 }
 
-void GPlayer::seekTo(uint32_t secondMs) {
-
+void GPlayer::seekTo(uint32_t secondUs) {
+    mSeekUs = secondUs;
 }
 
 void GPlayer::stop() {
@@ -170,8 +170,12 @@ void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callbac
     ffmpeg_demuxing(web_url, channelId, callback, inputSource->getFormatInfo());
 }
 
-LoopFlag GPlayer::isDemuxingLoop() {
+LoopFlag GPlayer::loopWait(int64_t *seekUs) {
     if (isDemuxing) {
+        if (mSeekUs != -1) {
+            *seekUs = mSeekUs;
+            mSeekUs = -1;
+        }
         uint32_t audioBufferSize = inputSource->getAudSize();
         uint32_t videoBufferSize = inputSource->getVidSize();
         if (audioBufferSize < MAX_BUFFER_SIZE && videoBufferSize < MAX_BUFFER_SIZE) {

@@ -122,7 +122,7 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
     ffmpegLog(ANDROID_LOG_INFO, "extensions %s", ifmt_ctx->iformat->extensions);
 
     ffmpegLog(ANDROID_LOG_INFO, "av_init\n");
-    formatInfo->duration = (int) (ifmt_ctx->duration / 1000);
+    formatInfo->duration = (int) (ifmt_ctx->duration);
     callback.av_format_init(channelId, formatInfo);
     //send SPS PPS
     callback.av_format_extradata_video(channelId, ifmt_ctx,
@@ -164,12 +164,18 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
+    int64_t seekUs = -1;
     while (1) {
-        LoopFlag loop_flag = callback.av_format_loop_wait(channelId);
+        LoopFlag loop_flag = callback.av_format_loop_wait(channelId, &seekUs);
         if (loop_flag == CONTINUE) {
             continue;
         } else if (loop_flag == BREAK) {
             break;
+        }
+        if (seekUs != -1) {
+            ffmpegLog(ANDROID_LOG_INFO, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekUs);
+//            av_seek_frame(ifmt_ctx, -1, seekUs * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
+            seekUs = -1;
         }
         ret = av_read_frame(ifmt_ctx, &pkt);
         if (ret < 0)

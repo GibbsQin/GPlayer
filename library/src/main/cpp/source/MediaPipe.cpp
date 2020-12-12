@@ -64,10 +64,10 @@ void MediaPipe::av_format_error(int channel, int code, char *msg) {
     }
 }
 
-LoopFlag MediaPipe::av_format_loop_wait(int channelId) {
+LoopFlag MediaPipe::av_format_loop_wait(int channelId, int64_t *seekUs) {
     GPlayer *targetPlayer = sGPlayerMap[channelId];
     if (targetPlayer != nullptr) {
-        return targetPlayer->isDemuxingLoop();
+        return targetPlayer->loopWait(seekUs);
     }
     return BREAK;
 }

@@ -7,12 +7,13 @@ import android.view.WindowManager
 import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.listener.*
 import com.gibbs.gplayer.utils.LogUtils
+import com.gibbs.sample.widget.PlaybackSeekView.OnSeekChangeListener
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_external_gplayer.*
 import kotlinx.android.synthetic.main.layout_gplayer_top.*
 
 class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener,
-        OnBufferChangedListener, OnPositionChangedListener, OnErrorListener {
+        OnBufferChangedListener, OnPositionChangedListener, OnErrorListener, OnSeekChangeListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +30,7 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateC
         gl_surface_view.setOnErrorListener(this)
         gl_surface_view.setOnPositionChangedListener(this)
         gl_surface_view.setOnBufferChangedListener(this)
+        video_playback_seek_view.setOnSeekChangeListener(this)
         if (name != null) {
             title = name
         } else if (url != null) {
@@ -93,6 +95,10 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateC
     override fun onError(errorCode: Int, errorMessage: String) {
         LogUtils.i(TAG, "onError $errorCode $errorMessage")
         Snackbar.make(gl_surface_view, errorMessage, Snackbar.LENGTH_SHORT).show()
+    }
+
+    override fun onProgressChanged(progressUs: Int) {
+        gl_surface_view.seekTo(progressUs)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

@@ -67,13 +67,13 @@ public:
 
     void resume();
 
-    void seekTo(uint32_t secondMs);
+    void seekTo(uint32_t secondUs);
 
     void stop();
 
     void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo);
 
-    LoopFlag isDemuxingLoop();
+    LoopFlag loopWait(int64_t *seekUs);
 
     InputSource *getInputSource();
 
@@ -111,6 +111,7 @@ private:
     DemuxingThread *demuxingThread{};
     Interceptor *codeInterceptor;
     bool mIsPausing;
+    int mSeekUs;
 };
 
 
