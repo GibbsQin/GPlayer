@@ -23,9 +23,6 @@ public class MediaData implements Comparable<MediaData> {
 
     public int height;
 
-    /**
-     * 帧类型的组合，与FLAG_KEY_相关
-     */
     public int flag;
 
     public MediaData() {

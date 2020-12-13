@@ -116,14 +116,14 @@ public class MediaSourceImp implements MediaSource {
         long nowMs = mAudioSink.getNow();
         long lateMs = mTopVideoFrame.pts - (nowMs - VSYNC_DURATION_MS);
         if (lateMs < 0) {//视频落后，开始播放
-            return mTopVideoFrame;
+            return new MediaData(mTopVideoFrame);
         } else if (lateMs < MAX_SLEEP_DURATION_MS) {
             try {
                 Thread.sleep(lateMs);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            return mTopVideoFrame;
+            return new MediaData(mTopVideoFrame);
         } else {
             try {
                 Thread.sleep(MAX_SLEEP_DURATION_MS);

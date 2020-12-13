@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <unistd.h>
 #include <interceptor/CodecInterceptor.h>
-#include <media/MediaHelper.h>
 
 extern "C" {
 #include <demuxing/avformat_def.h>
@@ -69,15 +68,15 @@ void GPlayer::av_init(FormatInfo *formatInfo) {
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, nullptr);
 }
 
-uint32_t GPlayer::av_feed_audio(AVPacket *packet) {
-    uint32_t result = inputSource->queueAudPkt(packet);
+uint32_t GPlayer::av_feed_audio(AVPacket *packet, AVRational time_base) {
+    uint32_t result = inputSource->queueAudPkt(packet, time_base);
     playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_PACKET, result, nullptr,
                                  nullptr);
     return result;
 }
 
-uint32_t GPlayer::av_feed_video(AVPacket *packet) {
-    uint32_t result = inputSource->queueVidPkt(packet);
+uint32_t GPlayer::av_feed_video(AVPacket *packet, AVRational time_base) {
+    uint32_t result = inputSource->queueVidPkt(packet, time_base);
     playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_PACKET, result, nullptr,
                                  nullptr);
     return result;
@@ -211,14 +210,12 @@ int GPlayer::processAudioBuffer() {
     MediaData *outBuffer = nullptr;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
     if (ret >= 0) {
-        auto desBuffer = new MediaData();
-        MediaHelper::copy(outBuffer, desBuffer);
-        mediaSize = outputSource->onReceiveAudio(desBuffer);
+        mediaSize = outputSource->onReceiveAudio(outBuffer);
         playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_FRAME, mediaSize, nullptr,
                                      nullptr);
     }
     if (inputResult >= 0) {
-        inputSource->popAudPkt();
+        inputSource->popAudPkt(inPacket);
     }
 
     return mediaSize;
@@ -243,14 +240,12 @@ int GPlayer::processVideoBuffer() {
     MediaData *outBuffer = nullptr;
     ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
     if (ret >= 0) {
-        auto desBuffer = new MediaData();
-        MediaHelper::copy(outBuffer, desBuffer);
-        mediaSize = outputSource->onReceiveVideo(desBuffer);
+        mediaSize = outputSource->onReceiveVideo(outBuffer);
         playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_FRAME, mediaSize, nullptr,
                                      nullptr);
     }
     if (inputResult >= 0) {
-        inputSource->popVidPkt();
+        inputSource->popVidPkt(inPacket);
     }
 
     return mediaSize;

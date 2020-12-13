@@ -24,19 +24,27 @@ void InputSource::queueInfo(FormatInfo *formatInfo) {
     mFormatInfo = formatInfo;
 }
 
-uint32_t InputSource::queueAudPkt(AVPacket *pkt) {
+uint32_t InputSource::queueAudPkt(AVPacket *pkt, AVRational time_base) {
     uint32_t queueSize = 0;
-    audioPacketQueue.push_back(pkt);
+    AVPacket *packet = av_packet_alloc();
+    av_packet_ref(packet, pkt);
+    packet->pts = ffmpeg_pts2timeus(time_base, pkt->pts);
+    packet->dts = ffmpeg_pts2timeus(time_base, pkt->dts);
+    audioPacketQueue.push_back(packet);
     queueSize = static_cast<uint32_t>(audioPacketQueue.size());
-    LOGI(TAG, "queue audio packet %lld", pkt->pts);
+    LOGI(TAG, "queue audio packet %lld", packet->pts);
     return queueSize;
 }
 
-uint32_t InputSource::queueVidPkt(AVPacket *pkt) {
+uint32_t InputSource::queueVidPkt(AVPacket *pkt, AVRational time_base) {
     uint32_t queueSize = 0;
-    videoPacketQueue.push_back(pkt);
+    AVPacket *packet = av_packet_alloc();
+    av_packet_ref(packet, pkt);
+    packet->pts = ffmpeg_pts2timeus(time_base, pkt->pts);
+    packet->dts = ffmpeg_pts2timeus(time_base, pkt->dts);
+    videoPacketQueue.push_back(packet);
     queueSize = static_cast<uint32_t>(videoPacketQueue.size());
-    LOGI(TAG, "queue video packet %lld", pkt->pts);
+    LOGI(TAG, "queue video packet %lld", packet->pts);
     return queueSize;
 }
 
@@ -68,7 +76,8 @@ int InputSource::dequeVidPkt(AVPacket **pkt) {
     return static_cast<int>(videoPacketQueue.size());
 }
 
-void InputSource::popAudPkt() {
+void InputSource::popAudPkt(AVPacket *pkt) {
+    av_packet_free(&pkt);
     mAudioLock.lock();
     if (audioPacketQueue.size() > 0) {
         audioPacketQueue.pop_front();
@@ -77,7 +86,8 @@ void InputSource::popAudPkt() {
     mAudioLock.unlock();
 }
 
-void InputSource::popVidPkt() {
+void InputSource::popVidPkt(AVPacket *pkt) {
+    av_packet_free(&pkt);
     mVideoLock.lock();
     if (videoPacketQueue.size() > 0) {
         videoPacketQueue.pop_front();

@@ -49,9 +49,9 @@ public:
 public:
     void av_init(FormatInfo *formatInfo);
 
-    uint32_t av_feed_audio(AVPacket *packet);
+    uint32_t av_feed_audio(AVPacket *packet, AVRational time_base);
 
-    uint32_t av_feed_video(AVPacket *packet);
+    uint32_t av_feed_video(AVPacket *packet, AVRational time_base);
 
     void av_destroy();
 

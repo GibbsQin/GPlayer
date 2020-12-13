@@ -9,6 +9,7 @@
 
 extern "C" {
 #include <demuxing/avformat_def.h>
+#include <demuxing/demuxing.h>
 #include "../codec/ffmpeg/libavcodec/avcodec.h"
 }
 
@@ -24,9 +25,9 @@ public:
 public:
     void queueInfo(FormatInfo *formatInfo);
 
-    uint32_t queueAudPkt(AVPacket *pkt);
+    uint32_t queueAudPkt(AVPacket *pkt, AVRational time_base);
 
-    uint32_t queueVidPkt(AVPacket *pkt);
+    uint32_t queueVidPkt(AVPacket *pkt, AVRational time_base);
 
 public:
     FormatInfo* getFormatInfo();
@@ -39,9 +40,9 @@ public:
 
     int dequeVidPkt(AVPacket **pkt);
 
-    void popAudPkt();
+    void popAudPkt(AVPacket *pkt);
 
-    void popVidPkt();
+    void popVidPkt(AVPacket *pkt);
 
     void flush();
 
