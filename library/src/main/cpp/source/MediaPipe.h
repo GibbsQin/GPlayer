@@ -7,7 +7,6 @@
 
 extern "C" {
 #include <codec/ffmpeg/libavformat/avformat.h>
-#include <demuxing/demuxing.h>
 }
 
 class MediaPipe {

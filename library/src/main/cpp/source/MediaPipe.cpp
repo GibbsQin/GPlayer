@@ -28,11 +28,7 @@ uint32_t MediaPipe::av_format_feed_audio(int channel, AVFormatContext *ifmt_ctx,
     AVRational time_base = ifmt_ctx->streams[packet->stream_index]->time_base;
     GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
-        AVPacket *pkt = av_packet_alloc();
-        av_packet_ref(pkt, packet);
-        pkt->pts = ffmpeg_pts2timeus(time_base, packet->pts);
-        pkt->dts = ffmpeg_pts2timeus(time_base, packet->dts);
-        return targetPlayer->av_feed_audio(pkt);
+        return targetPlayer->av_feed_audio(packet, time_base);
     }
     return 0;
 }
@@ -41,11 +37,7 @@ uint32_t MediaPipe::av_format_feed_video(int channel, AVFormatContext *ifmt_ctx,
     AVRational time_base = ifmt_ctx->streams[packet->stream_index]->time_base;
     GPlayer *targetPlayer = sGPlayerMap[channel];
     if (targetPlayer != nullptr) {
-        AVPacket *pkt = av_packet_alloc();
-        av_packet_ref(pkt, packet);
-        pkt->pts = ffmpeg_pts2timeus(time_base, packet->pts);
-        pkt->dts = ffmpeg_pts2timeus(time_base, packet->dts);
-        targetPlayer->av_feed_video(pkt);
+        targetPlayer->av_feed_video(packet, time_base);
     }
     return 0;
 }

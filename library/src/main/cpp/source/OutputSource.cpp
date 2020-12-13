@@ -1,5 +1,6 @@
 #include <media/MediaDataJni.h>
 #include <base/Log.h>
+#include <media/MediaHelper.h>
 #include "OutputSource.h"
 
 #define TAG "OutputSource"
@@ -14,18 +15,20 @@ OutputSource::~OutputSource() {
 }
 
 uint32_t OutputSource::onReceiveAudio(MediaData *inPacket) {
-    uint32_t queueSize = 0;
-    audioPacketQueue.push_back(inPacket);
-    queueSize = static_cast<uint32_t>(audioPacketQueue.size());
-    LOGI(TAG, "queue audio packet %lld", inPacket->pts);
+    auto desBuffer = new MediaData();
+    MediaHelper::copy(inPacket, desBuffer);
+    audioPacketQueue.push_back(desBuffer);
+    auto queueSize = static_cast<uint32_t>(audioPacketQueue.size());
+    LOGI(TAG, "queue audio packet %lld", desBuffer->pts);
     return queueSize;
 }
 
 uint32_t OutputSource::onReceiveVideo(MediaData *inPacket) {
-    uint32_t queueSize = 0;
-    videoPacketQueue.push_back(inPacket);
-    queueSize = static_cast<uint32_t>(videoPacketQueue.size());
-    LOGI(TAG, "queue video packet %lld", inPacket->pts);
+    auto desBuffer = new MediaData();
+    MediaHelper::copy(inPacket, desBuffer);
+    videoPacketQueue.push_back(desBuffer);
+    auto queueSize = static_cast<uint32_t>(videoPacketQueue.size());
+    LOGI(TAG, "queue video packet %lld", desBuffer->pts);
     return queueSize;
 }
 
@@ -58,6 +61,8 @@ int OutputSource::readVideoBuffer(MediaData **avData) {
 void OutputSource::popAudioBuffer() {
     mAudioLock.lock();
     if (audioPacketQueue.size() > 0) {
+        MediaData *mediaData = audioPacketQueue.front();
+        delete mediaData;
         audioPacketQueue.pop_front();
         LOGI(TAG, "pop audio packet");
     }
@@ -67,6 +72,8 @@ void OutputSource::popAudioBuffer() {
 void OutputSource::popVideoBuffer() {
     mVideoLock.lock();
     if (videoPacketQueue.size() > 0) {
+        MediaData *mediaData = videoPacketQueue.front();
+        delete mediaData;
         videoPacketQueue.pop_front();
         LOGI(TAG, "pop video packet");
     }

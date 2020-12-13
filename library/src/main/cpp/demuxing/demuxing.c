@@ -154,10 +154,8 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
                                 audio_codecpar->codec_id == AV_CODEC_ID_AAC;
     unsigned char mADTSHeader[ADTS_HEADER_SIZE] = {0};
     ADTSContext mADTSContext;
-    uint8_t *audioADTSData = NULL;
     if (needAudioStreamFilter) {
         create_adts_context(&mADTSContext, audio_codecpar->extradata, audio_codecpar->extradata_size);
-        audioADTSData = malloc(audio_codecpar->frame_size + ADTS_HEADER_SIZE);
     }
     ffmpegLog(ANDROID_LOG_INFO, "CoreFlow : needVideoStreamFilter %d, needAudioStreamFilter %d\n",
               needVideoStreamFilter, needAudioStreamFilter);
@@ -197,14 +195,14 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
             print_packet(ifmt_ctx, &pkt, "audio");
             if (needAudioStreamFilter) {
                 insert_adts_head(&mADTSContext, mADTSHeader, pkt.size);
-                memcpy(audioADTSData, mADTSHeader, ADTS_HEADER_SIZE);
-                memcpy(audioADTSData + ADTS_HEADER_SIZE, pkt.data, (size_t) pkt.size);
-                uint8_t *old = pkt.data;
-                pkt.data = audioADTSData;
-                pkt.size += ADTS_HEADER_SIZE;
-                callback.av_format_feed_audio(channelId, ifmt_ctx, &pkt);
-                pkt.data = old;
-                pkt.size -= ADTS_HEADER_SIZE;
+                AVPacket *audPkt = av_packet_alloc();
+                av_packet_copy_props(audPkt, &pkt);
+                audPkt->size = pkt.size + ADTS_HEADER_SIZE;
+                audPkt->data = av_malloc(audPkt->size);
+                memcpy(audPkt->data, mADTSHeader, ADTS_HEADER_SIZE);
+                memcpy(audPkt->data + ADTS_HEADER_SIZE, pkt.data, (size_t) pkt.size);
+                callback.av_format_feed_audio(channelId, ifmt_ctx, audPkt);
+                av_packet_free(&audPkt);
             } else {
                 callback.av_format_feed_audio(channelId, ifmt_ctx, &pkt);
             }
@@ -242,9 +240,6 @@ void ffmpeg_demuxing(char *filename, int channelId, FfmpegCallback callback, For
     if (needVideoStreamFilter) {
         av_bsf_free(&video_abs_ctx);
         video_abs_ctx = NULL;
-    }
-    if (needAudioStreamFilter) {
-        free(audioADTSData);
     }
 
     if (ret < 0 && ret != AVERROR_EOF) {

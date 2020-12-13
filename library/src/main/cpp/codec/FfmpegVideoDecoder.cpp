@@ -45,7 +45,6 @@ int FfmpegVideoDecoder::send_packet(AVPacket *inPacket) {
         }
         return ret;
     }
-    av_packet_unref(inPacket);
 
     return 0;
 }
