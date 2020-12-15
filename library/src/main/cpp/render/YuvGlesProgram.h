@@ -46,13 +46,14 @@ public:
 
     void buildProgram();
 
+    void buildTextures(uint8_t *y, uint8_t *u, uint8_t *v, uint32_t width, uint32_t height);
+
+    void drawFrame();
+
+private:
     GLuint createProgram(char *vertexSource, char *fragmentSource);
 
     GLuint loadShader(GLenum shaderType, char *source);
-
-    void buildTextures(char *y, char *u, char *v, uint32_t width, uint32_t height);
-
-    void drawFrame();
 
 private:
     // program id

@@ -151,7 +151,7 @@ GLuint YuvGlesProgram::loadShader(GLenum shaderType, char *source) {
     return shader;
 }
 
-void YuvGlesProgram::buildTextures(char *y, char *u, char *v, uint32_t width, uint32_t height) {
+void YuvGlesProgram::buildTextures(uint8_t *y, uint8_t *u, uint8_t *v, uint32_t width, uint32_t height) {
     bool videoSizeChanged = (width != _video_width || height != _video_height);
     if (videoSizeChanged) {
         _video_width = width;
