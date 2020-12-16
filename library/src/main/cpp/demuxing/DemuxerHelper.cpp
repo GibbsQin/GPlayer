@@ -2,26 +2,23 @@
 // Created by qinshenghua on 2020/12/15.
 //
 
-#include "Demuxer.h"
+#include "DemuxerHelper.h"
 #include "../base/Log.h"
 
 #define TAG "Demuxer"
 
 static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, const char *tag) {
+    AVRational *time_base = &fmt_ctx->streams[pkt->stream_index]->time_base;
 
-}
-
-
-Demuxer::Demuxer() {
-
-}
-
-Demuxer::~Demuxer() {
-
+    LOGD(TAG, "%s, flags:%d, pts:%lld pts_time:%s dts_time:%s size:%d\n",
+         tag, pkt->flags,
+         (uint64_t) (av_q2d(*time_base) * pkt->pts * 1000000),
+         av_ts2timestr(pkt->pts, time_base), av_ts2timestr(pkt->dts, time_base),
+         pkt->size);
 }
 
 void
-Demuxer::start(char *filename, int channelId, FfmpegCallback callback, FormatInfo *formatInfo) {
+DemuxerHelper::start(char *filename, GPlayer *player, FormatInfo *formatInfo) {
     LOGI(TAG, "CoreFlow : ffmpeg_demuxing '%s'", filename);
     AVFormatContext *ifmt_ctx = nullptr;
     AVPacket pkt;
@@ -80,7 +77,8 @@ Demuxer::start(char *filename, int channelId, FfmpegCallback callback, FormatInf
             if (video_stream_index == -1) {
                 video_stream_index = i;
                 avcodec_parameters_copy(formatInfo->vidcodecpar, in_codecpar);
-                formatInfo->vidframerate = (int) (in_stream->r_frame_rate.num / in_stream->r_frame_rate.den + 0.5f);
+                formatInfo->vidframerate = (int) (
+                        in_stream->r_frame_rate.num / in_stream->r_frame_rate.den + 0.5f);
                 AVDictionaryEntry *tag = nullptr;
                 tag = av_dict_get(in_stream->metadata, "rotate", tag, AV_DICT_IGNORE_SUFFIX);
                 formatInfo->vidrotate = tag != nullptr ? atoi(tag->value) : 0;
@@ -107,24 +105,17 @@ Demuxer::start(char *filename, int channelId, FfmpegCallback callback, FormatInf
     }
 
     LOGI(TAG, "audio_stream_index = %d, video_stream_index = %d, stream_mapping_size = %d\n",
-              audio_stream_index, video_stream_index, stream_mapping_size);
+         audio_stream_index, video_stream_index, stream_mapping_size);
     LOGI(TAG, "extensions %s", ifmt_ctx->iformat->extensions);
 
     LOGI(TAG, "av_init\n");
     formatInfo->duration = (int) (ifmt_ctx->duration);
-    callback.av_format_init(channelId, formatInfo);
-    //send SPS PPS
-    callback.av_format_extradata_video(channelId, ifmt_ctx,
-                                       ifmt_ctx->streams[video_stream_index]->codecpar->extradata,
-                                       (uint32_t) ifmt_ctx->streams[video_stream_index]->codecpar->extradata_size);
-
-    callback.av_format_extradata_audio(channelId, ifmt_ctx,
-                                       ifmt_ctx->streams[audio_stream_index]->codecpar->extradata,
-                                       (uint32_t) ifmt_ctx->streams[audio_stream_index]->codecpar->extradata_size);
+    player->av_init(formatInfo);
 
     video_codecpar = ifmt_ctx->streams[video_stream_index]->codecpar;
     needVideoStreamFilter = ifmt_ctx->iformat->extensions != nullptr &&
-                                (video_codecpar->codec_id == AV_CODEC_ID_H264 || video_codecpar->codec_id == AV_CODEC_ID_HEVC);
+                            (video_codecpar->codec_id == AV_CODEC_ID_H264 ||
+                             video_codecpar->codec_id == AV_CODEC_ID_HEVC);
     if (needVideoStreamFilter) {
         if (video_codecpar->codec_id == AV_CODEC_ID_HEVC) {
             video_abs_filter = av_bsf_get_by_name("hevc_mp4toannexb");
@@ -138,18 +129,19 @@ Demuxer::start(char *filename, int channelId, FfmpegCallback callback, FormatInf
 
     audio_codecpar = ifmt_ctx->streams[audio_stream_index]->codecpar;
     needAudioStreamFilter = ifmt_ctx->iformat->extensions != NULL &&
-                                audio_codecpar->codec_id == AV_CODEC_ID_AAC;
+                            audio_codecpar->codec_id == AV_CODEC_ID_AAC;
     ADTSContext mADTSContext;
     if (needAudioStreamFilter) {
-        create_adts_context(&mADTSContext, audio_codecpar->extradata, audio_codecpar->extradata_size);
+        create_adts_context(&mADTSContext, audio_codecpar->extradata,
+                            audio_codecpar->extradata_size);
     }
     LOGI(TAG, "CoreFlow : needVideoStreamFilter %d, needAudioStreamFilter %d\n",
-              needVideoStreamFilter, needAudioStreamFilter);
+         needVideoStreamFilter, needAudioStreamFilter);
     av_init_packet(&pkt);
     pkt.data = nullptr;
     pkt.size = 0;
     while (1) {
-        LoopFlag loop_flag = callback.av_format_loop_wait(channelId, &seekUs);
+        LoopFlag loop_flag = player->loopWait(&seekUs);
         if (loop_flag == CONTINUE) {
             continue;
         } else if (loop_flag == BREAK) {
@@ -186,10 +178,10 @@ Demuxer::start(char *filename, int channelId, FfmpegCallback callback, FormatInf
                 audPkt->data = static_cast<uint8_t *>(av_malloc(static_cast<size_t>(audPkt->size)));
                 memcpy(audPkt->data, mADTSHeader, ADTS_HEADER_SIZE);
                 memcpy(audPkt->data + ADTS_HEADER_SIZE, pkt.data, (size_t) pkt.size);
-                callback.av_format_feed_audio(channelId, ifmt_ctx, audPkt);
+                player->av_feed_audio(audPkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
                 av_packet_free(&audPkt);
             } else {
-                callback.av_format_feed_audio(channelId, ifmt_ctx, &pkt);
+                player->av_feed_audio(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
             }
         } else if (pkt.stream_index == video_stream_index) {
             print_packet(ifmt_ctx, &pkt, "video");
@@ -199,10 +191,10 @@ Demuxer::start(char *filename, int channelId, FfmpegCallback callback, FormatInf
                     if (pkt.size <= 0) {
                         continue;
                     }
-                    callback.av_format_feed_video(channelId, ifmt_ctx, &pkt);
+                    player->av_feed_video(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
                 }
             } else {
-                callback.av_format_feed_video(channelId, ifmt_ctx, &pkt);
+                player->av_feed_video(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
             }
         }
 
@@ -214,7 +206,7 @@ Demuxer::start(char *filename, int channelId, FfmpegCallback callback, FormatInf
     }
 
     LOGI(TAG, "av_destroy\n");
-    callback.av_format_destroy(channelId, ifmt_ctx);
+    player->av_destroy();
 
     end:
 
@@ -229,7 +221,7 @@ Demuxer::start(char *filename, int channelId, FfmpegCallback callback, FormatInf
 
     if (ret < 0 && ret != AVERROR_EOF) {
         LOGE(TAG, "Error occurred: %s\n", av_err2str(ret));
-        callback.av_format_error(channelId, ret, av_err2str(ret));
+        player->av_error(ret, av_err2str(ret));
     }
     LOGI(TAG, "ending");
 }

@@ -5,10 +5,9 @@
 #ifndef GPLAYER_GPLAYER_H
 #define GPLAYER_GPLAYER_H
 
-#include <interceptor/CodecInterceptor.h>
+#include <codec/DecodeHelper.h>
 #include <player/GPlayerJni.h>
-#include "DecodeThread.h"
-#include "DemuxingThread.h"
+#include "LoopThread.h"
 #include "InputSource.h"
 #include "OutputSource.h"
 
@@ -73,8 +72,6 @@ public:
 
     void setFlags(uint32_t flags);
 
-    void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo);
-
     LoopFlag loopWait(int64_t *seekUs);
 
     InputSource *getInputSource();
@@ -82,21 +79,15 @@ public:
     OutputSource *getOutputSource();
 
 private:
+    int startDemuxing();
+
     void startDecode();
 
     void stopDecode();
 
-    void onAudioThreadStart();
-
     int processAudioBuffer();
 
-    void onAudioThreadEnd();
-
-    void onVideoThreadStart();
-
     int processVideoBuffer();
-
-    void onVideoThreadEnd();
 
 private:
     InputSource *inputSource;
@@ -109,10 +100,10 @@ private:
     int mChannelId;
     bool isDemuxing{};
     uint32_t mFlags;
-    DecodeThread *audioEngineThread;
-    DecodeThread *videoEngineThread;
-    DemuxingThread *demuxingThread{};
-    Interceptor *codeInterceptor;
+    LoopThread *audioDecodeThread;
+    LoopThread *videoDecodeThread;
+    LoopThread *demuxingThread;
+    DecodeHelper *decodeHelper;
     bool mIsPausing;
     int mSeekUs;
 };

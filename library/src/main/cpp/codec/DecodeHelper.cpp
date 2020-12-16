@@ -7,7 +7,7 @@
 #include <base/Log.h>
 #include <codec/MediaCodecVideoDecoder.h>
 #include <codec/MediaCodecAudioDecoder.h>
-#include "CodecInterceptor.h"
+#include "DecodeHelper.h"
 
 extern "C" {
 #include <demuxing/avformat_def.h>
@@ -15,14 +15,14 @@ extern "C" {
 
 #define TAG "CodecInterceptor"
 
-CodecInterceptor::CodecInterceptor(bool mediaCodecFirst) {
+DecodeHelper::DecodeHelper(bool mediaCodecFirst) {
     this->mediaCodecFirst = mediaCodecFirst;
     hasInit = false;
 }
 
-CodecInterceptor::~CodecInterceptor() = default;
+DecodeHelper::~DecodeHelper() = default;
 
-int CodecInterceptor::onInit(FormatInfo *formatInfo) {
+int DecodeHelper::onInit(FormatInfo *formatInfo) {
     audioLock.lock();
     videoLock.lock();
     if (hasInit) {
@@ -78,7 +78,7 @@ int CodecInterceptor::onInit(FormatInfo *formatInfo) {
     return 0;
 }
 
-int CodecInterceptor::inputBuffer(AVPacket *buffer, int type) {
+int DecodeHelper::inputBuffer(AVPacket *buffer, int type) {
     int ret = -1;
     if (type == AV_TYPE_AUDIO) {
         audioLock.lock();
@@ -92,7 +92,7 @@ int CodecInterceptor::inputBuffer(AVPacket *buffer, int type) {
     return ret;
 }
 
-int CodecInterceptor::outputBuffer(MediaData **buffer, int type) {
+int DecodeHelper::outputBuffer(MediaData **buffer, int type) {
     int ret = -1;
     if (type == AV_TYPE_AUDIO) {
         audioLock.lock();
@@ -108,7 +108,7 @@ int CodecInterceptor::outputBuffer(MediaData **buffer, int type) {
     return ret;
 }
 
-void CodecInterceptor::onRelease() {
+void DecodeHelper::onRelease() {
     audioLock.lock();
     videoLock.lock();
     if (!hasInit) {
@@ -134,6 +134,6 @@ void CodecInterceptor::onRelease() {
     audioLock.unlock();
 }
 
-void CodecInterceptor::enableMediaCodec() {
+void DecodeHelper::enableMediaCodec() {
     mediaCodecFirst = true;
 }

@@ -1,14 +1,14 @@
-#include "DecodeThread.h"
+#include "LoopThread.h"
 
 #include <utility>
 
-DecodeThread::DecodeThread() {
-    setFunction(std::bind(&DecodeThread::handleRunning, this));
+LoopThread::LoopThread() {
+    setFunction(std::bind(&LoopThread::handleRunning, this));
 }
 
-DecodeThread::~DecodeThread()= default;
+LoopThread::~LoopThread()= default;
 
-void DecodeThread::handleRunning() {
+void LoopThread::handleRunning() {
     int64_t time;
 
     if (startFunc) {
@@ -41,18 +41,18 @@ void DecodeThread::handleRunning() {
     isStarted = false;
 }
 
-void DecodeThread::setStartFunc(std::function<void(void)> func) {
+void LoopThread::setStartFunc(std::function<void(void)> func) {
     startFunc = std::move(func);
 }
 
-void DecodeThread::setUpdateFunc(std::function<int(void)> func) {
+void LoopThread::setUpdateFunc(std::function<int(void)> func) {
     updateFunc = std::move(func);
 }
 
-void DecodeThread::setEndFunc(std::function<void(void)> func) {
+void LoopThread::setEndFunc(std::function<void(void)> func) {
     endFunc = std::move(func);
 }
 
-bool DecodeThread::hasStarted() {
+bool LoopThread::hasStarted() {
     return isStarted;
 }

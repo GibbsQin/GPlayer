@@ -19,7 +19,6 @@ include_directories(
         codec
         codec/ffmpeg
         demuxing
-        interceptor
         player
         render
         sender
@@ -33,7 +32,6 @@ aux_source_directory(base SRC_BASE)
 aux_source_directory(codec SRC_CODEC)
 aux_source_directory(codec/ffmpeg SRC_CODEC_FFMPEG)
 aux_source_directory(demuxing SRC_DEMUXING)
-aux_source_directory(interceptor SRC_INTERCEPTOR)
 aux_source_directory(player SRC_PLAYER)
 aux_source_directory(render SRC_RENDER)
 aux_source_directory(source SRC_SOURCE)
@@ -45,7 +43,6 @@ list(APPEND SRC
         ${SRC_CODEC}
         ${SRC_CODEC_FFMPEG}
         ${SRC_DEMUXING}
-        ${SRC_INTERCEPTOR}
         ${SRC_PLAYER}
         ${SRC_RENDER}
         ${SRC_SOURCE}

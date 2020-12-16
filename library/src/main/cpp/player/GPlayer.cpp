@@ -4,12 +4,11 @@
 
 #include "GPlayer.h"
 #include "MediaPipe.h"
-#include "DemuxingThread.h"
 #include "media/MediaData.h"
 #include <base/Log.h>
 #include <cstdint>
 #include <unistd.h>
-#include <interceptor/CodecInterceptor.h>
+#include <demuxing/DemuxerHelper.h>
 
 extern "C" {
 #include <demuxing/avformat_def.h>
@@ -21,24 +20,29 @@ GPlayer::GPlayer(int channelId, uint32_t flag, jobject obj) {
     outputSource = new OutputSource();
     inputSource = new InputSource();
     playerJni = new GPlayerJni(obj);
-    audioEngineThread = nullptr;
-    videoEngineThread = nullptr;
+    audioDecodeThread = nullptr;
+    videoDecodeThread = nullptr;
+    demuxingThread = nullptr;
     mFlags = flag;
     LOGI(TAG, "CoreFlow : start demuxing channel %d, flag %d", mChannelId, mFlags);
     mediaCodecFlag = (flag & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
-    codeInterceptor = new CodecInterceptor(mediaCodecFlag);
+    decodeHelper = new DecodeHelper(mediaCodecFlag);
     mChannelId = channelId;
     mIsPausing = false;
 }
 
 GPlayer::~GPlayer() {
-    if (audioEngineThread) {
-        delete audioEngineThread;
-        audioEngineThread = nullptr;
+    if (audioDecodeThread) {
+        delete audioDecodeThread;
+        audioDecodeThread = nullptr;
     }
-    if (videoEngineThread) {
-        delete videoEngineThread;
-        videoEngineThread = nullptr;
+    if (videoDecodeThread) {
+        delete videoDecodeThread;
+        videoDecodeThread = nullptr;
+    }
+    if (demuxingThread) {
+        delete demuxingThread;
+        demuxingThread = nullptr;
     }
     if (outputSource) {
         delete outputSource;
@@ -48,9 +52,9 @@ GPlayer::~GPlayer() {
         delete inputSource;
         inputSource = nullptr;
     }
-    if (codeInterceptor) {
-        delete codeInterceptor;
-        codeInterceptor = nullptr;
+    if (decodeHelper) {
+        delete decodeHelper;
+        decodeHelper = nullptr;
     }
     if (mUrl) {
         free(mUrl);
@@ -96,14 +100,13 @@ void GPlayer::prepare(const std::string& url) {
     mUrl[url.length()] = '\0';
 
     isDemuxing = true;
-    demuxingThread = new DemuxingThread(std::bind(&GPlayer::startDemuxing, this,
-                                                  std::placeholders::_1, std::placeholders::_2,
-                                                  std::placeholders::_3, std::placeholders::_4),
-                                        mUrl, mChannelId, MediaPipe::sFfmpegCallback, inputSource->getFormatInfo());
+    demuxingThread = new LoopThread();
+    demuxingThread->setUpdateFunc(std::bind(&GPlayer::startDemuxing, this));
+    demuxingThread->start();
 }
 
 void GPlayer::start() {
-    int ret = codeInterceptor->onInit(inputSource->getFormatInfo());
+    int ret = decodeHelper->onInit(inputSource->getFormatInfo());
 
     if (ret < 0) {
         playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0,
@@ -115,14 +118,14 @@ void GPlayer::start() {
 
 void GPlayer::pause() {
     mIsPausing = true;
-    audioEngineThread->pause();
-    videoEngineThread->pause();
+    audioDecodeThread->pause();
+    videoDecodeThread->pause();
 }
 
 void GPlayer::resume() {
     mIsPausing = false;
-    audioEngineThread->resume();
-    videoEngineThread->resume();
+    audioDecodeThread->resume();
+    videoDecodeThread->resume();
 }
 
 void GPlayer::seekTo(uint32_t secondUs) {
@@ -135,7 +138,7 @@ void GPlayer::stop() {
     LOGI(TAG, "CoreFlow : demuxing thread is stopped!");
     stopDecode();
     LOGI(TAG, "CoreFlow : decode threads were stopped!");
-    codeInterceptor->onRelease();
+    decodeHelper->onRelease();
     inputSource->flush();
     playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_STOPPED, 0, nullptr, nullptr);
 }
@@ -144,38 +147,35 @@ void GPlayer::setFlags(uint32_t flags) {
     mFlags = flags;
     mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
     if (mediaCodecFlag) {
-        codeInterceptor->enableMediaCodec();
+        decodeHelper->enableMediaCodec();
     }
 }
 
 void GPlayer::startDecode() {
     LOGI(TAG, "CoreFlow : startDecode");
-    audioEngineThread = new DecodeThread();
-    audioEngineThread->setStartFunc(std::bind(&GPlayer::onAudioThreadStart, this));
-    audioEngineThread->setUpdateFunc(std::bind(&GPlayer::processAudioBuffer, this));
-    audioEngineThread->setEndFunc(std::bind(&GPlayer::onAudioThreadEnd, this));
-    audioEngineThread->start();
+    audioDecodeThread = new LoopThread();
+    audioDecodeThread->setUpdateFunc(std::bind(&GPlayer::processAudioBuffer, this));
+    audioDecodeThread->start();
 
-    videoEngineThread = new DecodeThread();
-    videoEngineThread->setStartFunc(std::bind(&GPlayer::onVideoThreadStart, this));
-    videoEngineThread->setUpdateFunc(std::bind(&GPlayer::processVideoBuffer, this));
-    videoEngineThread->setEndFunc(std::bind(&GPlayer::onVideoThreadEnd, this));
-    videoEngineThread->start();
+    videoDecodeThread = new LoopThread();
+    videoDecodeThread->setUpdateFunc(std::bind(&GPlayer::processVideoBuffer, this));
+    videoDecodeThread->start();
 }
 
 void GPlayer::stopDecode() {
-    if (audioEngineThread && audioEngineThread->hasStarted()) {
-        audioEngineThread->stop();
-        audioEngineThread->join();
+    if (audioDecodeThread && audioDecodeThread->hasStarted()) {
+        audioDecodeThread->stop();
+        audioDecodeThread->join();
     }
-    if (videoEngineThread && videoEngineThread->hasStarted()) {
-        videoEngineThread->stop();
-        videoEngineThread->join();
+    if (videoDecodeThread && videoDecodeThread->hasStarted()) {
+        videoDecodeThread->stop();
+        videoDecodeThread->join();
     }
 }
 
-void GPlayer::startDemuxing(char *web_url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo) {
-    ffmpeg_demuxing(web_url, channelId, callback, inputSource->getFormatInfo());
+int GPlayer::startDemuxing() {
+    DemuxerHelper *demuxer = new DemuxerHelper();
+    demuxer->start(mUrl, this, inputSource->getFormatInfo());
 }
 
 LoopFlag GPlayer::loopWait(int64_t *seekUs) {
@@ -195,10 +195,6 @@ LoopFlag GPlayer::loopWait(int64_t *seekUs) {
     return BREAK;
 }
 
-void GPlayer::onAudioThreadStart() {
-    LOGI(TAG, "onAudioThreadStart");
-}
-
 int GPlayer::processAudioBuffer() {
     AVPacket *inPacket = nullptr;
     int ret = inputSource->dequeAudPkt(&inPacket);
@@ -206,9 +202,9 @@ int GPlayer::processAudioBuffer() {
         return 0;
     }
     int mediaSize = 0;
-    int inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_AUDIO);
+    int inputResult = decodeHelper->inputBuffer(inPacket, AV_TYPE_AUDIO);
     MediaData *outBuffer = nullptr;
-    ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
+    ret = decodeHelper->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
     if (ret >= 0) {
         mediaSize = outputSource->onReceiveAudio(outBuffer);
         playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_FRAME, mediaSize, nullptr,
@@ -221,14 +217,6 @@ int GPlayer::processAudioBuffer() {
     return mediaSize;
 }
 
-void GPlayer::onAudioThreadEnd() {
-    LOGI(TAG, "CoreFlow : onAudioThreadEnd");
-}
-
-void GPlayer::onVideoThreadStart() {
-    LOGI(TAG, "onVideoThreadStart");
-}
-
 int GPlayer::processVideoBuffer() {
     AVPacket *inPacket = nullptr;
     int ret = inputSource->dequeVidPkt(&inPacket);
@@ -236,9 +224,9 @@ int GPlayer::processVideoBuffer() {
         return 0;
     }
     int mediaSize = 0;
-    int inputResult = codeInterceptor->inputBuffer(inPacket, AV_TYPE_VIDEO);
+    int inputResult = decodeHelper->inputBuffer(inPacket, AV_TYPE_VIDEO);
     MediaData *outBuffer = nullptr;
-    ret = codeInterceptor->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
+    ret = decodeHelper->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
     if (ret >= 0) {
         mediaSize = outputSource->onReceiveVideo(outBuffer);
         playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_FRAME, mediaSize, nullptr,
@@ -249,10 +237,6 @@ int GPlayer::processVideoBuffer() {
     }
 
     return mediaSize;
-}
-
-void GPlayer::onVideoThreadEnd() {
-    LOGI(TAG, "CoreFlow : onVideoThreadEnd");
 }
 
 InputSource *GPlayer::getInputSource() {
