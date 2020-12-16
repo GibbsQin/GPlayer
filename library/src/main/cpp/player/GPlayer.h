@@ -79,7 +79,9 @@ public:
     OutputSource *getOutputSource();
 
 private:
-    int startDemuxing();
+    void startDemuxing();
+
+    void stopDemuxing();
 
     void startDecode();
 

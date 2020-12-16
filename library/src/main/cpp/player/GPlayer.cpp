@@ -99,10 +99,7 @@ void GPlayer::prepare(const std::string& url) {
     memcpy(mUrl, url.c_str(), url.length());
     mUrl[url.length()] = '\0';
 
-    isDemuxing = true;
-    demuxingThread = new LoopThread();
-    demuxingThread->setUpdateFunc(std::bind(&GPlayer::startDemuxing, this));
-    demuxingThread->start();
+    startDemuxing();
 }
 
 void GPlayer::start() {
@@ -134,7 +131,7 @@ void GPlayer::seekTo(uint32_t secondUs) {
 
 void GPlayer::stop() {
     isDemuxing = false;
-    demuxingThread->join();
+    stopDemuxing();
     LOGI(TAG, "CoreFlow : demuxing thread is stopped!");
     stopDecode();
     LOGI(TAG, "CoreFlow : decode threads were stopped!");
@@ -173,9 +170,21 @@ void GPlayer::stopDecode() {
     }
 }
 
-int GPlayer::startDemuxing() {
-    DemuxerHelper *demuxer = new DemuxerHelper();
-    demuxer->start(mUrl, this, inputSource->getFormatInfo());
+void GPlayer::startDemuxing() {
+    auto demuxer = new DemuxerHelper(mUrl, this, inputSource->getFormatInfo());
+    isDemuxing = true;
+    demuxingThread = new LoopThread();
+    demuxingThread->setStartFunc(std::bind(&DemuxerHelper::init, demuxer));
+    demuxingThread->setUpdateFunc(std::bind(&DemuxerHelper::update, demuxer));
+    demuxingThread->setEndFunc(std::bind(&DemuxerHelper::release, demuxer));
+    demuxingThread->start();
+}
+
+void GPlayer::stopDemuxing() {
+    if (demuxingThread && demuxingThread->hasStarted()) {
+        demuxingThread->stop();
+        demuxingThread->join();
+    }
 }
 
 LoopFlag GPlayer::loopWait(int64_t *seekUs) {
