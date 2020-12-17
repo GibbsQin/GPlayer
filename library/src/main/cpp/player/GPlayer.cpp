@@ -56,9 +56,6 @@ GPlayer::~GPlayer() {
         delete decoderHelper;
         decoderHelper = nullptr;
     }
-    if (mUrl) {
-        free(mUrl);
-    }
     playerJni->onMessageCallback(MSG_FROM_STATE, STATE_RELEASED, 0, nullptr, nullptr);
     if (playerJni) {
         delete playerJni;
@@ -69,11 +66,7 @@ GPlayer::~GPlayer() {
 
 void GPlayer::prepare(const std::string &url) {
     LOGI(TAG, "CoreFlow : prepare %s", url.c_str());
-    mUrl = static_cast<char *>(malloc(url.length() + 1));
-    memcpy(mUrl, url.c_str(), url.length());
-    mUrl[url.length()] = '\0';
-
-    startDemuxing();
+    startDemuxing(url);
 }
 
 void GPlayer::start() {
@@ -106,6 +99,14 @@ void GPlayer::stop() {
 
 void GPlayer::setFlags(uint32_t flags) {
     mFlags = flags;
+}
+
+PacketSource *GPlayer::getInputSource() {
+    return inputSource;
+}
+
+FrameSource *GPlayer::getOutputSource() {
+    return outputSource;
 }
 
 void GPlayer::startMessageLoop() {
@@ -142,6 +143,25 @@ int GPlayer::processMessage(int arg1, long arg2) {
     return 0;
 }
 
+void GPlayer::startDemuxing(const std::string &url) {
+    demuxerHelper = new DemuxerHelper(url, inputSource, messageQueue);
+    demuxerThread = new LoopThread(MAX_BUFFER_SIZE);
+    demuxerThread->setStartFunc(std::bind(&DemuxerHelper::init, demuxerHelper));
+    demuxerThread->setUpdateFunc(std::bind(&DemuxerHelper::update, demuxerHelper,
+                                           std::placeholders::_1, std::placeholders::_2));
+    demuxerThread->setEndFunc(std::bind(&DemuxerHelper::release, demuxerHelper));
+    demuxerThread->start();
+}
+
+void GPlayer::stopDemuxing() {
+    if (demuxerThread && demuxerThread->hasStarted()) {
+        demuxerThread->stop();
+        demuxerThread->join();
+    }
+    delete demuxerHelper;
+    demuxerHelper = nullptr;
+}
+
 void GPlayer::startDecode() {
     LOGI(TAG, "CoreFlow : startDecode");
     int mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
@@ -176,31 +196,4 @@ void GPlayer::stopDecode() {
     decoderHelper->onRelease();
     delete decoderHelper;
     decoderHelper = nullptr;
-}
-
-void GPlayer::startDemuxing() {
-    demuxerHelper = new DemuxerHelper(mUrl, inputSource, messageQueue);
-    demuxerThread = new LoopThread(MAX_BUFFER_SIZE);
-    demuxerThread->setStartFunc(std::bind(&DemuxerHelper::init, demuxerHelper));
-    demuxerThread->setUpdateFunc(std::bind(&DemuxerHelper::update, demuxerHelper,
-            std::placeholders::_1, std::placeholders::_2));
-    demuxerThread->setEndFunc(std::bind(&DemuxerHelper::release, demuxerHelper));
-    demuxerThread->start();
-}
-
-void GPlayer::stopDemuxing() {
-    if (demuxerThread && demuxerThread->hasStarted()) {
-        demuxerThread->stop();
-        demuxerThread->join();
-    }
-    delete demuxerHelper;
-    demuxerHelper = nullptr;
-}
-
-PacketSource *GPlayer::getInputSource() {
-    return inputSource;
-}
-
-FrameSource *GPlayer::getOutputSource() {
-    return outputSource;
 }

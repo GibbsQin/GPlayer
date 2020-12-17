@@ -9,8 +9,6 @@ extern "C"
 
 #include "Codec.h"
 
-#define TAG "FfmpegAudioDecoder"
-
 class FfmpegAudioDecoder : public AudioDecoder {
 public:
     FfmpegAudioDecoder();

@@ -5,17 +5,13 @@
 #ifndef GPLAYER_GPLAYER_H
 #define GPLAYER_GPLAYER_H
 
-#include <codec/DecoderHelper.h>
+#include <player/DecoderHelper.h>
 #include <player/GPlayerJni.h>
-#include <demuxing/DemuxerHelper.h>
+#include <player/DemuxerHelper.h>
 #include "LoopThread.h"
 #include "PacketSource.h"
 #include "FrameSource.h"
 #include "MessageQueue.h"
-
-extern "C" {
-#include <demuxing/demuxing.h>
-}
 
 #define AV_FLAG_SOURCE_MEDIA_CODEC 0x00000002
 
@@ -55,7 +51,7 @@ private:
 
     int processMessage(int arg1, long arg2);
 
-    void startDemuxing();
+    void startDemuxing(const std::string &url);
 
     void stopDemuxing();
 
@@ -69,7 +65,6 @@ private:
     GPlayerJni *playerJni;
 
 private:
-    char *mUrl{};
     uint32_t mFlags;
     LoopThread *audioDecodeThread;
     LoopThread *videoDecodeThread;

@@ -9,7 +9,6 @@
 
 extern "C" {
 #include <demuxing/avformat_def.h>
-#include <demuxing/demuxing.h>
 #include "../codec/ffmpeg/libavcodec/avcodec.h"
 }
 

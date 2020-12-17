@@ -15,7 +15,9 @@ extern "C" {
 
 class DemuxerHelper {
 public:
-    DemuxerHelper(char *url, PacketSource *input, MessageQueue *messageQueue);
+    DemuxerHelper(const std::string &url, PacketSource *input, MessageQueue *messageQueue);
+
+    ~DemuxerHelper();
 
     void init();
 
@@ -28,7 +30,6 @@ public:
 private:
     char *filename;
     PacketSource *inputSource;
-    FormatInfo *formatInfo;
     MessageQueue *messageQueue;
 
     AVFormatContext *ifmt_ctx = nullptr;
@@ -38,7 +39,7 @@ private:
 
     int needVideoStreamFilter = 0;
     int needAudioStreamFilter = 0;
-    ADTSContext mADTSContext;
+    ADTSContext mADTSContext{};
     unsigned char mADTSHeader[ADTS_HEADER_SIZE] = {0};
     AVBSFContext *video_abs_ctx = nullptr;
     const AVBitStreamFilter *video_abs_filter = nullptr;

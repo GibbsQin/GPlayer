@@ -4,12 +4,6 @@
 #include "../codec/ffmpeg/libavcodec/avcodec.h"
 #include "../codec/ffmpeg/libavformat/avformat.h"
 
-typedef enum LoopFlag {
-    LOOP,
-    BREAK,
-    CONTINUE,
-} LoopFlag;
-
 typedef struct FormatInfo {
     AVCodecParameters *audcodecpar;
     AVCodecParameters *vidcodecpar;
@@ -18,26 +12,6 @@ typedef struct FormatInfo {
     int vidrotate;
     int vidframerate;
 } FormatInfo;
-
-typedef struct FfmpegCallback {
-    void (*av_format_init)(int channel, FormatInfo *formatInfo);
-
-    void (*av_format_extradata_audio)(int channel, AVFormatContext *ifmt_ctx, uint8_t *pInputBuf,
-                                      uint32_t dwInputDataSize);
-
-    void (*av_format_extradata_video)(int channel, AVFormatContext *ifmt_ctx, uint8_t *pInputBuf,
-                                      uint32_t dwInputDataSize);
-
-    uint32_t (*av_format_feed_audio)(int channel, AVFormatContext *ifmt_ctx, AVPacket *packet);
-
-    uint32_t (*av_format_feed_video)(int channel, AVFormatContext *ifmt_ctx, AVPacket *packet);
-
-    void (*av_format_destroy)(int channel, AVFormatContext *ifmt_ctx);
-
-    void (*av_format_error)(int channel, int code, char *msg);
-
-    LoopFlag (*av_format_loop_wait)(int channel, int64_t *seekUs);
-} FfmpegCallback;
 
 typedef enum CODEC_TYPE {
     CODEC_START              = 0,

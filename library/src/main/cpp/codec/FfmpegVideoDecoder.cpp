@@ -1,6 +1,8 @@
 #include "base/Log.h"
 #include "FfmpegVideoDecoder.h"
 
+#define TAG "FfmpegVideoDecoder"
+
 FfmpegVideoDecoder::FfmpegVideoDecoder() = default;
 
 FfmpegVideoDecoder::~FfmpegVideoDecoder() = default;

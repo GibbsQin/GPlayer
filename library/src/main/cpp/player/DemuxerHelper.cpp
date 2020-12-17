@@ -3,7 +3,7 @@
 //
 
 #include "DemuxerHelper.h"
-#include "../base/Log.h"
+#include "base/Log.h"
 
 #define TAG "DemuxerHelper"
 
@@ -17,11 +17,18 @@ static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, co
          pkt->size);
 }
 
-DemuxerHelper::DemuxerHelper(char *url, PacketSource *input, MessageQueue *messageQueue) {
-    filename = url;
+DemuxerHelper::DemuxerHelper(const std::string &url, PacketSource *input, MessageQueue *messageQueue) {
+    filename = static_cast<char *>(malloc(url.length() + 1));
+    memcpy(filename, url.c_str(), url.length());
+    filename[url.length()] = '\0';
     inputSource = input;
-    formatInfo = inputSource->getFormatInfo();
     this->messageQueue = messageQueue;
+}
+
+DemuxerHelper::~DemuxerHelper() {
+    if (filename) {
+        free(filename);
+    }
 }
 
 void DemuxerHelper::init() {
@@ -43,6 +50,7 @@ void DemuxerHelper::init() {
 
     uint32_t stream_mapping_size = ifmt_ctx->nb_streams;
 
+    FormatInfo *formatInfo = inputSource->getFormatInfo();
     for (int i = 0; i < stream_mapping_size; i++) {
         AVStream *in_stream = ifmt_ctx->streams[i];
         AVCodecParameters *in_codecpar = in_stream->codecpar;

@@ -3,6 +3,10 @@
 
 #define TAG "InputSource"
 
+static uint64_t ffmpeg_pts2timeus(AVRational time_base, int64_t pts) {
+    return (uint64_t) (av_q2d(time_base) * pts * 1000000);
+}
+
 PacketSource::PacketSource() {
     LOGI(TAG, "CoreFlow : create InputSource");
     mFormatInfo = static_cast<FormatInfo *>(malloc(sizeof(FormatInfo)));
