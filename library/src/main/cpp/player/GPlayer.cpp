@@ -180,7 +180,7 @@ void GPlayer::stopDecode() {
 
 void GPlayer::startDemuxing() {
     demuxerHelper = new DemuxerHelper(mUrl, inputSource, messageQueue);
-    demuxerThread = new LoopThread(30);
+    demuxerThread = new LoopThread(MAX_BUFFER_SIZE);
     demuxerThread->setStartFunc(std::bind(&DemuxerHelper::init, demuxerHelper));
     demuxerThread->setUpdateFunc(std::bind(&DemuxerHelper::update, demuxerHelper,
             std::placeholders::_1, std::placeholders::_2));

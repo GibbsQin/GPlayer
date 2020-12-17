@@ -18,7 +18,7 @@ GPlayerJni::GPlayerJni(jobject obj) {
     playerJObj = env->NewGlobalRef(obj);
     jclass sourceClass = env->GetObjectClass(obj);
     onMessageCallbackMethod = env->GetMethodID(sourceClass, "onMessageCallback",
-                                               "(IIILjava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V");
+                                               "(IIJLjava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V");
 }
 
 GPlayerJni::~GPlayerJni() {
@@ -36,12 +36,12 @@ GPlayerJni::~GPlayerJni() {
 }
 
 void
-GPlayerJni::onMessageCallback(int msgId, int arg1, int arg2, char *msg1, char *msg2) {
+GPlayerJni::onMessageCallback(int msgId, int arg1, long arg2, char *msg1, char *msg2) {
     onMessageCallback(msgId, arg1, arg2, msg1, msg2, (jobject)nullptr);
 }
 
 void
-GPlayerJni::onMessageCallback(int msgId, int arg1, int arg2, char *msg1, char *msg2, jobject obj) {
+GPlayerJni::onMessageCallback(int msgId, int arg1, long arg2, char *msg1, char *msg2, jobject obj) {
     if (playerJObj != nullptr && onMessageCallbackMethod != nullptr) {
         bool attach = JniHelper::attachCurrentThread();
 

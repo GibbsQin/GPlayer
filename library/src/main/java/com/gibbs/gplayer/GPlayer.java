@@ -346,7 +346,7 @@ public class GPlayer implements IGPlayer {
     }
 
     //call by jni
-    public void onMessageCallback(final int what, final int arg1, final int arg2, final String msg1,
+    public void onMessageCallback(final int what, final int arg1, final long arg2, final String msg1,
                                   final String msg2, final Object object) {
         mHandler.post(new Runnable() {
             @Override
@@ -362,7 +362,7 @@ public class GPlayer implements IGPlayer {
                         handleTimeMsg(arg1);
                         break;
                     case MSG_TYPE_SIZE:
-                        handleSizeMsg(arg1, arg2);
+                        handleSizeMsg(arg1, (int) arg2);
                         break;
                 }
             }

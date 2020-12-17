@@ -19,9 +19,9 @@ public:
 
     ~GPlayerJni();
 
-    void onMessageCallback(int msgId, int arg1, int arg2, char* msg1, char* msg2);
+    void onMessageCallback(int msgId, int arg1, long arg2, char* msg1, char* msg2);
 
-    void onMessageCallback(int msgId, int arg1, int arg2, char* msg1, char* msg2, jobject obj);
+    void onMessageCallback(int msgId, int arg1, long arg2, char* msg1, char* msg2, jobject obj);
 
 private:
     jobject playerJObj{};
