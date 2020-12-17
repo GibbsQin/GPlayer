@@ -3,6 +3,12 @@
 #include <utility>
 
 LoopThread::LoopThread() {
+    this->maxValue = MAX_VALUE;
+    setFunction(std::bind(&LoopThread::handleRunning, this));
+}
+
+LoopThread::LoopThread(int maxSize) {
+    this->maxValue = maxSize;
     setFunction(std::bind(&LoopThread::handleRunning, this));
 }
 
@@ -27,7 +33,7 @@ void LoopThread::handleRunning() {
         int count = updateFunc(arg1, arg2);
         arg1 = -1;
         arg2 = -1;
-        if (count > MAX_OUTPUT_FRAME_SIZE) {
+        if (count > maxValue) {
             sleepTimeMs += SLEEP_TIME_GAP;
         } else {
             sleepTimeMs = 0;

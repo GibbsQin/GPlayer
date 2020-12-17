@@ -99,6 +99,7 @@ int DecoderHelper::processAudioBuffer(int type, long extra) {
         inputSource->popAudPkt(inPacket);
     }
 
+    messageQueue->pushMessage(MSG_FROM_SIZE, MSG_COMMON_AUDIO_FRAME_SIZE, mediaSize);
     return mediaSize;
 }
 
@@ -119,6 +120,7 @@ int DecoderHelper::processVideoBuffer(int type, long extra) {
         inputSource->popVidPkt(inPacket);
     }
 
+    messageQueue->pushMessage(MSG_FROM_SIZE, MSG_COMMON_VIDEO_FRAME_SIZE, mediaSize);
     return mediaSize;
 }
 

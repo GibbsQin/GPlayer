@@ -114,11 +114,12 @@ void DemuxerHelper::init() {
     }
     LOGI(TAG, "CoreFlow : needVideoStreamFilter %d, needAudioStreamFilter %d\n",
          needVideoStreamFilter, needAudioStreamFilter);
+    messageQueue->pushMessage(MSG_FROM_STATE, STATE_PREPARED, 0);
 }
 
 int DemuxerHelper::update(int type, long extra) {
     int64_t seekUs = extra;
-    if (seekUs != -1) {
+    if (seekUs > 0) {
         LOGI(TAG, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekUs);
         av_seek_frame(ifmt_ctx, -1, seekUs * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
     }
@@ -127,6 +128,7 @@ int DemuxerHelper::update(int type, long extra) {
     int ret = av_read_frame(ifmt_ctx, &pkt);
     if (ret < 0) {
         notifyError(ret);
+        av_packet_unref(&pkt);
         return 0;
     }
 
@@ -135,8 +137,9 @@ int DemuxerHelper::update(int type, long extra) {
         return 0;
     }
 
+    int size = 0;
     if (pkt.stream_index == audio_stream_index) {
-//        print_packet(ifmt_ctx, &pkt, "audio");
+        print_packet(ifmt_ctx, &pkt, "audio");
         if (needAudioStreamFilter) {
             insert_adts_head(&mADTSContext, mADTSHeader, static_cast<uint32_t>(pkt.size));
             AVPacket *audPkt = av_packet_alloc();
@@ -145,28 +148,30 @@ int DemuxerHelper::update(int type, long extra) {
             audPkt->data = static_cast<uint8_t *>(av_malloc(static_cast<size_t>(audPkt->size)));
             memcpy(audPkt->data, mADTSHeader, ADTS_HEADER_SIZE);
             memcpy(audPkt->data + ADTS_HEADER_SIZE, pkt.data, (size_t) pkt.size);
-            inputSource->queueAudPkt(audPkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            size = inputSource->queueAudPkt(audPkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
             av_packet_free(&audPkt);
         } else {
-            inputSource->queueAudPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            size = inputSource->queueAudPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
         }
+        messageQueue->pushMessage(MSG_FROM_SIZE, MSG_COMMON_AUDIO_PACKET_SIZE, size);
     } else if (pkt.stream_index == video_stream_index) {
-//        print_packet(ifmt_ctx, &pkt, "video");
+        print_packet(ifmt_ctx, &pkt, "video");
         if (needVideoStreamFilter) {
             av_bsf_send_packet(video_abs_ctx, &pkt);
             while (av_bsf_receive_packet(video_abs_ctx, &pkt) == 0) {
                 if (pkt.size <= 0) {
                     continue;
                 }
-                inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+                size = inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
             }
         } else {
-            inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            size = inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
         }
+        messageQueue->pushMessage(MSG_FROM_SIZE, MSG_COMMON_VIDEO_PACKET_SIZE, size);
     }
 
     av_packet_unref(&pkt);
-    return 0;
+    return size;
 }
 
 void DemuxerHelper::release() {
@@ -182,5 +187,5 @@ void DemuxerHelper::release() {
 }
 
 void DemuxerHelper::notifyError(int ret) {
-    messageQueue->pushMessage(MSG_FROM_DEMUXING, MSG_DEMUXING_ERROR, ret);
+    messageQueue->pushMessage(MSG_FROM_ERROR, MSG_DEMUXING_ERROR, ret);
 }

@@ -4,7 +4,7 @@
 #include "XThread.h"
 #include <functional>
 
-#define MAX_OUTPUT_FRAME_SIZE 5
+#define MAX_VALUE 5
 #define SLEEP_TIME_GAP 10
 #define MAX_SLEEP_TIME 50
 
@@ -13,6 +13,8 @@ using namespace std;
 class LoopThread : public XThread {
 public:
     LoopThread();
+
+    LoopThread(int maxSize);
 
 	virtual ~LoopThread();
 
@@ -30,14 +32,15 @@ protected:
     void handleRunning();
 
 private:
+    int maxValue;
     int64_t sleepTimeMs;
 	std::function<void(void)> startFunc;
 	std::function<int(int, long)> updateFunc;
     std::function<void(void)> endFunc;
     bool isStarted = false;
 
-    int arg1;
-    long arg2;
+    int arg1 = -1;
+    long arg2 = -1;
 };
 
 #endif //GPLAYER_LOOPTHREAD_H
