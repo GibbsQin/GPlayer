@@ -70,13 +70,13 @@ public class MediaSourceImp implements MediaSource {
         }
     }
 
-    private int mChannelId;
+    private long mNativePlayer;
     private MediaData mTopAudioFrame = null;
     private MediaData mTopVideoFrame = null;
     private AudioSink mAudioSink;
 
-    public MediaSourceImp(int channel) {
-        mChannelId = channel;
+    public MediaSourceImp(long nativePlayer) {
+        mNativePlayer = nativePlayer;
     }
 
     @Override
@@ -95,7 +95,7 @@ public class MediaSourceImp implements MediaSource {
     @Override
     public MediaData readAudioSource() {
         if (mTopAudioFrame == null) {
-            mTopAudioFrame = readAudioSource(mChannelId);
+            mTopAudioFrame = readAudioSource(mNativePlayer);
         }
         return mTopAudioFrame;
     }
@@ -103,7 +103,7 @@ public class MediaSourceImp implements MediaSource {
     @Override
     public MediaData readVideoSource() {
         if (mTopVideoFrame == null) {
-            mTopVideoFrame = readVideoSource(mChannelId);
+            mTopVideoFrame = readVideoSource(mNativePlayer);
         }
         if (mTopVideoFrame == null) {
             try {
@@ -138,18 +138,18 @@ public class MediaSourceImp implements MediaSource {
     public void removeFirstAudioPackage() {
         mAudioSink.queueSample(mTopAudioFrame.pts);
         mTopAudioFrame = null;
-        removeFirstAudioPackage(mChannelId);
+        removeFirstAudioPackage(mNativePlayer);
     }
 
     @Override
     public void removeFirstVideoPackage() {
         mTopVideoFrame = null;
-        removeFirstVideoPackage(mChannelId);
+        removeFirstVideoPackage(mNativePlayer);
     }
 
     @Override
     public void flushBuffer() {
-        flushBuffer(mChannelId);
+        flushBuffer(mNativePlayer);
         mAudioSink = null;
         mTopVideoFrame = null;
         mTopAudioFrame = null;
@@ -157,32 +157,32 @@ public class MediaSourceImp implements MediaSource {
 
     @Override
     public int getAudioBufferSize() {
-        return getAudioBufferSize(mChannelId);
+        return getAudioBufferSize(mNativePlayer);
     }
 
     @Override
     public int getVideoBufferSize() {
-        return getVideoBufferSize(mChannelId);
+        return getVideoBufferSize(mNativePlayer);
     }
 
     @Override
     public int getFrameRate() {
-        return getFrameRate(mChannelId);
+        return getFrameRate(mNativePlayer);
     }
 
     @Override
     public int getDuration() {
-        return getDuration(mChannelId);
+        return getDuration(mNativePlayer);
     }
 
     @Override
     public int getSampleRate() {
-        return getSampleRate(mChannelId);
+        return getSampleRate(mNativePlayer);
     }
 
     @Override
     public int getSampleFormat() {
-        int sfmt = getSampleFormat(mChannelId);
+        int sfmt = getSampleFormat(mNativePlayer);
         int sampleFormat = AudioFormat.ENCODING_PCM_16BIT;
         switch (sfmt) {
             case FFMPEG_SAMPLE_FMT_U8:
@@ -201,7 +201,7 @@ public class MediaSourceImp implements MediaSource {
 
     @Override
     public long getChannelLayout() {
-        int channels = getChannels(mChannelId);
+        int channels = getChannels(mNativePlayer);
         int chanelLayout;
         switch (channels) {
             case 1:
@@ -227,58 +227,58 @@ public class MediaSourceImp implements MediaSource {
 
     @Override
     public int getChannels() {
-        return getChannels(mChannelId);
+        return getChannels(mNativePlayer);
     }
 
     @Override
     public int getWidth() {
-        return getWidth(mChannelId);
+        return getWidth(mNativePlayer);
     }
 
     @Override
     public int getHeight() {
-        return getHeight(mChannelId);
+        return getHeight(mNativePlayer);
     }
 
     @Override
     public int getRotate() {
-        return getRotate(mChannelId);
+        return getRotate(mNativePlayer);
     }
 
     @Override
     public int getBytesPerFrame() {
-        return getBytesPerFrame(mChannelId);
+        return getBytesPerFrame(mNativePlayer);
     }
 
-    private native MediaData readAudioSource(int channelId);
+    private native MediaData readAudioSource(long nativePlayer);
 
-    private native MediaData readVideoSource(int channelId);
+    private native MediaData readVideoSource(long nativePlayer);
 
-    private native void removeFirstAudioPackage(int channelId);
+    private native void removeFirstAudioPackage(long nativePlayer);
 
-    private native void removeFirstVideoPackage(int channelId);
+    private native void removeFirstVideoPackage(long nativePlayer);
 
-    private native void flushBuffer(int channelId);
+    private native void flushBuffer(long nativePlayer);
 
-    private native int getAudioBufferSize(int channelId);
+    private native int getAudioBufferSize(long nativePlayer);
 
-    private native int getVideoBufferSize(int channelId);
+    private native int getVideoBufferSize(long nativePlayer);
 
-    private native int getFrameRate(int channelId);
+    private native int getFrameRate(long nativePlayer);
 
-    private native int getDuration(int channelId);
+    private native int getDuration(long nativePlayer);
 
-    private native int getSampleRate(int channelId);
+    private native int getSampleRate(long nativePlayer);
 
-    private native int getSampleFormat(int channelId);
+    private native int getSampleFormat(long nativePlayer);
 
-    private native int getChannels(int channelId);
+    private native int getChannels(long nativePlayer);
 
-    private native int getWidth(int channelId);
+    private native int getWidth(long nativePlayer);
 
-    private native int getHeight(int channelId);
+    private native int getHeight(long nativePlayer);
 
-    private native int getRotate(int channelId);
+    private native int getRotate(long nativePlayer);
 
-    private native int getBytesPerFrame(int channelId);
+    private native int getBytesPerFrame(long nativePlayer);
 }

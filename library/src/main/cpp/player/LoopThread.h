@@ -18,11 +18,13 @@ public:
 
     void setStartFunc(std::function<void(void)> func);
 
-    void setUpdateFunc(std::function<int(void)> func);
+    void setUpdateFunc(std::function<int(int, long)> func);
 
     void setEndFunc(std::function<void(void)> func);
 
     bool hasStarted();
+
+    void setArgs(int arg1, long arg2);
 
 protected:
     void handleRunning();
@@ -30,9 +32,12 @@ protected:
 private:
     int64_t sleepTimeMs;
 	std::function<void(void)> startFunc;
-	std::function<int(void)> updateFunc;
+	std::function<int(int, long)> updateFunc;
     std::function<void(void)> endFunc;
     bool isStarted = false;
+
+    int arg1;
+    long arg2;
 };
 
 #endif //GPLAYER_LOOPTHREAD_H

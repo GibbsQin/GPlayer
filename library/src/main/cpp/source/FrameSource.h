@@ -1,5 +1,5 @@
-#ifndef GPLAYER_OUTPUTSOURCE_H
-#define GPLAYER_OUTPUTSOURCE_H
+#ifndef GPLAYER_FRAMESOURCE_H
+#define GPLAYER_FRAMESOURCE_H
 
 
 #include <jni.h>
@@ -13,12 +13,12 @@ extern "C" {
 
 #define AV_SOURCE_EMPTY -2
 
-class OutputSource {
+class FrameSource {
 
 public:
-    OutputSource();
+    FrameSource();
 
-    ~OutputSource();
+    ~FrameSource();
 
 public:
     uint32_t onReceiveAudio(MediaData *inPacket);
@@ -53,4 +53,4 @@ private:
 };
 
 
-#endif //GPLAYER_OUTPUTSOURCE_H
+#endif //GPLAYER_FRAMESOURCE_H

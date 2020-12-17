@@ -5,7 +5,7 @@
 #include "VideoRenderer.h"
 #include "../media/MediaData.h"
 
-VideoRenderer::VideoRenderer(OutputSource *source) {
+VideoRenderer::VideoRenderer(FrameSource *source) {
     glesProgram = new YuvGlesProgram();
     mediaSource = source;
 }

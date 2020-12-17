@@ -1,5 +1,5 @@
-#ifndef GPLAYER_INPUTSOURCE_H
-#define GPLAYER_INPUTSOURCE_H
+#ifndef GPLAYER_PACKETSOURCE_H
+#define GPLAYER_PACKETSOURCE_H
 
 
 #include <jni.h>
@@ -15,12 +15,12 @@ extern "C" {
 
 #define AV_SOURCE_EMPTY -2
 
-class InputSource {
+class PacketSource {
 
 public:
-    InputSource();
+    PacketSource();
 
-    ~InputSource();
+    ~PacketSource();
 
 public:
     void queueInfo(FormatInfo *formatInfo);
@@ -64,4 +64,4 @@ private:
 };
 
 
-#endif //GPLAYER_INPUTSOURCE_H
+#endif //GPLAYER_PACKETSOURCE_H

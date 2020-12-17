@@ -37,7 +37,7 @@ public class GPlayer implements IGPlayer {
         IDLE, PREPARING, PREPARED, PAUSED, PLAYING, STOPPING, STOPPED, RELEASED
     }
 
-    private int mChannelId = hashCode();
+    private long mNativePlayer;
     private String mUrl;
     private MediaSource mMediaSource;
     private AudioPlayThread mAudioPlayThread;
@@ -63,8 +63,8 @@ public class GPlayer implements IGPlayer {
 
     public GPlayer(boolean mediaCodec) {
         LogUtils.i(TAG, "CoreFlow : new GPlayer " + mediaCodec);
-        mMediaSource = new MediaSourceImp(mChannelId);
-        nInit(mChannelId, mediaCodec ? USE_MEDIA_CODEC : 0, this);
+        mNativePlayer = nInit(mediaCodec ? USE_MEDIA_CODEC : 0, this);
+        mMediaSource = new MediaSourceImp(mNativePlayer);
     }
 
     @Override
@@ -92,14 +92,14 @@ public class GPlayer implements IGPlayer {
         }
         LogUtils.i(TAG, "CoreFlow : prepare " + mUrl);
         setPlayState(State.PREPARING);
-        nPrepare(mChannelId, mUrl);
+        nPrepare(mNativePlayer, mUrl);
     }
 
     @Override
     public synchronized void start() {
         if (mPlayState == State.PREPARED) {
             LogUtils.i(TAG, "CoreFlow : start");
-            nStart(mChannelId);
+            nStart(mNativePlayer);
 
             mIsProcessingSource = true;
             mAudioPlayThread = new AudioPlayThread();
@@ -110,7 +110,7 @@ public class GPlayer implements IGPlayer {
             mVideoPlayThread.start();
         } else if (mPlayState == State.PAUSED) {
             LogUtils.i(TAG, "CoreFlow : resume");
-            nResume(mChannelId);
+            nResume(mNativePlayer);
             setPlayState(GPlayer.State.PLAYING);
         }
     }
@@ -123,21 +123,21 @@ public class GPlayer implements IGPlayer {
             return;
         }
         setPlayState(State.STOPPING);
-        nStop(mChannelId, true);
+        nStop(mNativePlayer, true);
     }
 
     @Override
     public synchronized void pause() {
         LogUtils.i(TAG, "CoreFlow : pause");
-        nPause(mChannelId);
+        nPause(mNativePlayer);
         setPlayState(State.PAUSED);
     }
 
     @Override
     public synchronized void release() {
         if (mPlayState == State.STOPPED) {
-            LogUtils.i(TAG, "CoreFlow : release channelId " + mChannelId);
-            nRelease(mChannelId);
+            LogUtils.i(TAG, "CoreFlow : release channelId " + mNativePlayer);
+            nRelease(mNativePlayer);
         } else {
             LogUtils.i(TAG, "CoreFlow : target to release");
             mTargetState = State.RELEASED;
@@ -147,7 +147,7 @@ public class GPlayer implements IGPlayer {
     @Override
     public synchronized void seekTo(int secondMs) {
         LogUtils.i(TAG, "CoreFlow : seekTo " + secondMs);
-        nSeekTo(mChannelId, secondMs);
+        nSeekTo(mNativePlayer, secondMs);
     }
 
     @Override
@@ -157,7 +157,7 @@ public class GPlayer implements IGPlayer {
 
     @Override
     public void setFlags(int flags) {
-        nSetFlags(mChannelId, flags);
+        nSetFlags(mNativePlayer, flags);
     }
 
     @Override
@@ -406,28 +406,28 @@ public class GPlayer implements IGPlayer {
     }
 
     // 创建GPlayer.c实例
-    private native void nInit(int channelId, int flag, GPlayer player);
+    private native long nInit(int flag, GPlayer player);
 
     // 开始解封装
-    private native void nPrepare(int channelId, String url);
+    private native void nPrepare(long nativePlayer, String url);
 
     // 开始解码
-    private native void nStart(int channelId);
+    private native void nStart(long nativePlayer);
 
     // 暂停解码和解封装
-    private native void nPause(int channelId);
+    private native void nPause(long nativePlayer);
 
     // 恢复解码和解封装
-    private native void nResume(int channelId);
+    private native void nResume(long nativePlayer);
 
     // seek
-    private native void nSeekTo(int channelId, int secondMs);
+    private native void nSeekTo(long nativePlayer, int secondMs);
 
     // 停止解封装和解码
-    private native void nStop(int channelId, boolean force);
+    private native void nStop(long nativePlayer, boolean force);
 
     // 释放GPlayer.c实例
-    private native void nRelease(int channelId);
+    private native void nRelease(long nativePlayer);
 
-    private native void nSetFlags(int channelId, int flags);
+    private native void nSetFlags(long nativePlayer, int flags);
 }

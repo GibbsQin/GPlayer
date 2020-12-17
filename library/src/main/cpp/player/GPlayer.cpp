@@ -3,12 +3,10 @@
 //
 
 #include "GPlayer.h"
-#include "MediaPipe.h"
 #include "media/MediaData.h"
 #include <base/Log.h>
 #include <cstdint>
 #include <unistd.h>
-#include <demuxing/DemuxerHelper.h>
 
 extern "C" {
 #include <demuxing/avformat_def.h>
@@ -16,22 +14,21 @@ extern "C" {
 
 #define TAG "GPlayerC"
 
-GPlayer::GPlayer(int channelId, uint32_t flag, jobject obj) {
-    outputSource = new OutputSource();
-    inputSource = new InputSource();
+GPlayer::GPlayer(uint32_t flag, jobject obj) {
+    outputSource = new FrameSource();
+    inputSource = new PacketSource();
     playerJni = new GPlayerJni(obj);
+    messageQueue = new MessageQueue();
     audioDecodeThread = nullptr;
     videoDecodeThread = nullptr;
-    demuxingThread = nullptr;
+    demuxerThread = nullptr;
     mFlags = flag;
-    LOGI(TAG, "CoreFlow : start demuxing channel %d, flag %d", mChannelId, mFlags);
-    mediaCodecFlag = (flag & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
-    decodeHelper = new DecodeHelper(mediaCodecFlag);
-    mChannelId = channelId;
-    mIsPausing = false;
+    startMessageLoop();
+    LOGI(TAG, "CoreFlow : start demuxing flag %d", mFlags);
 }
 
 GPlayer::~GPlayer() {
+    stopMessageLoop();
     if (audioDecodeThread) {
         delete audioDecodeThread;
         audioDecodeThread = nullptr;
@@ -40,9 +37,13 @@ GPlayer::~GPlayer() {
         delete videoDecodeThread;
         videoDecodeThread = nullptr;
     }
-    if (demuxingThread) {
-        delete demuxingThread;
-        demuxingThread = nullptr;
+    if (demuxerThread) {
+        delete demuxerThread;
+        demuxerThread = nullptr;
+    }
+    if (messageThread) {
+        delete messageThread;
+        messageThread = nullptr;
     }
     if (outputSource) {
         delete outputSource;
@@ -52,14 +53,14 @@ GPlayer::~GPlayer() {
         delete inputSource;
         inputSource = nullptr;
     }
-    if (decodeHelper) {
-        delete decodeHelper;
-        decodeHelper = nullptr;
+    if (decoderHelper) {
+        delete decoderHelper;
+        decoderHelper = nullptr;
     }
     if (mUrl) {
         free(mUrl);
     }
-    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_RELEASED, 0, nullptr, nullptr);
+    playerJni->onMessageCallback(MSG_JAVA_STATE, STATE_RELEASED, 0, nullptr, nullptr);
     if (playerJni) {
         delete playerJni;
         playerJni = nullptr;
@@ -67,34 +68,7 @@ GPlayer::~GPlayer() {
     LOGI(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
-void GPlayer::av_init(FormatInfo *formatInfo) {
-    inputSource->queueInfo(formatInfo);
-    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_PREPARED, 0, nullptr, nullptr, nullptr);
-}
-
-uint32_t GPlayer::av_feed_audio(AVPacket *packet, AVRational time_base) {
-    uint32_t result = inputSource->queueAudPkt(packet, time_base);
-    playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_PACKET, result, nullptr,
-                                 nullptr);
-    return result;
-}
-
-uint32_t GPlayer::av_feed_video(AVPacket *packet, AVRational time_base) {
-    uint32_t result = inputSource->queueVidPkt(packet, time_base);
-    playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_PACKET, result, nullptr,
-                                 nullptr);
-    return result;
-}
-
-void GPlayer::av_destroy() {
-
-}
-
-void GPlayer::av_error(int code, char *msg) {
-    playerJni->onMessageCallback(MSG_TYPE_ERROR, code, 0, msg, nullptr);
-}
-
-void GPlayer::prepare(const std::string& url) {
+void GPlayer::prepare(const std::string &url) {
     mUrl = static_cast<char *>(malloc(url.length() + 1));
     memcpy(mUrl, url.c_str(), url.length());
     mUrl[url.length()] = '\0';
@@ -103,24 +77,15 @@ void GPlayer::prepare(const std::string& url) {
 }
 
 void GPlayer::start() {
-    int ret = decodeHelper->onInit(inputSource->getFormatInfo());
-
-    if (ret < 0) {
-        playerJni->onMessageCallback(MSG_TYPE_ERROR, 1, 0,
-                                     const_cast<char *>("not support this codec"), nullptr);
-        return;
-    }
     startDecode();
 }
 
 void GPlayer::pause() {
-    mIsPausing = true;
     audioDecodeThread->pause();
     videoDecodeThread->pause();
 }
 
 void GPlayer::resume() {
-    mIsPausing = false;
     audioDecodeThread->resume();
     videoDecodeThread->resume();
 }
@@ -130,32 +95,62 @@ void GPlayer::seekTo(uint32_t secondUs) {
 }
 
 void GPlayer::stop() {
-    isDemuxing = false;
     stopDemuxing();
     LOGI(TAG, "CoreFlow : demuxing thread is stopped!");
     stopDecode();
     LOGI(TAG, "CoreFlow : decode threads were stopped!");
-    decodeHelper->onRelease();
     inputSource->flush();
-    playerJni->onMessageCallback(MSG_TYPE_STATE, STATE_STOPPED, 0, nullptr, nullptr);
+    playerJni->onMessageCallback(MSG_JAVA_STATE, STATE_STOPPED, 0, nullptr, nullptr);
 }
 
 void GPlayer::setFlags(uint32_t flags) {
     mFlags = flags;
-    mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
+    int mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
     if (mediaCodecFlag) {
-        decodeHelper->enableMediaCodec();
+        decoderHelper->enableMediaCodec();
     }
+}
+
+void GPlayer::startMessageLoop() {
+    messageThread = new LoopThread();
+    messageThread->setUpdateFunc(std::bind(&GPlayer::processMessage, this,
+                                           std::placeholders::_1, std::placeholders::_2));
+    messageThread->start();
+}
+
+void GPlayer::stopMessageLoop() {
+    if (messageThread && messageThread->hasStarted()) {
+        messageThread->stop();
+        messageThread->join();
+    }
+}
+
+int GPlayer::processMessage(int arg1, long arg2) {
+    Message *message = static_cast<Message *>(malloc(sizeof(Message)));
+    messageQueue->dequeMessage(message);
+    LOGI(TAG, "processMessage %d, %d. %lld", message->from, message->type, message->extra);
+    return 10;
 }
 
 void GPlayer::startDecode() {
     LOGI(TAG, "CoreFlow : startDecode");
+    int mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
+    decoderHelper = new DecoderHelper(inputSource, outputSource, messageQueue, static_cast<bool>(mediaCodecFlag));
+    int ret = decoderHelper->onInit();
+    if (ret < 0) {
+        playerJni->onMessageCallback(MSG_JAVA_ERROR, 1, 0,
+                                     const_cast<char *>("not support this codec"), nullptr);
+        return;
+    }
+
     audioDecodeThread = new LoopThread();
-    audioDecodeThread->setUpdateFunc(std::bind(&GPlayer::processAudioBuffer, this));
+    audioDecodeThread->setUpdateFunc(std::bind(&DecoderHelper::processAudioBuffer, decoderHelper,
+            std::placeholders::_1, std::placeholders::_2));
     audioDecodeThread->start();
 
     videoDecodeThread = new LoopThread();
-    videoDecodeThread->setUpdateFunc(std::bind(&GPlayer::processVideoBuffer, this));
+    videoDecodeThread->setUpdateFunc(std::bind(&DecoderHelper::processVideoBuffer, decoderHelper,
+            std::placeholders::_1, std::placeholders::_2));
     videoDecodeThread->start();
 }
 
@@ -168,90 +163,32 @@ void GPlayer::stopDecode() {
         videoDecodeThread->stop();
         videoDecodeThread->join();
     }
+    decoderHelper->onRelease();
+    decoderHelper = nullptr;
 }
 
 void GPlayer::startDemuxing() {
-    auto demuxer = new DemuxerHelper(mUrl, this, inputSource->getFormatInfo());
-    isDemuxing = true;
-    demuxingThread = new LoopThread();
-    demuxingThread->setStartFunc(std::bind(&DemuxerHelper::init, demuxer));
-    demuxingThread->setUpdateFunc(std::bind(&DemuxerHelper::update, demuxer));
-    demuxingThread->setEndFunc(std::bind(&DemuxerHelper::release, demuxer));
-    demuxingThread->start();
+    demuxerHelper = new DemuxerHelper(mUrl, inputSource, messageQueue);
+    demuxerThread = new LoopThread();
+    demuxerThread->setStartFunc(std::bind(&DemuxerHelper::init, demuxerHelper));
+    demuxerThread->setUpdateFunc(std::bind(&DemuxerHelper::update, demuxerHelper,
+            std::placeholders::_1, std::placeholders::_2));
+    demuxerThread->setEndFunc(std::bind(&DemuxerHelper::release, demuxerHelper));
+    demuxerThread->start();
 }
 
 void GPlayer::stopDemuxing() {
-    if (demuxingThread && demuxingThread->hasStarted()) {
-        demuxingThread->stop();
-        demuxingThread->join();
+    if (demuxerThread && demuxerThread->hasStarted()) {
+        demuxerThread->stop();
+        demuxerThread->join();
     }
+    decoderHelper = nullptr;
 }
 
-LoopFlag GPlayer::loopWait(int64_t *seekUs) {
-    if (isDemuxing) {
-        if (mSeekUs != -1) {
-            *seekUs = mSeekUs;
-            mSeekUs = -1;
-        }
-        uint32_t audioBufferSize = inputSource->getAudSize();
-        uint32_t videoBufferSize = inputSource->getVidSize();
-        if (audioBufferSize < MAX_BUFFER_SIZE && videoBufferSize < MAX_BUFFER_SIZE) {
-            return LOOP;
-        } else {
-            return CONTINUE;
-        }
-    }
-    return BREAK;
-}
-
-int GPlayer::processAudioBuffer() {
-    AVPacket *inPacket = nullptr;
-    int ret = inputSource->dequeAudPkt(&inPacket);
-    if (ret <= 0) {
-        return 0;
-    }
-    int mediaSize = 0;
-    int inputResult = decodeHelper->inputBuffer(inPacket, AV_TYPE_AUDIO);
-    MediaData *outBuffer = nullptr;
-    ret = decodeHelper->outputBuffer(&outBuffer, AV_TYPE_AUDIO);
-    if (ret >= 0) {
-        mediaSize = outputSource->onReceiveAudio(outBuffer);
-        playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_AUDIO_FRAME, mediaSize, nullptr,
-                                     nullptr);
-    }
-    if (inputResult >= 0) {
-        inputSource->popAudPkt(inPacket);
-    }
-
-    return mediaSize;
-}
-
-int GPlayer::processVideoBuffer() {
-    AVPacket *inPacket = nullptr;
-    int ret = inputSource->dequeVidPkt(&inPacket);
-    if (ret <= 0) {
-        return 0;
-    }
-    int mediaSize = 0;
-    int inputResult = decodeHelper->inputBuffer(inPacket, AV_TYPE_VIDEO);
-    MediaData *outBuffer = nullptr;
-    ret = decodeHelper->outputBuffer(&outBuffer, AV_TYPE_VIDEO);
-    if (ret >= 0) {
-        mediaSize = outputSource->onReceiveVideo(outBuffer);
-        playerJni->onMessageCallback(MSG_TYPE_SIZE, MSG_TYPE_SIZE_VIDEO_FRAME, mediaSize, nullptr,
-                                     nullptr);
-    }
-    if (inputResult >= 0) {
-        inputSource->popVidPkt(inPacket);
-    }
-
-    return mediaSize;
-}
-
-InputSource *GPlayer::getInputSource() {
+PacketSource *GPlayer::getInputSource() {
     return inputSource;
 }
 
-OutputSource *GPlayer::getOutputSource() {
+FrameSource *GPlayer::getOutputSource() {
     return outputSource;
 }

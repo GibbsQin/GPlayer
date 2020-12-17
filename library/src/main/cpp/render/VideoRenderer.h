@@ -7,11 +7,11 @@
 
 
 #include "YuvGlesProgram.h"
-#include "../source/OutputSource.h"
+#include "source/FrameSource.h"
 
 class VideoRenderer {
 public:
-    VideoRenderer(OutputSource *source);
+    VideoRenderer(FrameSource *source);
 
     ~VideoRenderer();
 
@@ -22,7 +22,7 @@ public:
     void release();
 
 private:
-    OutputSource *mediaSource;
+    FrameSource *mediaSource;
     YuvGlesProgram *glesProgram;
 };
 

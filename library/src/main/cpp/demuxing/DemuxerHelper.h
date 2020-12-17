@@ -5,7 +5,8 @@
 #ifndef GPLAYER_DEMUXERHELPER_H
 #define GPLAYER_DEMUXERHELPER_H
 
-#include <player/GPlayer.h>
+#include <source/PacketSource.h>
+#include <player/MessageQueue.h>
 
 extern "C" {
 #include "adtsenc.h"
@@ -14,11 +15,11 @@ extern "C" {
 
 class DemuxerHelper {
 public:
-    DemuxerHelper(char *url, GPlayer *p, FormatInfo *info);
+    DemuxerHelper(char *url, PacketSource *input, MessageQueue *messageQueue);
 
     void init();
 
-    int update();
+    int update(int type, long extra);
 
     void release();
 
@@ -26,8 +27,9 @@ public:
 
 private:
     char *filename;
-    GPlayer *player;
+    PacketSource *inputSource;
     FormatInfo *formatInfo;
+    MessageQueue *messageQueue;
 
     AVFormatContext *ifmt_ctx = nullptr;
     int audio_stream_index = -1;

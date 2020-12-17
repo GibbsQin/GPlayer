@@ -1,20 +1,20 @@
 #include <media/MediaDataJni.h>
 #include <base/Log.h>
 #include <media/MediaHelper.h>
-#include "OutputSource.h"
+#include "FrameSource.h"
 
 #define TAG "OutputSource"
 
-OutputSource::OutputSource() {
+FrameSource::FrameSource() {
     LOGI(TAG, "CoreFlow : create OutputSource");
 }
 
-OutputSource::~OutputSource() {
+FrameSource::~FrameSource() {
     LOGI(TAG, "CoreFlow : OutputSource destroyed %d %d",
          audioPacketQueue.size(), videoPacketQueue.size());
 }
 
-uint32_t OutputSource::onReceiveAudio(MediaData *inPacket) {
+uint32_t FrameSource::onReceiveAudio(MediaData *inPacket) {
     auto desBuffer = new MediaData();
     MediaHelper::copy(inPacket, desBuffer);
     audioPacketQueue.push_back(desBuffer);
@@ -23,7 +23,7 @@ uint32_t OutputSource::onReceiveAudio(MediaData *inPacket) {
     return queueSize;
 }
 
-uint32_t OutputSource::onReceiveVideo(MediaData *inPacket) {
+uint32_t FrameSource::onReceiveVideo(MediaData *inPacket) {
     auto desBuffer = new MediaData();
     MediaHelper::copy(inPacket, desBuffer);
     videoPacketQueue.push_back(desBuffer);
@@ -32,7 +32,7 @@ uint32_t OutputSource::onReceiveVideo(MediaData *inPacket) {
     return queueSize;
 }
 
-int OutputSource::readAudioBuffer(MediaData **avData) {
+int FrameSource::readAudioBuffer(MediaData **avData) {
     if (audioPacketQueue.size() <= 0) {
         return AV_SOURCE_EMPTY;
     }
@@ -45,7 +45,7 @@ int OutputSource::readAudioBuffer(MediaData **avData) {
     return static_cast<int>(audioPacketQueue.size());
 }
 
-int OutputSource::readVideoBuffer(MediaData **avData) {
+int FrameSource::readVideoBuffer(MediaData **avData) {
     if (videoPacketQueue.size() <= 0) {
         return AV_SOURCE_EMPTY;
     }
@@ -58,7 +58,7 @@ int OutputSource::readVideoBuffer(MediaData **avData) {
     return static_cast<int>(videoPacketQueue.size());
 }
 
-void OutputSource::popAudioBuffer() {
+void FrameSource::popAudioBuffer() {
     mAudioLock.lock();
     if (audioPacketQueue.size() > 0) {
         MediaData *mediaData = audioPacketQueue.front();
@@ -69,7 +69,7 @@ void OutputSource::popAudioBuffer() {
     mAudioLock.unlock();
 }
 
-void OutputSource::popVideoBuffer() {
+void FrameSource::popVideoBuffer() {
     mVideoLock.lock();
     if (videoPacketQueue.size() > 0) {
         MediaData *mediaData = videoPacketQueue.front();
@@ -80,7 +80,7 @@ void OutputSource::popVideoBuffer() {
     mVideoLock.unlock();
 }
 
-void OutputSource::flushBuffer() {
+void FrameSource::flushBuffer() {
     mVideoLock.lock();
     mAudioLock.lock();
     flushAudioBuffer();
@@ -90,22 +90,22 @@ void OutputSource::flushBuffer() {
     LOGI(TAG, "CoreFlow : flushBuffer");
 }
 
-void OutputSource::flushVideoBuffer() {
+void FrameSource::flushVideoBuffer() {
     if (videoPacketQueue.size() > 0) {
         videoPacketQueue.clear();
     }
 }
 
-void OutputSource::flushAudioBuffer() {
+void FrameSource::flushAudioBuffer() {
     if (audioPacketQueue.size() > 0) {
         audioPacketQueue.clear();
     }
 }
 
-uint32_t OutputSource::getAudioBufferSize() {
+uint32_t FrameSource::getAudioBufferSize() {
     return static_cast<uint32_t>(audioPacketQueue.size());
 }
 
-uint32_t OutputSource::getVideoBufferSize() {
+uint32_t FrameSource::getVideoBufferSize() {
     return static_cast<uint32_t>(videoPacketQueue.size());
 }

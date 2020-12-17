@@ -7,7 +7,7 @@
 #include <base/Log.h>
 #include <codec/MediaCodecVideoDecoder.h>
 #include <codec/MediaCodecAudioDecoder.h>
-#include "DecodeHelper.h"
+#include "DecoderHelper.h"
 
 extern "C" {
 #include <demuxing/avformat_def.h>
@@ -15,14 +15,18 @@ extern "C" {
 
 #define TAG "CodecInterceptor"
 
-DecodeHelper::DecodeHelper(bool mediaCodecFirst) {
+DecoderHelper::DecoderHelper(PacketSource *input, FrameSource *output, MessageQueue *messageQueue, bool mediaCodecFirst) {
+    inputSource = input;
+    outputSource = output;
     this->mediaCodecFirst = mediaCodecFirst;
+    this->messageQueue = messageQueue;
     hasInit = false;
 }
 
-DecodeHelper::~DecodeHelper() = default;
+DecoderHelper::~DecoderHelper() = default;
 
-int DecodeHelper::onInit(FormatInfo *formatInfo) {
+int DecoderHelper::onInit() {
+    FormatInfo *formatInfo = inputSource->getFormatInfo();
     audioLock.lock();
     videoLock.lock();
     if (hasInit) {
@@ -78,7 +82,47 @@ int DecodeHelper::onInit(FormatInfo *formatInfo) {
     return 0;
 }
 
-int DecodeHelper::inputBuffer(AVPacket *buffer, int type) {
+int DecoderHelper::processAudioBuffer(int type, long extra) {
+    AVPacket *inPacket = nullptr;
+    int ret = inputSource->dequeAudPkt(&inPacket);
+    if (ret <= 0) {
+        return 0;
+    }
+    int mediaSize = 0;
+    int inputResult = inputBuffer(inPacket, AV_TYPE_AUDIO);
+    MediaData *outBuffer = nullptr;
+    ret = outputBuffer(&outBuffer, AV_TYPE_AUDIO);
+    if (ret >= 0) {
+        mediaSize = outputSource->onReceiveAudio(outBuffer);
+    }
+    if (inputResult >= 0) {
+        inputSource->popAudPkt(inPacket);
+    }
+
+    return mediaSize;
+}
+
+int DecoderHelper::processVideoBuffer(int type, long extra) {
+    AVPacket *inPacket = nullptr;
+    int ret = inputSource->dequeVidPkt(&inPacket);
+    if (ret <= 0) {
+        return 0;
+    }
+    int mediaSize = 0;
+    int inputResult = inputBuffer(inPacket, AV_TYPE_VIDEO);
+    MediaData *outBuffer = nullptr;
+    ret = outputBuffer(&outBuffer, AV_TYPE_VIDEO);
+    if (ret >= 0) {
+        mediaSize = outputSource->onReceiveVideo(outBuffer);
+    }
+    if (inputResult >= 0) {
+        inputSource->popVidPkt(inPacket);
+    }
+
+    return mediaSize;
+}
+
+int DecoderHelper::inputBuffer(AVPacket *buffer, int type) {
     int ret = -1;
     if (type == AV_TYPE_AUDIO) {
         audioLock.lock();
@@ -92,7 +136,7 @@ int DecodeHelper::inputBuffer(AVPacket *buffer, int type) {
     return ret;
 }
 
-int DecodeHelper::outputBuffer(MediaData **buffer, int type) {
+int DecoderHelper::outputBuffer(MediaData **buffer, int type) {
     int ret = -1;
     if (type == AV_TYPE_AUDIO) {
         audioLock.lock();
@@ -108,7 +152,7 @@ int DecodeHelper::outputBuffer(MediaData **buffer, int type) {
     return ret;
 }
 
-void DecodeHelper::onRelease() {
+void DecoderHelper::onRelease() {
     audioLock.lock();
     videoLock.lock();
     if (!hasInit) {
@@ -134,6 +178,6 @@ void DecodeHelper::onRelease() {
     audioLock.unlock();
 }
 
-void DecodeHelper::enableMediaCodec() {
+void DecoderHelper::enableMediaCodec() {
     mediaCodecFirst = true;
 }

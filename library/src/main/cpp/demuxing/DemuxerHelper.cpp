@@ -17,10 +17,11 @@ static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, co
          pkt->size);
 }
 
-DemuxerHelper::DemuxerHelper(char *url, GPlayer *p, FormatInfo *info) {
+DemuxerHelper::DemuxerHelper(char *url, PacketSource *input, MessageQueue *messageQueue) {
     filename = url;
-    player = p;
-    formatInfo = info;
+    inputSource = input;
+    formatInfo = inputSource->getFormatInfo();
+    this->messageQueue = messageQueue;
 }
 
 void DemuxerHelper::init() {
@@ -56,8 +57,8 @@ void DemuxerHelper::init() {
             if (video_stream_index == -1) {
                 video_stream_index = in_stream->index;
                 avcodec_parameters_copy(formatInfo->vidcodecpar, in_codecpar);
-                formatInfo->vidframerate = lround(
-                        in_stream->r_frame_rate.num / in_stream->r_frame_rate.den);
+                formatInfo->vidframerate = static_cast<int>(lround(
+                        in_stream->r_frame_rate.num / in_stream->r_frame_rate.den));
                 AVDictionaryEntry *tag = nullptr;
                 tag = av_dict_get(in_stream->metadata, "rotate", tag, AV_DICT_IGNORE_SUFFIX);
                 formatInfo->vidrotate = tag != nullptr ? atoi(tag->value) : 0;
@@ -87,7 +88,7 @@ void DemuxerHelper::init() {
 
     LOGI(TAG, "av_init\n");
     formatInfo->duration = (int) (ifmt_ctx->duration);
-    player->av_init(formatInfo);
+    inputSource->queueInfo(formatInfo);
 
     AVCodecParameters *video_codecpar = ifmt_ctx->streams[video_stream_index]->codecpar;
     needVideoStreamFilter = ifmt_ctx->iformat->extensions != nullptr &&
@@ -115,14 +116,11 @@ void DemuxerHelper::init() {
          needVideoStreamFilter, needAudioStreamFilter);
 }
 
-int DemuxerHelper::update() {
-    int64_t seekUs = -1;
-    player->loopWait(&seekUs);
-
+int DemuxerHelper::update(int type, long extra) {
+    int64_t seekUs = extra;
     if (seekUs != -1) {
         LOGI(TAG, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekUs);
         av_seek_frame(ifmt_ctx, -1, seekUs * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
-        seekUs = -1;
     }
 
     AVPacket pkt;
@@ -147,10 +145,10 @@ int DemuxerHelper::update() {
             audPkt->data = static_cast<uint8_t *>(av_malloc(static_cast<size_t>(audPkt->size)));
             memcpy(audPkt->data, mADTSHeader, ADTS_HEADER_SIZE);
             memcpy(audPkt->data + ADTS_HEADER_SIZE, pkt.data, (size_t) pkt.size);
-            player->av_feed_audio(audPkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            inputSource->queueAudPkt(audPkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
             av_packet_free(&audPkt);
         } else {
-            player->av_feed_audio(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            inputSource->queueAudPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
         }
     } else if (pkt.stream_index == video_stream_index) {
 //        print_packet(ifmt_ctx, &pkt, "video");
@@ -160,10 +158,10 @@ int DemuxerHelper::update() {
                 if (pkt.size <= 0) {
                     continue;
                 }
-                player->av_feed_video(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+                inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
             }
         } else {
-            player->av_feed_video(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
         }
     }
 
@@ -180,9 +178,9 @@ void DemuxerHelper::release() {
         video_abs_ctx = nullptr;
     }
 
-    player->av_destroy();
+    messageQueue->pushMessage(MSG_FROM_DEMUXING, MSG_DEMUXING_DESTROY, 0);
 }
 
 void DemuxerHelper::notifyError(int ret) {
-    player->av_error(ret, av_err2str(ret));
+    messageQueue->pushMessage(MSG_FROM_DEMUXING, MSG_DEMUXING_ERROR, ret);
 }

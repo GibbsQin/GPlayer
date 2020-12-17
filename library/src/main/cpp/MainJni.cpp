@@ -1,8 +1,8 @@
 #include <jni.h>
 #include <utils/JniHelper.h>
 #include <base/Log.h>
-#include <source/MediaPipe.h>
 #include <media/MediaDataJni.h>
+#include <player/GPlayer.h>
 
 //#define ENABLE_FFMPEG_JNI 1
 
@@ -17,7 +17,6 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         return result;
     }
 
-    MediaPipe::initFfmpegCallback();
     MediaDataJni::initClassAndMethodJni();
 
 #ifdef ENABLE_FFMPEG_JNI
@@ -33,19 +32,17 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 }
 
 extern "C"
-JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nInit(JNIEnv *env, jobject clazz, jint channelId, jint flag,
-                                     jobject player) {
-    auto pGPlayerImp = new GPlayer(channelId, flag, player);
-    MediaPipe::sGPlayerMap[channelId] = pGPlayerImp;
-    LOGI("GPlayerJni", "CoreFlow : nInit player count %d", MediaPipe::sGPlayerMap.size());
+JNIEXPORT jlong JNICALL
+Java_com_gibbs_gplayer_GPlayer_nInit(JNIEnv *env, jobject clazz, jint flag, jobject player) {
+    auto pGPlayerImp = new GPlayer(flag, player);
+    return reinterpret_cast<jlong>(pGPlayerImp);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nPrepare(JNIEnv *env, jobject thiz, jint channel_id, jstring url) {
-    LOGI("GPlayerJni", "nPrepare channelId : %d", channel_id);
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_GPlayer_nPrepare(JNIEnv *env, jobject thiz, jlong nativePlayer, jstring url) {
+    LOGI("GPlayerJni", "nPrepare channelId : %d", nativePlayer);
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
@@ -54,9 +51,9 @@ Java_com_gibbs_gplayer_GPlayer_nPrepare(JNIEnv *env, jobject thiz, jint channel_
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nStart(JNIEnv *env, jobject thiz, jint channel_id) {
-    LOGI("GPlayerJni", "nStart channelId : %d", channel_id);
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_GPlayer_nStart(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    LOGI("GPlayerJni", "nStart channelId : %d", nativePlayer);
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
@@ -65,9 +62,9 @@ Java_com_gibbs_gplayer_GPlayer_nStart(JNIEnv *env, jobject thiz, jint channel_id
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nPause(JNIEnv *env, jobject thiz, jint channel_id) {
-    LOGI("GPlayerJni", "nPause channelId : %d", channel_id);
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_GPlayer_nPause(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    LOGI("GPlayerJni", "nPause channelId : %d", nativePlayer);
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
@@ -76,9 +73,9 @@ Java_com_gibbs_gplayer_GPlayer_nPause(JNIEnv *env, jobject thiz, jint channel_id
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nResume(JNIEnv *env, jobject thiz, jint channel_id) {
-    LOGI("GPlayerJni", "nResume channelId : %d", channel_id);
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_GPlayer_nResume(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    LOGI("GPlayerJni", "nResume channelId : %d", nativePlayer);
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
@@ -87,21 +84,21 @@ Java_com_gibbs_gplayer_GPlayer_nResume(JNIEnv *env, jobject thiz, jint channel_i
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nSeekTo(JNIEnv *env, jobject thiz, jint channel_id, jint second_ms) {
-    LOGI("GPlayerJni", "nSeekTo channelId : %d, %d", channel_id, second_ms);
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_GPlayer_nSeekTo(JNIEnv *env, jobject thiz, jlong nativePlayer, jint second_ms) {
+    LOGI("GPlayerJni", "nSeekTo channelId : %d, %d", nativePlayer, second_ms);
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->seekTo(second_ms);
+    targetPlayer->seekTo(static_cast<uint32_t>(second_ms));
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jint channel_id,
+Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jlong nativePlayer,
                                      jboolean force) {
-    LOGI("GPlayerJni", "nStop channelId : %d, force : %d", channel_id, force);
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+    LOGI("GPlayerJni", "nStop channelId : %d, force : %d", nativePlayer, force);
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
@@ -110,26 +107,30 @@ Java_com_gibbs_gplayer_GPlayer_nStop(JNIEnv *env, jobject thiz, jint channel_id,
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jint channel_id) {
-    LOGI("GPlayerJni", "nDestroyAVSource channelId : %d", channel_id);
-    MediaPipe::deleteFromMap(static_cast<int>(channel_id));
+Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jlong nativePlayer) {
+    LOGI("GPlayerJni", "nDestroyAVSource channelId : %d", nativePlayer);
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
+    if (!targetPlayer) {
+        return;
+    }
+    delete targetPlayer;
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_GPlayer_nSetFlags(JNIEnv *env, jobject thiz, jint channel_id, jint flags) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_GPlayer_nSetFlags(JNIEnv *env, jobject thiz, jlong nativePlayer, jint flags) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->setFlags(flags);
+    targetPlayer->setFlags(static_cast<uint32_t>(flags));
 }
 
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_readAudioSource(JNIEnv *env, jobject thiz,
-                                                             jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                             jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return nullptr;
     }
@@ -144,8 +145,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_readAudioSource(JNIEnv *env, jobjec
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_readVideoSource(JNIEnv *env, jobject thiz,
-                                                             jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                             jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return nullptr;
     }
@@ -160,8 +161,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_readVideoSource(JNIEnv *env, jobjec
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_removeFirstAudioPackage(JNIEnv *env, jobject thiz,
-                                                                     jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                                     jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
@@ -171,8 +172,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_removeFirstAudioPackage(JNIEnv *env
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_removeFirstVideoPackage(JNIEnv *env, jobject thiz,
-                                                                     jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                                     jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
@@ -182,8 +183,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_removeFirstVideoPackage(JNIEnv *env
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_flushBuffer(JNIEnv *env, jobject thiz,
-                                                         jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                         jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
@@ -193,8 +194,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_flushBuffer(JNIEnv *env, jobject th
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getAudioBufferSize(JNIEnv *env, jobject thiz,
-                                                                jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                                jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -204,8 +205,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getAudioBufferSize(JNIEnv *env, job
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getVideoBufferSize(JNIEnv *env, jobject thiz,
-                                                                jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                                jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -215,8 +216,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getVideoBufferSize(JNIEnv *env, job
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getFrameRate(JNIEnv *env, jobject thiz,
-                                                          jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                          jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -226,8 +227,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getFrameRate(JNIEnv *env, jobject t
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getDuration(JNIEnv *env, jobject thiz,
-                                                         jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                         jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -237,8 +238,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getDuration(JNIEnv *env, jobject th
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleRate(JNIEnv *env, jobject thiz,
-                                                           jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                           jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -248,8 +249,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleRate(JNIEnv *env, jobject 
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleFormat(JNIEnv *env, jobject thiz,
-                                                             jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                             jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -259,8 +260,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleFormat(JNIEnv *env, jobjec
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getChannels(JNIEnv *env, jobject thiz,
-                                                         jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                         jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -269,8 +270,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getChannels(JNIEnv *env, jobject th
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getWidth(JNIEnv *env, jobject thiz, jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_source_MediaSourceImp_getWidth(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -279,8 +280,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getWidth(JNIEnv *env, jobject thiz,
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getHeight(JNIEnv *env, jobject thiz, jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_source_MediaSourceImp_getHeight(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -289,8 +290,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getHeight(JNIEnv *env, jobject thiz
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getRotate(JNIEnv *env, jobject thiz, jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+Java_com_gibbs_gplayer_source_MediaSourceImp_getRotate(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }
@@ -301,8 +302,8 @@ Java_com_gibbs_gplayer_source_MediaSourceImp_getRotate(JNIEnv *env, jobject thiz
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_gibbs_gplayer_source_MediaSourceImp_getBytesPerFrame(JNIEnv *env, jobject thiz,
-                                                              jint channel_id) {
-    auto targetPlayer = MediaPipe::sGPlayerMap[channel_id];
+                                                              jlong nativePlayer) {
+    GPlayer *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return -1;
     }

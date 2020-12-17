@@ -24,7 +24,9 @@ void LoopThread::handleRunning() {
         if (!updateFunc) {
             break;
         }
-        int count = updateFunc();
+        int count = updateFunc(arg1, arg2);
+        arg1 = -1;
+        arg2 = -1;
         if (count > MAX_OUTPUT_FRAME_SIZE) {
             sleepTimeMs += SLEEP_TIME_GAP;
         } else {
@@ -45,7 +47,7 @@ void LoopThread::setStartFunc(std::function<void(void)> func) {
     startFunc = std::move(func);
 }
 
-void LoopThread::setUpdateFunc(std::function<int(void)> func) {
+void LoopThread::setUpdateFunc(std::function<int(int, long)> func) {
     updateFunc = std::move(func);
 }
 
@@ -55,4 +57,9 @@ void LoopThread::setEndFunc(std::function<void(void)> func) {
 
 bool LoopThread::hasStarted() {
     return isStarted;
+}
+
+void LoopThread::setArgs(int arg1, long arg2) {
+    this->arg1 = arg1;
+    this->arg2 = arg2;
 }
