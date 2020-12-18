@@ -3,10 +3,11 @@
 
 #include "XThread.h"
 #include <functional>
+#include <mutex>
+#include <condition_variable>
 
 #define MAX_VALUE 5
 #define SLEEP_TIME_GAP 10
-#define MAX_SLEEP_TIME 50
 
 using namespace std;
 
@@ -24,6 +25,8 @@ public:
 
     void setEndFunc(std::function<void(void)> func);
 
+    void resume() override ;
+
     bool hasStarted();
 
     void setArgs(int arg1, long arg2);
@@ -38,6 +41,8 @@ private:
 	std::function<int(int, long)> updateFunc;
     std::function<void(void)> endFunc;
     bool isStarted = false;
+	std::mutex threadLock;
+	std::condition_variable conVar;
 
     int arg1 = -1;
     long arg2 = -1;

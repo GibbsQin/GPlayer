@@ -24,7 +24,8 @@ void LoopThread::handleRunning() {
 
     while (mRunning) {
         if (mPausing) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(MAX_SLEEP_TIME));
+            std::unique_lock<std::mutex> lck(threadLock);
+            conVar.wait(lck);
             continue;
         }
         if (!updateFunc) {
@@ -59,6 +60,12 @@ void LoopThread::setUpdateFunc(std::function<int(int, long)> func) {
 
 void LoopThread::setEndFunc(std::function<void(void)> func) {
     endFunc = std::move(func);
+}
+
+void LoopThread::resume() {
+    XThread::resume();
+    std::unique_lock<std::mutex> lck(threadLock);
+    conVar.notify_all();
 }
 
 bool LoopThread::hasStarted() {

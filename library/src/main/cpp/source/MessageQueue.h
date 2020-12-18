@@ -7,22 +7,25 @@
 
 #include <deque>
 #include <mutex>
+#include <condition_variable>
 
-#define MSG_FROM_ERROR     0
-#define MSG_FROM_STATE     1
-#define MSG_FROM_TIME      2
-#define MSG_FROM_SIZE      3
-#define MSG_FROM_DEMUXING  4
-#define MSG_FROM_DECODE    5
+#define MSG_DOMAIN_ERROR     0
+#define MSG_DOMAIN_STATE     1
+#define MSG_DOMAIN_TIME      2
+#define MSG_DOMAIN_BUFFER    3
+#define MSG_DOMAIN_DEMUXING  4
+#define MSG_DOMAIN_DECODING  5
+
+#define MSG_ERROR_DEMUXING    0
+#define MSG_ERROR_DECODING    1
 
 #define MSG_DEMUXING_INIT     0
 #define MSG_DEMUXING_DESTROY  1
-#define MSG_DEMUXING_ERROR    2
 
-#define MSG_COMMON_AUDIO_PACKET_SIZE 1
-#define MSG_COMMON_VIDEO_PACKET_SIZE 2
-#define MSG_COMMON_AUDIO_FRAME_SIZE  3
-#define MSG_COMMON_VIDEO_FRAME_SIZE  4
+#define MSG_BUFFER_AUDIO_PACKET 1
+#define MSG_BUFFER_VIDEO_PACKET 2
+#define MSG_BUFFER_AUDIO_FRAME  3
+#define MSG_BUFFER_VIDEO_FRAME  4
 
 #define STATE_IDLE      0
 #define STATE_PREPARING 1
@@ -46,9 +49,12 @@ public:
 
     int dequeMessage(Message *message);
 
+    void flush();
+
 private:
     std::deque<Message *> msgQueue;
     std::mutex messageLock;
+    std::condition_variable conVar;
 };
 
 

@@ -11,7 +11,7 @@
 #include <mutex>
 #include <source/PacketSource.h>
 #include <source/FrameSource.h>
-#include <player/MessageQueue.h>
+#include <source/MessageQueue.h>
 
 #define AV_TYPE_AUDIO 0
 #define AV_TYPE_VIDEO 1
@@ -34,20 +34,18 @@ public:
 
     void onRelease();
 
-    void enableMediaCodec();
-
 private:
     bool hasInit;
     bool mediaCodecFirst;
     PacketSource *inputSource;
     FrameSource *outputSource;
+    MessageQueue *messageQueue;
     VideoDecoder *videoDecoder{};
     AudioDecoder *audioDecoder{};
     MediaData *videoOutFrame{};
     MediaData *audioOutFrame{};
     std::mutex audioLock;
     std::mutex videoLock;
-    MessageQueue *messageQueue;
 };
 
 

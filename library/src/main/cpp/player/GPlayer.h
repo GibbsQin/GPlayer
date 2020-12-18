@@ -5,9 +5,10 @@
 #ifndef GPLAYER_GPLAYER_H
 #define GPLAYER_GPLAYER_H
 
-#include <player/DecoderHelper.h>
-#include <player/GPlayerJni.h>
-#include <player/DemuxerHelper.h>
+#include "DecoderHelper.h"
+#include "DemuxerHelper.h"
+#include "MessageHelper.h"
+#include "GPlayerJni.h"
 #include "LoopThread.h"
 #include "PacketSource.h"
 #include "FrameSource.h"
@@ -15,7 +16,8 @@
 
 #define AV_FLAG_SOURCE_MEDIA_CODEC 0x00000002
 
-#define MAX_BUFFER_SIZE 30
+#define MAX_BUFFER_PACKET_SIZE 30
+#define MAX_BUFFER_FRAME_SIZE  5
 
 class GPlayer {
 
@@ -25,8 +27,7 @@ public:
     ~GPlayer();
 
 public:
-
-    void prepare(const std::string& url);
+    void prepare(const std::string &url);
 
     void start();
 
@@ -38,6 +39,7 @@ public:
 
     void stop();
 
+public:
     void setFlags(uint32_t flags);
 
     PacketSource *getInputSource();
@@ -49,8 +51,6 @@ private:
 
     void stopMessageLoop();
 
-    int processMessage(int arg1, long arg2);
-
     void startDemuxing(const std::string &url);
 
     void stopDemuxing();
@@ -60,20 +60,19 @@ private:
     void stopDecode();
 
 private:
+    uint32_t mFlags;
+
     PacketSource *inputSource;
     FrameSource *outputSource;
-    GPlayerJni *playerJni;
+    MessageQueue *messageQueue;
+    DemuxerHelper *demuxerHelper;
+    DecoderHelper *decoderHelper;
+    MessageHelper *messageHelper;
 
-private:
-    uint32_t mFlags;
     LoopThread *audioDecodeThread;
     LoopThread *videoDecodeThread;
     LoopThread *demuxerThread;
     LoopThread *messageThread;
-    DemuxerHelper *demuxerHelper;
-    DecoderHelper *decoderHelper;
-    MessageQueue *messageQueue;
-    int mSeekUs;
 };
 
 

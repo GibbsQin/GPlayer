@@ -24,8 +24,8 @@ public:
     void onMessageCallback(int msgId, int arg1, long arg2, char* msg1, char* msg2, jobject obj);
 
 private:
-    jobject playerJObj{};
-    jmethodID onMessageCallbackMethod{};
+    jobject playerJObj;
+    jmethodID onMessageCallbackMethod;
 };
 
 

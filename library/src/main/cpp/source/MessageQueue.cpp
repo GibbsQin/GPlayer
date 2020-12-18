@@ -10,15 +10,14 @@ void MessageQueue::pushMessage(int from, int type, long extra) {
     message->type = type;
     message->extra = extra;
     msgQueue.push_back(message);
-//    if (messageLock.try_lock()) {
-//        messageLock.unlock();
-//    }
+    std::unique_lock<std::mutex> lck(messageLock);
+    conVar.notify_all();
 }
 
 int MessageQueue::dequeMessage(Message *message) {
-    if (msgQueue.size() <= 0) {
-//        messageLock.lock();
-        return -1;
+    while (msgQueue.size() <= 0) {
+        std::unique_lock<std::mutex> lck(messageLock);
+        conVar.wait(lck);
     }
     Message *msg = msgQueue.front();
     if (msg == nullptr) {
@@ -31,4 +30,10 @@ int MessageQueue::dequeMessage(Message *message) {
     free(msg);
     msgQueue.pop_front();
     return 0;
+}
+
+void MessageQueue::flush() {
+    if (msgQueue.size() > 0) {
+        msgQueue.clear();
+    }
 }

@@ -1,6 +1,6 @@
 #include "MediaDataJni.h"
-#include "../base/Log.h"
-#include "../utils/JniHelper.h"
+#include "base/Log.h"
+#include "../j4a/JniHelper.h"
 
 #define TAG "MediaDataJni"
 

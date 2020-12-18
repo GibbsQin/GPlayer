@@ -23,7 +23,7 @@ include_directories(
         render
         sender
         source
-        utils)
+        j4a)
 
 # 定义源码所在目录
 aux_source_directory(. SRC)
@@ -35,7 +35,7 @@ aux_source_directory(demuxing SRC_DEMUXING)
 aux_source_directory(player SRC_PLAYER)
 aux_source_directory(render SRC_RENDER)
 aux_source_directory(source SRC_SOURCE)
-aux_source_directory(utils SRC_UTILS)
+aux_source_directory(j4a SRC_UTILS)
 
 list(APPEND SRC
         ${SRC_MEDIA}

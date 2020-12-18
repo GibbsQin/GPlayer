@@ -6,7 +6,7 @@
 #define GPLAYER_DEMUXERHELPER_H
 
 #include <source/PacketSource.h>
-#include <player/MessageQueue.h>
+#include <source/MessageQueue.h>
 
 extern "C" {
 #include "adtsenc.h"
@@ -21,7 +21,7 @@ public:
 
     void init();
 
-    int update(int type, long extra);
+    int readPacket(int type, long extra);
 
     void release();
 

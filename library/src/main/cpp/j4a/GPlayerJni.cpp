@@ -3,7 +3,7 @@
 //
 
 #include <base/Log.h>
-#include <utils/JniHelper.h>
+#include <j4a/JniHelper.h>
 #include "GPlayerJni.h"
 
 #define TAG "MediaSourceJni"

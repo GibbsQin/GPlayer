@@ -2,9 +2,9 @@
 // Created by Gibbs on 2020/7/18.
 //
 
+#include <base/Log.h>
 #include <codec/FfmpegAudioDecoder.h>
 #include <codec/FfmpegVideoDecoder.h>
-#include <base/Log.h>
 #include <codec/MediaCodecVideoDecoder.h>
 #include <codec/MediaCodecAudioDecoder.h>
 #include "DecoderHelper.h"
@@ -99,7 +99,7 @@ int DecoderHelper::processAudioBuffer(int type, long extra) {
         inputSource->popAudPkt(inPacket);
     }
 
-    messageQueue->pushMessage(MSG_FROM_SIZE, MSG_COMMON_AUDIO_FRAME_SIZE, mediaSize);
+    messageQueue->pushMessage(MSG_DOMAIN_BUFFER, MSG_BUFFER_AUDIO_FRAME, mediaSize);
     return mediaSize;
 }
 
@@ -120,7 +120,7 @@ int DecoderHelper::processVideoBuffer(int type, long extra) {
         inputSource->popVidPkt(inPacket);
     }
 
-    messageQueue->pushMessage(MSG_FROM_SIZE, MSG_COMMON_VIDEO_FRAME_SIZE, mediaSize);
+    messageQueue->pushMessage(MSG_DOMAIN_BUFFER, MSG_BUFFER_VIDEO_FRAME, mediaSize);
     return mediaSize;
 }
 
@@ -178,8 +178,4 @@ void DecoderHelper::onRelease() {
     delete videoOutFrame;
     videoLock.unlock();
     audioLock.unlock();
-}
-
-void DecoderHelper::enableMediaCodec() {
-    mediaCodecFirst = true;
 }

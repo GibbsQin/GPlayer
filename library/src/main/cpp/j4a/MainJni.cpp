@@ -1,7 +1,7 @@
 #include <jni.h>
-#include <utils/JniHelper.h>
+#include <j4a/JniHelper.h>
 #include <base/Log.h>
-#include <media/MediaDataJni.h>
+#include <j4a/MediaDataJni.h>
 #include <player/GPlayer.h>
 
 //#define ENABLE_FFMPEG_JNI 1

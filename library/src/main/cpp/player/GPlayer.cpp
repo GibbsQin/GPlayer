@@ -4,63 +4,38 @@
 
 #include "GPlayer.h"
 #include "media/MediaData.h"
+#include "LoopThreadHelper.h"
 #include <base/Log.h>
 #include <cstdint>
 #include <unistd.h>
-
-extern "C" {
-#include <demuxing/avformat_def.h>
-}
 
 #define TAG "GPlayerC"
 
 GPlayer::GPlayer(uint32_t flag, jobject obj) {
     outputSource = new FrameSource();
     inputSource = new PacketSource();
-    playerJni = new GPlayerJni(obj);
     messageQueue = new MessageQueue();
+    messageHelper = new MessageHelper(messageQueue, obj);
     audioDecodeThread = nullptr;
     videoDecodeThread = nullptr;
     demuxerThread = nullptr;
+    messageThread = nullptr;
     mFlags = flag;
     startMessageLoop();
 }
 
 GPlayer::~GPlayer() {
     stopMessageLoop();
-    if (audioDecodeThread) {
-        delete audioDecodeThread;
-        audioDecodeThread = nullptr;
-    }
-    if (videoDecodeThread) {
-        delete videoDecodeThread;
-        videoDecodeThread = nullptr;
-    }
-    if (demuxerThread) {
-        delete demuxerThread;
-        demuxerThread = nullptr;
-    }
-    if (messageThread) {
-        delete messageThread;
-        messageThread = nullptr;
-    }
-    if (outputSource) {
-        delete outputSource;
-        outputSource = nullptr;
-    }
-    if (inputSource) {
-        delete inputSource;
-        inputSource = nullptr;
-    }
-    if (decoderHelper) {
-        delete decoderHelper;
-        decoderHelper = nullptr;
-    }
-    playerJni->onMessageCallback(MSG_FROM_STATE, STATE_RELEASED, 0, nullptr, nullptr);
-    if (playerJni) {
-        delete playerJni;
-        playerJni = nullptr;
-    }
+    if (audioDecodeThread) delete audioDecodeThread;
+    if (videoDecodeThread) delete videoDecodeThread;
+    if (demuxerThread) delete demuxerThread;
+    if (messageThread) delete messageThread;
+    if (outputSource) delete outputSource;
+    if (inputSource) delete inputSource;
+    if (decoderHelper) delete decoderHelper;
+    if (demuxerHelper) delete demuxerHelper;
+    if (messageHelper) delete messageHelper;
+    if (messageQueue) delete messageQueue;
     LOGI(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
@@ -77,24 +52,30 @@ void GPlayer::start() {
 void GPlayer::pause() {
     audioDecodeThread->pause();
     videoDecodeThread->pause();
+    demuxerThread->pause();
+    messageThread->pause();
 }
 
 void GPlayer::resume() {
     audioDecodeThread->resume();
     videoDecodeThread->resume();
+    demuxerThread->resume();
+    messageThread->resume();
 }
 
 void GPlayer::seekTo(uint32_t secondUs) {
-    mSeekUs = secondUs;
+    demuxerThread->setArgs(0, secondUs);
 }
 
 void GPlayer::stop() {
+    LOGI(TAG, "CoreFlow : stop");
     stopDemuxing();
     LOGI(TAG, "CoreFlow : demuxing thread is stopped!");
     stopDecode();
     LOGI(TAG, "CoreFlow : decode threads were stopped!");
     inputSource->flush();
-    playerJni->onMessageCallback(MSG_FROM_STATE, STATE_STOPPED, 0, nullptr, nullptr);
+    messageQueue->flush();
+    messageHelper->notifyJava(MSG_DOMAIN_STATE, STATE_STOPPED, 0, nullptr, nullptr);
 }
 
 void GPlayer::setFlags(uint32_t flags) {
@@ -110,89 +91,46 @@ FrameSource *GPlayer::getOutputSource() {
 }
 
 void GPlayer::startMessageLoop() {
-    messageThread = new LoopThread();
-    messageThread->setUpdateFunc(std::bind(&GPlayer::processMessage, this,
-                                           std::placeholders::_1, std::placeholders::_2));
-    messageThread->start();
+    messageThread = LoopThreadHelper::createLoopThread(
+            std::bind(&MessageHelper::processMessage, messageHelper, std::placeholders::_1, std::placeholders::_2));
 }
 
 void GPlayer::stopMessageLoop() {
-    if (messageThread && messageThread->hasStarted()) {
-        messageThread->stop();
-        messageThread->join();
-    }
-}
-
-int GPlayer::processMessage(int arg1, long arg2) {
-    auto message = static_cast<Message *>(malloc(sizeof(Message)));
-    if (messageQueue->dequeMessage(message) < 0) {
-        return 0;
-    }
-    LOGI(TAG, "processMessage %d, %d, %lld", message->from, message->type, message->extra);
-    if (message->from == MSG_FROM_STATE) {
-        playerJni->onMessageCallback(MSG_FROM_STATE, message->type, message->extra, nullptr, nullptr);
-    } else if (message->from == MSG_FROM_SIZE) {
-        playerJni->onMessageCallback(MSG_FROM_SIZE, message->type, message->extra, nullptr, nullptr);
-    } else if (message->from == MSG_FROM_ERROR) {
-        if (message->type == MSG_DEMUXING_ERROR) {
-            playerJni->onMessageCallback(MSG_FROM_ERROR, message->type, message->extra,
-                    av_err2str(message->extra), nullptr);
-        }
-    }
-    free(message);
-    return 0;
+    LoopThreadHelper::destroyThread(messageThread);
 }
 
 void GPlayer::startDemuxing(const std::string &url) {
     demuxerHelper = new DemuxerHelper(url, inputSource, messageQueue);
-    demuxerThread = new LoopThread(MAX_BUFFER_SIZE);
-    demuxerThread->setStartFunc(std::bind(&DemuxerHelper::init, demuxerHelper));
-    demuxerThread->setUpdateFunc(std::bind(&DemuxerHelper::update, demuxerHelper,
-                                           std::placeholders::_1, std::placeholders::_2));
-    demuxerThread->setEndFunc(std::bind(&DemuxerHelper::release, demuxerHelper));
-    demuxerThread->start();
+    demuxerThread = LoopThreadHelper::createLoopThread(
+            MAX_BUFFER_PACKET_SIZE,
+            std::bind(&DemuxerHelper::init, demuxerHelper),
+            std::bind(&DemuxerHelper::readPacket, demuxerHelper, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&DemuxerHelper::release, demuxerHelper));
 }
 
 void GPlayer::stopDemuxing() {
-    if (demuxerThread && demuxerThread->hasStarted()) {
-        demuxerThread->stop();
-        demuxerThread->join();
-    }
-    delete demuxerHelper;
-    demuxerHelper = nullptr;
+    LoopThreadHelper::destroyThread(demuxerThread);
 }
 
 void GPlayer::startDecode() {
     LOGI(TAG, "CoreFlow : startDecode");
     int mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
     decoderHelper = new DecoderHelper(inputSource, outputSource, messageQueue, static_cast<bool>(mediaCodecFlag));
-    int ret = decoderHelper->onInit();
-    if (ret < 0) {
-        playerJni->onMessageCallback(MSG_FROM_ERROR, 1, 0,
-                                     const_cast<char *>("not support this codec"), nullptr);
+    if (decoderHelper->onInit() < 0) {
+        messageHelper->notifyJava(MSG_DOMAIN_ERROR, 1, 0, const_cast<char *>("not support this codec"), nullptr);
         return;
     }
 
-    audioDecodeThread = new LoopThread();
-    audioDecodeThread->setUpdateFunc(std::bind(&DecoderHelper::processAudioBuffer, decoderHelper,
-            std::placeholders::_1, std::placeholders::_2));
-    audioDecodeThread->start();
+    audioDecodeThread = LoopThreadHelper::createLoopThread(MAX_BUFFER_FRAME_SIZE,
+            std::bind(&DecoderHelper::processAudioBuffer, decoderHelper, std::placeholders::_1, std::placeholders::_2));
 
-    videoDecodeThread = new LoopThread();
-    videoDecodeThread->setUpdateFunc(std::bind(&DecoderHelper::processVideoBuffer, decoderHelper,
-            std::placeholders::_1, std::placeholders::_2));
-    videoDecodeThread->start();
+    videoDecodeThread = LoopThreadHelper::createLoopThread(MAX_BUFFER_FRAME_SIZE,
+            std::bind(&DecoderHelper::processVideoBuffer, decoderHelper, std::placeholders::_1, std::placeholders::_2));
 }
 
 void GPlayer::stopDecode() {
-    if (audioDecodeThread && audioDecodeThread->hasStarted()) {
-        audioDecodeThread->stop();
-        audioDecodeThread->join();
-    }
-    if (videoDecodeThread && videoDecodeThread->hasStarted()) {
-        videoDecodeThread->stop();
-        videoDecodeThread->join();
-    }
+    LoopThreadHelper::destroyThread(audioDecodeThread);
+    LoopThreadHelper::destroyThread(videoDecodeThread);
     decoderHelper->onRelease();
     delete decoderHelper;
     decoderHelper = nullptr;

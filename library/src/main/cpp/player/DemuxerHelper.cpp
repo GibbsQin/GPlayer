@@ -122,12 +122,12 @@ void DemuxerHelper::init() {
     }
     LOGI(TAG, "CoreFlow : needVideoStreamFilter %d, needAudioStreamFilter %d\n",
          needVideoStreamFilter, needAudioStreamFilter);
-    messageQueue->pushMessage(MSG_FROM_STATE, STATE_PREPARED, 0);
+    messageQueue->pushMessage(MSG_DOMAIN_DEMUXING, MSG_DEMUXING_INIT, 0);
 }
 
-int DemuxerHelper::update(int type, long extra) {
-    int64_t seekUs = extra;
-    if (seekUs > 0) {
+int DemuxerHelper::readPacket(int type, long extra) {
+    if (extra > 0) {
+        int64_t seekUs = extra;
         LOGI(TAG, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekUs);
         av_seek_frame(ifmt_ctx, -1, seekUs * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
     }
@@ -161,7 +161,7 @@ int DemuxerHelper::update(int type, long extra) {
         } else {
             size = inputSource->queueAudPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
         }
-        messageQueue->pushMessage(MSG_FROM_SIZE, MSG_COMMON_AUDIO_PACKET_SIZE, size);
+        messageQueue->pushMessage(MSG_DOMAIN_BUFFER, MSG_BUFFER_AUDIO_PACKET, size);
     } else if (pkt.stream_index == video_stream_index) {
         print_packet(ifmt_ctx, &pkt, "video");
         if (needVideoStreamFilter) {
@@ -175,7 +175,7 @@ int DemuxerHelper::update(int type, long extra) {
         } else {
             size = inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
         }
-        messageQueue->pushMessage(MSG_FROM_SIZE, MSG_COMMON_VIDEO_PACKET_SIZE, size);
+        messageQueue->pushMessage(MSG_DOMAIN_BUFFER, MSG_BUFFER_VIDEO_PACKET, size);
     }
 
     av_packet_unref(&pkt);
@@ -191,9 +191,9 @@ void DemuxerHelper::release() {
         video_abs_ctx = nullptr;
     }
 
-    messageQueue->pushMessage(MSG_FROM_DEMUXING, MSG_DEMUXING_DESTROY, 0);
+    messageQueue->pushMessage(MSG_DOMAIN_DEMUXING, MSG_DEMUXING_DESTROY, 0);
 }
 
 void DemuxerHelper::notifyError(int ret) {
-    messageQueue->pushMessage(MSG_FROM_ERROR, MSG_DEMUXING_ERROR, ret);
+    messageQueue->pushMessage(MSG_DOMAIN_ERROR, MSG_ERROR_DEMUXING, ret);
 }
