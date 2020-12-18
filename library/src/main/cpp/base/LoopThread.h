@@ -27,16 +27,23 @@ public:
 
     void resume() override ;
 
-    bool hasStarted();
+    bool stop() override ;
 
-    void setArgs(int arg1, long arg2);
+    bool hasStarted() {
+		return isStarted;
+    }
+
+    void setArgs(int arg1, long arg2) {
+		this->arg1 = arg1;
+		this->arg2 = arg2;
+    }
 
 protected:
     void handleRunning();
 
 private:
     int maxValue;
-    int64_t sleepTimeMs;
+    int64_t sleepTimeMs = 0;
 	std::function<void(void)> startFunc;
 	std::function<int(int, long)> updateFunc;
     std::function<void(void)> endFunc;

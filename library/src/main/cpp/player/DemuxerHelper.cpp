@@ -183,7 +183,7 @@ int DemuxerHelper::readPacket(int type, long extra) {
 }
 
 void DemuxerHelper::release() {
-    LOGI(TAG, "av_destroy\n");
+    LOGI(TAG, "CoreFlow : av_destroy\n");
     avformat_close_input(&ifmt_ctx);
 
     if (needVideoStreamFilter) {

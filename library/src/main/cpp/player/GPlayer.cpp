@@ -16,31 +16,32 @@ GPlayer::GPlayer(uint32_t flag, jobject obj) {
     inputSource = new PacketSource();
     messageQueue = new MessageQueue();
     messageHelper = new MessageHelper(messageQueue, obj);
+    decoderHelper = nullptr;
+    demuxerHelper = nullptr;
     audioDecodeThread = nullptr;
     videoDecodeThread = nullptr;
     demuxerThread = nullptr;
     messageThread = nullptr;
     mFlags = flag;
-    startMessageLoop();
 }
 
 GPlayer::~GPlayer() {
-    stopMessageLoop();
-    if (audioDecodeThread) delete audioDecodeThread;
-    if (videoDecodeThread) delete videoDecodeThread;
-    if (demuxerThread) delete demuxerThread;
-    if (messageThread) delete messageThread;
-    if (outputSource) delete outputSource;
-    if (inputSource) delete inputSource;
-    if (decoderHelper) delete decoderHelper;
-    if (demuxerHelper) delete demuxerHelper;
-    if (messageHelper) delete messageHelper;
-    if (messageQueue) delete messageQueue;
+    delete audioDecodeThread;
+    delete videoDecodeThread;
+    delete demuxerThread;
+    delete messageThread;
+    delete decoderHelper;
+    delete demuxerHelper;
+    delete messageHelper;
+    delete outputSource;
+    delete inputSource;
+    delete messageQueue;
     LOGI(TAG, "CoreFlow : GPlayerImp destroyed");
 }
 
 void GPlayer::prepare(const std::string &url) {
     LOGI(TAG, "CoreFlow : prepare %s", url.c_str());
+    startMessageLoop();
     startDemuxing(url);
 }
 
@@ -70,12 +71,14 @@ void GPlayer::seekTo(uint32_t secondUs) {
 void GPlayer::stop() {
     LOGI(TAG, "CoreFlow : stop");
     stopDemuxing();
-    LOGI(TAG, "CoreFlow : demuxing thread is stopped!");
+    LOGI(TAG, "CoreFlow : demuxing thread was stopped!");
     stopDecode();
-    LOGI(TAG, "CoreFlow : decode threads were stopped!");
+    LOGI(TAG, "CoreFlow : decoding threads were stopped!");
     inputSource->flush();
     messageQueue->flush();
-    messageHelper->notifyJava(MSG_DOMAIN_STATE, STATE_STOPPED, 0, nullptr, nullptr);
+    messageQueue->pushMessage(MSG_DOMAIN_STATE, STATE_STOPPED, 0);
+    stopMessageLoop();
+    LOGI(TAG, "CoreFlow : message thread was stopped!");
 }
 
 void GPlayer::setFlags(uint32_t flags) {
@@ -91,12 +94,13 @@ FrameSource *GPlayer::getOutputSource() {
 }
 
 void GPlayer::startMessageLoop() {
+    LOGI(TAG, "CoreFlow : startMessageLoop");
     messageThread = LoopThreadHelper::createLoopThread(
             std::bind(&MessageHelper::processMessage, messageHelper, std::placeholders::_1, std::placeholders::_2));
 }
 
 void GPlayer::stopMessageLoop() {
-    LoopThreadHelper::destroyThread(messageThread);
+    LoopThreadHelper::destroyThread(&messageThread);
 }
 
 void GPlayer::startDemuxing(const std::string &url) {
@@ -109,7 +113,9 @@ void GPlayer::startDemuxing(const std::string &url) {
 }
 
 void GPlayer::stopDemuxing() {
-    LoopThreadHelper::destroyThread(demuxerThread);
+    LoopThreadHelper::destroyThread(&demuxerThread);
+    delete demuxerHelper;
+    demuxerHelper = nullptr;
 }
 
 void GPlayer::startDecode() {
@@ -129,8 +135,8 @@ void GPlayer::startDecode() {
 }
 
 void GPlayer::stopDecode() {
-    LoopThreadHelper::destroyThread(audioDecodeThread);
-    LoopThreadHelper::destroyThread(videoDecodeThread);
+    LoopThreadHelper::destroyThread(&audioDecodeThread);
+    LoopThreadHelper::destroyThread(&videoDecodeThread);
     decoderHelper->onRelease();
     delete decoderHelper;
     decoderHelper = nullptr;

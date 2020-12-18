@@ -4,8 +4,15 @@
 
 #include "MessageQueue.h"
 
+#define NOT_NOTIFY_BUFFER_SIZE
+
 void MessageQueue::pushMessage(int from, int type, long extra) {
-    Message *message = static_cast<Message *>(malloc(sizeof(Message)));
+#ifdef NOT_NOTIFY_BUFFER_SIZE
+    if (from == MSG_DOMAIN_BUFFER) {
+        return;
+    }
+#endif
+    auto message = static_cast<Message *>(malloc(sizeof(Message)));
     message->from = from;
     message->type = type;
     message->extra = extra;
@@ -24,9 +31,7 @@ int MessageQueue::dequeMessage(Message *message) {
         msgQueue.pop_front();
         return -1;
     }
-    message->from = msg->from;
-    message->type = msg->type;
-    message->extra = msg->extra;
+    memcpy(message, msg, sizeof(Message));
     free(msg);
     msgQueue.pop_front();
     return 0;

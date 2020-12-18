@@ -11,16 +11,16 @@
 
 class LoopThreadHelper {
 public:
-    static LoopThread *createLoopThread(std::function<int(int, long)> updateFunc);
+    static LoopThread *createLoopThread(const std::function<int(int, long)>& updateFunc);
 
-    static LoopThread *createLoopThread(int maxValue, std::function<int(int, long)> updateFunc);
+    static LoopThread *createLoopThread(int maxValue, const std::function<int(int, long)>& updateFunc);
 
     static LoopThread *createLoopThread(int maxValue,
-                                        std::function<void(void)> startFunc,
-                                        std::function<int(int, long)> updateFunc,
-                                        std::function<void(void)> endFunc);
+                                        const std::function<void(void)>& startFunc,
+                                        const std::function<int(int, long)>& updateFunc,
+                                        const std::function<void(void)>& endFunc);
 
-    static void destroyThread(LoopThread *thread);
+    static void destroyThread(LoopThread **thread);
 };
 
 

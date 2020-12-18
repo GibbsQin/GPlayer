@@ -15,8 +15,6 @@ LoopThread::LoopThread(int maxSize) {
 LoopThread::~LoopThread()= default;
 
 void LoopThread::handleRunning() {
-    int64_t time;
-
     if (startFunc) {
         startFunc();
     }
@@ -68,11 +66,9 @@ void LoopThread::resume() {
     conVar.notify_all();
 }
 
-bool LoopThread::hasStarted() {
-    return isStarted;
-}
-
-void LoopThread::setArgs(int arg1, long arg2) {
-    this->arg1 = arg1;
-    this->arg2 = arg2;
+bool LoopThread::stop() {
+    if (isPausing()) {
+        resume();
+    }
+    return XThread::stop();
 }

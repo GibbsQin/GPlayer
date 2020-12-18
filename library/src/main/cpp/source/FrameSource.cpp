@@ -19,7 +19,7 @@ uint32_t FrameSource::onReceiveAudio(MediaData *inPacket) {
     MediaHelper::copy(inPacket, desBuffer);
     audioPacketQueue.push_back(desBuffer);
     auto queueSize = static_cast<uint32_t>(audioPacketQueue.size());
-    LOGI(TAG, "queue audio packet %lld", desBuffer->pts);
+    LOGD(TAG, "queue audio packet %lld", desBuffer->pts);
     return queueSize;
 }
 
@@ -28,7 +28,7 @@ uint32_t FrameSource::onReceiveVideo(MediaData *inPacket) {
     MediaHelper::copy(inPacket, desBuffer);
     videoPacketQueue.push_back(desBuffer);
     auto queueSize = static_cast<uint32_t>(videoPacketQueue.size());
-    LOGI(TAG, "queue video packet %lld", desBuffer->pts);
+    LOGD(TAG, "queue video packet %lld", desBuffer->pts);
     return queueSize;
 }
 
@@ -64,7 +64,7 @@ void FrameSource::popAudioBuffer() {
         MediaData *mediaData = audioPacketQueue.front();
         delete mediaData;
         audioPacketQueue.pop_front();
-        LOGI(TAG, "pop audio packet");
+        LOGD(TAG, "pop audio packet");
     }
     mAudioLock.unlock();
 }
@@ -75,7 +75,7 @@ void FrameSource::popVideoBuffer() {
         MediaData *mediaData = videoPacketQueue.front();
         delete mediaData;
         videoPacketQueue.pop_front();
-        LOGI(TAG, "pop video packet");
+        LOGD(TAG, "pop video packet");
     }
     mVideoLock.unlock();
 }

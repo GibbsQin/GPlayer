@@ -19,6 +19,7 @@ MessageHelper::~MessageHelper() {
 int MessageHelper::processMessage(int arg1, long arg2) {
     auto message = static_cast<Message *>(malloc(sizeof(Message)));
     if (messageQueue->dequeMessage(message) < 0) {
+        free(message);
         return 0;
     }
     LOGI("MessageHelper", "processMessage %d, %d, %lld", message->from, message->type, message->extra);

@@ -36,7 +36,7 @@ uint32_t PacketSource::queueAudPkt(AVPacket *pkt, AVRational time_base) {
     packet->dts = ffmpeg_pts2timeus(time_base, pkt->dts);
     audioPacketQueue.push_back(packet);
     queueSize = static_cast<uint32_t>(audioPacketQueue.size());
-    LOGI(TAG, "queue audio packet %lld", packet->pts);
+    LOGD(TAG, "queue audio packet %lld", packet->pts);
     return queueSize;
 }
 
@@ -48,7 +48,7 @@ uint32_t PacketSource::queueVidPkt(AVPacket *pkt, AVRational time_base) {
     packet->dts = ffmpeg_pts2timeus(time_base, pkt->dts);
     videoPacketQueue.push_back(packet);
     queueSize = static_cast<uint32_t>(videoPacketQueue.size());
-    LOGI(TAG, "queue video packet %lld", packet->pts);
+    LOGD(TAG, "queue video packet %lld", packet->pts);
     return queueSize;
 }
 
@@ -85,7 +85,7 @@ void PacketSource::popAudPkt(AVPacket *pkt) {
     mAudioLock.lock();
     if (audioPacketQueue.size() > 0) {
         audioPacketQueue.pop_front();
-        LOGI(TAG, "pop audio packet");
+        LOGD(TAG, "pop audio packet");
     }
     mAudioLock.unlock();
 }
@@ -95,7 +95,7 @@ void PacketSource::popVidPkt(AVPacket *pkt) {
     mVideoLock.lock();
     if (videoPacketQueue.size() > 0) {
         videoPacketQueue.pop_front();
-        LOGI(TAG, "pop video packet");
+        LOGD(TAG, "pop video packet");
     }
     mVideoLock.unlock();
 }

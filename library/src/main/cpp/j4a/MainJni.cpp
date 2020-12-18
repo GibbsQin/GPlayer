@@ -113,6 +113,7 @@ Java_com_gibbs_gplayer_GPlayer_nRelease(JNIEnv *env, jobject clazz, jlong native
     if (!targetPlayer) {
         return;
     }
+    LOGI("GPlayerJni", "delete GPlayer");
     delete targetPlayer;
 }
 

@@ -26,6 +26,9 @@
 #define MSG_BUFFER_VIDEO_PACKET 2
 #define MSG_BUFFER_AUDIO_FRAME  3
 #define MSG_BUFFER_VIDEO_FRAME  4
+#define MSG_BUFFER_EMPTY        5
+#define MSG_BUFFER_ENOUGH       6
+#define MSG_BUFFER_OVERLOAD     7
 
 #define STATE_IDLE      0
 #define STATE_PREPARING 1
