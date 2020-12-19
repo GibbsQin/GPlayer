@@ -8,6 +8,7 @@
 
 #define MAX_VALUE 5
 #define SLEEP_TIME_GAP 10
+#define ERROR_EXIST -100
 
 using namespace std;
 

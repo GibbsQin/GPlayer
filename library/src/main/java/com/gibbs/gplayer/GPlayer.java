@@ -373,6 +373,7 @@ public class GPlayer implements IGPlayer {
         if (mOnErrorListener != null) {
             mOnErrorListener.onError(code, errorMsg);
         }
+        stop();
     }
 
     private void handleStateMsg(int state) {

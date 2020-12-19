@@ -2,6 +2,7 @@
 // Created by qinshenghua on 2020/12/17.
 //
 
+#include <base/Log.h>
 #include "MessageQueue.h"
 
 #define NOT_NOTIFY_BUFFER_SIZE
@@ -39,6 +40,9 @@ int MessageQueue::dequeMessage(Message *message) {
 
 void MessageQueue::flush() {
     if (msgQueue.size() > 0) {
-        msgQueue.clear();
+        Message *msg = msgQueue.front();
+        free(msg);
+        msgQueue.pop_front();
     }
+    LOGI("MessageQueue", "CoreFlow : flushBuffer");
 }

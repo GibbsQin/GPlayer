@@ -2,6 +2,7 @@
 // Created by qinshenghua on 2020/12/15.
 //
 
+#include <base/LoopThread.h>
 #include "DemuxerHelper.h"
 #include "base/Log.h"
 
@@ -37,12 +38,14 @@ void DemuxerHelper::init() {
     if ((ret = avformat_open_input(&ifmt_ctx, filename, nullptr, nullptr)) < 0) {
         LOGE(TAG, "Could not open input file '%s'", filename);
         notifyError(ret);
+        errorExist = true;
         return;
     }
 
     if ((ret = avformat_find_stream_info(ifmt_ctx, nullptr)) < 0) {
         LOGE(TAG, "Failed to retrieve input stream information");
         notifyError(ret);
+        errorExist = true;
         return;
     }
 
@@ -94,7 +97,7 @@ void DemuxerHelper::init() {
          audio_stream_index, video_stream_index, stream_mapping_size);
     LOGI(TAG, "extensions %s", ifmt_ctx->iformat->extensions);
 
-    LOGI(TAG, "av_init\n");
+    LOGI(TAG, "CoreFlow : av_init\n");
     formatInfo->duration = (int) (ifmt_ctx->duration);
     inputSource->queueInfo(formatInfo);
 
@@ -126,6 +129,9 @@ void DemuxerHelper::init() {
 }
 
 int DemuxerHelper::readPacket(int type, long extra) {
+    if (errorExist) {
+        return ERROR_EXIST;
+    }
     if (extra > 0) {
         int64_t seekUs = extra;
         LOGI(TAG, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekUs);

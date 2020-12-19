@@ -137,7 +137,9 @@ void GPlayer::startDecode() {
 void GPlayer::stopDecode() {
     LoopThreadHelper::destroyThread(&audioDecodeThread);
     LoopThreadHelper::destroyThread(&videoDecodeThread);
-    decoderHelper->onRelease();
-    delete decoderHelper;
-    decoderHelper = nullptr;
+    if (decoderHelper != nullptr) {
+        decoderHelper->onRelease();
+        delete decoderHelper;
+        decoderHelper = nullptr;
+    }
 }

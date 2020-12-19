@@ -3,7 +3,7 @@
 #include <media/MediaHelper.h>
 #include "FrameSource.h"
 
-#define TAG "OutputSource"
+#define TAG "FrameSource"
 
 FrameSource::FrameSource() {
     LOGI(TAG, "CoreFlow : create OutputSource");
@@ -91,14 +91,18 @@ void FrameSource::flushBuffer() {
 }
 
 void FrameSource::flushVideoBuffer() {
-    if (videoPacketQueue.size() > 0) {
-        videoPacketQueue.clear();
+    while (videoPacketQueue.size() > 0) {
+        MediaData *mediaData = videoPacketQueue.front();
+        delete mediaData;
+        videoPacketQueue.pop_front();
     }
 }
 
 void FrameSource::flushAudioBuffer() {
-    if (audioPacketQueue.size() > 0) {
-        audioPacketQueue.clear();
+    while (audioPacketQueue.size() > 0) {
+        MediaData *mediaData = audioPacketQueue.front();
+        delete mediaData;
+        audioPacketQueue.pop_front();
     }
 }
 

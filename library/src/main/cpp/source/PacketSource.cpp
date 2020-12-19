@@ -1,7 +1,7 @@
 #include <base/Log.h>
 #include "PacketSource.h"
 
-#define TAG "InputSource"
+#define TAG "PacketSource"
 
 static uint64_t ffmpeg_pts2timeus(AVRational time_base, int64_t pts) {
     return (uint64_t) (av_q2d(time_base) * pts * 1000000);
@@ -111,14 +111,18 @@ void PacketSource::flush() {
 }
 
 void PacketSource::flushVideoBuffer() {
-    if (videoPacketQueue.size() > 0) {
-        videoPacketQueue.clear();
+    while (videoPacketQueue.size() > 0) {
+        AVPacket *pkt = videoPacketQueue.front();
+        av_packet_free(&pkt);
+        videoPacketQueue.pop_front();
     }
 }
 
 void PacketSource::flushAudioBuffer() {
-    if (audioPacketQueue.size() > 0) {
-        audioPacketQueue.clear();
+    while (audioPacketQueue.size() > 0) {
+        AVPacket *pkt = audioPacketQueue.front();
+        av_packet_free(&pkt);
+        audioPacketQueue.pop_front();
     }
 }
 

@@ -32,6 +32,10 @@ void LoopThread::handleRunning() {
         int count = updateFunc(arg1, arg2);
         arg1 = -1;
         arg2 = -1;
+        if (count == ERROR_EXIST) {
+            mRunning = false;
+            continue;
+        }
         if (count > maxValue) {
             sleepTimeMs += SLEEP_TIME_GAP;
         } else {
