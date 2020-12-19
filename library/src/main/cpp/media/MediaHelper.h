@@ -6,6 +6,7 @@
 #define GPLAYER_MEDIAHELPER_H
 
 
+#include <stdlib.h>
 #include <media/MediaData.h>
 
 class MediaHelper {

@@ -34,7 +34,7 @@ public:
 
     void popVideoBuffer();
 
-    void flushBuffer();
+    void flush();
 
     uint32_t getAudioBufferSize();
 

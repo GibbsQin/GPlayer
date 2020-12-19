@@ -6,27 +6,40 @@
 #include "../media/MediaData.h"
 
 VideoRenderer::VideoRenderer(FrameSource *source) {
-    glesProgram = new YuvGlesProgram();
+    eglRenderer = new EglRenderer();
     mediaSource = source;
 }
 
 VideoRenderer::~VideoRenderer() {
-    delete glesProgram;
-    glesProgram = nullptr;
+    delete eglRenderer;
+    eglRenderer = nullptr;
 }
 
-void VideoRenderer::init() {
-    glesProgram->buildProgram();
+void VideoRenderer::surfaceCreated(ANativeWindow *window, int videoWidth, int videoHeight) {
+    eglRenderer->setWindow(window);
+    eglRenderer->setVideoSize(videoWidth, videoHeight);
+    isEglInit = eglRenderer->initialize();
 }
 
-void VideoRenderer::render(uint64_t nowMs) {
+void VideoRenderer::surfaceChanged(int width, int height) {
+
+}
+
+void VideoRenderer::surfaceDestroyed() {
+    eglRenderer->destroy();
+}
+
+uint64_t VideoRenderer::render(uint64_t nowMs) {
     MediaData *mediaData;
-    mediaSource->readVideoBuffer(&mediaData);
-    if (mediaData->pts < nowMs) {
-        glesProgram->buildTextures(mediaData->data, mediaData->data1, mediaData->data2, mediaData->width, mediaData->height);
+    if (mediaSource->readVideoBuffer(&mediaData) > 0) {
+        LOGI("VideoRenderer", "render video %lld", mediaData->pts);
+        if (nowMs > mediaData->pts) {
+            eglRenderer->buildTextures(mediaData->data, mediaData->data1, mediaData->data2,
+                                       mediaData->width, mediaData->height);
+            eglRenderer->drawFrame();
+            mediaSource->popVideoBuffer();
+            return mediaData->pts;
+        }
     }
-}
-
-void VideoRenderer::release() {
-
+    return -1;
 }

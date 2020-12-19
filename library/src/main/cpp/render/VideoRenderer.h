@@ -6,7 +6,7 @@
 #define GPLAYER_VIDEORENDERER_H
 
 
-#include "YuvGlesProgram.h"
+#include "EglRenderer.h"
 #include "source/FrameSource.h"
 
 class VideoRenderer {
@@ -15,15 +15,22 @@ public:
 
     ~VideoRenderer();
 
-    void init();
+    void surfaceCreated(ANativeWindow *window, int videoWidth, int videoHeight);
 
-    void render(uint64_t nowMs);
+    void surfaceChanged(int width, int height);
 
-    void release();
+    void surfaceDestroyed();
+
+    uint64_t render(uint64_t nowMs);
+
+    bool isRenderValid() {
+        return isEglInit;
+    }
 
 private:
+    EglRenderer *eglRenderer;
     FrameSource *mediaSource;
-    YuvGlesProgram *glesProgram;
+    bool isEglInit = false;
 };
 
 

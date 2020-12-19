@@ -1,9 +1,8 @@
-package com.gibbs.gplayer.view;
+package com.gibbs.gplayer.sample.widget;
 
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -13,23 +12,17 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.gibbs.gplayer.GPlayer;
 import com.gibbs.gplayer.GPlayerView;
-import com.gibbs.gplayer.IGPlayer;
 import com.gibbs.gplayer.R;
-import com.gibbs.gplayer.listener.OnBufferChangedListener;
-import com.gibbs.gplayer.listener.OnErrorListener;
-import com.gibbs.gplayer.listener.OnPositionChangedListener;
-import com.gibbs.gplayer.listener.OnPreparedListener;
-import com.gibbs.gplayer.listener.OnStateChangedListener;
 
-public class VideoView extends ConstraintLayout implements IGPlayer, OnStateChangedListener, OnPositionChangedListener {
+public class VideoView extends ConstraintLayout implements GPlayer.OnStateChangedListener, GPlayer.OnPositionChangedListener {
     private GPlayerView playerView;
     private SeekBar seekBar;
     private ProgressBar progressBar;
     private TextView progressView;
     private TextView durationView;
 
-    private OnStateChangedListener mOnStateChangedListener;
-    private OnPositionChangedListener mOnPositionChangedListener;
+    private GPlayer.OnStateChangedListener mOnStateChangedListener;
+    private GPlayer.OnPositionChangedListener mOnPositionChangedListener;
 
     public VideoView(Context context) {
         this(context, null);
@@ -55,112 +48,70 @@ public class VideoView extends ConstraintLayout implements IGPlayer, OnStateChan
         return playerView;
     }
 
-    @Override
-    public void setSurface(SurfaceView view) {
-
-    }
-
-    @Override
     public void setDataSource(String url) {
         playerView.setDataSource(url);
     }
 
-    @Override
     public void prepare() {
         playerView.prepare();
     }
 
-    @Override
     public void start() {
         playerView.start();
     }
 
-    @Override
     public void stop() {
         playerView.stop();
     }
 
-    @Override
     public void pause() {
         playerView.pause();
     }
 
-    @Override
     public void release() {
         playerView.release();
     }
 
-    @Override
     public void seekTo(int secondMs) {
         playerView.seekTo(secondMs);
     }
 
-    @Override
     public boolean isPlaying() {
         return playerView.isPlaying();
     }
 
-    @Override
     public void setFlags(int flags) {
         playerView.setFlags(flags);
     }
 
-    @Override
     public int getCurrentPosition() {
         return playerView.getCurrentPosition();
     }
 
-    @Override
-    public int getDuration() {
-        return playerView.getDuration();
-    }
-
-    @Override
-    public int getVideoWidth() {
-        return playerView.getVideoWidth();
-    }
-
-    @Override
-    public int getVideoHeight() {
-        return playerView.getVideoHeight();
-    }
-
-    @Override
-    public int getVideoRotate() {
-        return playerView.getVideoRotate();
-    }
-
-    @Override
     public GPlayer.State getState() {
         return playerView.getState();
     }
 
-    @Override
-    public void setOnPreparedListener(OnPreparedListener listener) {
+    public void setOnPreparedListener(GPlayer.OnPreparedListener listener) {
         playerView.setOnPreparedListener(listener);
     }
 
-    @Override
-    public void setOnErrorListener(OnErrorListener listener) {
+    public void setOnErrorListener(GPlayer.OnErrorListener listener) {
         playerView.setOnErrorListener(listener);
     }
 
-    @Override
-    public void setOnStateChangedListener(OnStateChangedListener listener) {
+    public void setOnStateChangedListener(GPlayer.OnStateChangedListener listener) {
         mOnStateChangedListener = listener;
     }
 
-    @Override
-    public void setOnPositionChangedListener(OnPositionChangedListener listener) {
+    public void setOnPositionChangedListener(GPlayer.OnPositionChangedListener listener) {
         mOnPositionChangedListener = listener;
     }
 
-    @Override
-    public void setOnBufferChangedListener(OnBufferChangedListener listener) {
+    public void setOnBufferChangedListener(GPlayer.OnBufferChangedListener listener) {
         playerView.setOnBufferChangedListener(listener);
     }
 
-    @Override
     public void onPositionChanged(int timeMs) {
         if (mOnPositionChangedListener != null) {
             mOnPositionChangedListener.onPositionChanged(timeMs);
@@ -169,7 +120,6 @@ public class VideoView extends ConstraintLayout implements IGPlayer, OnStateChan
         progressView.setText(second2Text(timeMs));
     }
 
-    @Override
     public void onStateChanged(GPlayer.State state) {
         if (mOnStateChangedListener != null) {
             mOnStateChangedListener.onStateChanged(state);
@@ -178,9 +128,6 @@ public class VideoView extends ConstraintLayout implements IGPlayer, OnStateChan
             progressBar.setVisibility(VISIBLE);
         } else if (state == GPlayer.State.PREPARED) {
             progressBar.setVisibility(VISIBLE);
-            int duration = getDuration();
-            seekBar.setMax(duration);
-            durationView.setText(second2Text(duration));
         } else {
             progressBar.setVisibility(GONE);
         }

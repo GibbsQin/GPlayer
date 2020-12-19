@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
-import com.gibbs.gplayer.utils.LogUtils
+import com.gibbs.gplayer.LogUtils
 import com.gibbs.gplayer.sample.model.PlayList
 import com.gibbs.gplayer.sample.model.VideoItem
 import com.gibbs.gplayer.sample.model.VideoItemHolder

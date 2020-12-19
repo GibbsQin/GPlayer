@@ -11,10 +11,6 @@
 GPlayerJni::GPlayerJni(jobject obj) {
     LOGI(TAG, "create GPlayerJni");
     JNIEnv *env = JniHelper::getJNIEnv();
-    if (env == nullptr) {
-        LOGE(TAG, "env is nullptr");
-        return;
-    }
     playerJObj = env->NewGlobalRef(obj);
     jclass sourceClass = env->GetObjectClass(obj);
     onMessageCallbackMethod = env->GetMethodID(sourceClass, "onMessageCallback",

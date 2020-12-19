@@ -11,15 +11,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.gibbs.gplayer.GPlayer
-import com.gibbs.gplayer.listener.OnPreparedListener
-import com.gibbs.gplayer.listener.OnStateChangedListener
 import com.gibbs.gplayer.sample.model.VideoItem
 import com.gibbs.gplayer.sample.model.VideoItemHolder
 import com.gibbs.gplayer.sample.widget.DividerItemDecoration
-import com.gibbs.gplayer.utils.LogUtils
+import com.gibbs.gplayer.LogUtils
 import kotlinx.android.synthetic.main.activity_play_list.*
 
-class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener {
+class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnStateChangedListener {
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
     private val mVideoList: ArrayList<VideoItem> = ArrayList()
     private var mPendingStart : Boolean = false
@@ -88,13 +86,11 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
 
     override fun onStart() {
         super.onStart()
-        gl_surface_view.playerView.onResume()
         gl_surface_view.prepare()
     }
 
     override fun onStop() {
         super.onStop()
-        gl_surface_view.playerView.onPause()
         gl_surface_view.stop()
         mHandler.removeCallbacksAndMessages(null)
     }

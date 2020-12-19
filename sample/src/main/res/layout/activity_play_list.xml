@@ -8,7 +8,7 @@
     android:orientation="vertical"
     tools:context="com.gibbs.gplayer.sample.PlayListActivity">
 
-    <com.gibbs.gplayer.view.VideoView
+    <com.gibbs.gplayer.sample.widget.VideoView
         android:id="@+id/gl_surface_view"
         android:layout_width="0dp"
         android:layout_height="0dp"

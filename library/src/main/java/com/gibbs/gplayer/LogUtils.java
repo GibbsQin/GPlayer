@@ -1,4 +1,4 @@
-package com.gibbs.gplayer.utils;
+package com.gibbs.gplayer;
 
 import android.util.Log;
 

@@ -1,4 +1,3 @@
-#include <j4a/MediaDataJni.h>
 #include <base/Log.h>
 #include <media/MediaHelper.h>
 #include "FrameSource.h"
@@ -80,7 +79,7 @@ void FrameSource::popVideoBuffer() {
     mVideoLock.unlock();
 }
 
-void FrameSource::flushBuffer() {
+void FrameSource::flush() {
     mVideoLock.lock();
     mAudioLock.lock();
     flushAudioBuffer();

@@ -5,15 +5,14 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.WindowManager
 import com.gibbs.gplayer.GPlayer
-import com.gibbs.gplayer.listener.*
-import com.gibbs.gplayer.utils.LogUtils
+import com.gibbs.gplayer.LogUtils
 import com.gibbs.gplayer.sample.widget.PlaybackSeekView.OnSeekChangeListener
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_external_gplayer.*
 import kotlinx.android.synthetic.main.layout_gplayer_top.*
 
-class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener,
-        OnBufferChangedListener, OnPositionChangedListener, OnErrorListener, OnSeekChangeListener {
+class ExternalGPlayerViewActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnStateChangedListener,
+        GPlayer.OnBufferChangedListener, GPlayer.OnPositionChangedListener, GPlayer.OnErrorListener, OnSeekChangeListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,14 +44,12 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateC
     override fun onResume() {
         super.onResume()
         LogUtils.i(TAG, "onResume")
-        gl_surface_view.onResume()
         gl_surface_view.prepare()
     }
 
     override fun onPause() {
         super.onPause()
         LogUtils.i(TAG, "onPause")
-        gl_surface_view.onPause()
         gl_surface_view.stop()
     }
 
@@ -64,7 +61,7 @@ class ExternalGPlayerViewActivity : BaseActivity(), OnPreparedListener, OnStateC
         LogUtils.i(TAG, "onPlayStateChanged $state")
         if (state == GPlayer.State.PLAYING) {
             runOnUiThread {
-                video_playback_seek_view.setDuration(gl_surface_view.duration)
+//                video_playback_seek_view.setDuration(gl_surface_view.duration)
             }
         } else if (state == GPlayer.State.IDLE) {
             finish()

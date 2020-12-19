@@ -1,8 +1,9 @@
 #include <jni.h>
 #include <j4a/JniHelper.h>
 #include <base/Log.h>
-#include <j4a/MediaDataJni.h>
 #include <player/GPlayer.h>
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
 
 //#define ENABLE_FFMPEG_JNI 1
 
@@ -16,8 +17,6 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         LOGE("GPlayerJni", "JNI_OnLoad fail %d", result);
         return result;
     }
-
-    MediaDataJni::initClassAndMethodJni();
 
 #ifdef ENABLE_FFMPEG_JNI
     int init_ffmpeg_jni_result = av_jni_set_java_vm(vm, nullptr);
@@ -36,6 +35,35 @@ JNIEXPORT jlong JNICALL
 Java_com_gibbs_gplayer_GPlayer_nInit(JNIEnv *env, jobject clazz, jint flag, jobject player) {
     auto pGPlayerImp = new GPlayer(flag, player);
     return reinterpret_cast<jlong>(pGPlayerImp);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nSetSurface(JNIEnv *env, jobject thiz, jlong nativePlayer,
+                                           jobject surface) {
+    LOGI("GPlayerJni", "nSetSurface channelId : %d", nativePlayer);
+    auto targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
+    if (!targetPlayer) {
+        return;
+    }
+    if (surface) {
+        ANativeWindow *win = ANativeWindow_fromSurface(env, surface);
+        targetPlayer->setSurface(win);
+    } else {
+        targetPlayer->setSurface(nullptr);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_gibbs_gplayer_GPlayer_nSetAudioTrack(JNIEnv *env, jobject thiz, jlong nativePlayer,
+                                              jobject audio_track_wrap) {
+    LOGI("GPlayerJni", "nSetAudioTrack channelId : %d", nativePlayer);
+    auto targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
+    if (!targetPlayer) {
+        return;
+    }
+    targetPlayer->setAudioTrack(new AudioTrackJni(audio_track_wrap));
 }
 
 extern "C"
@@ -125,189 +153,4 @@ Java_com_gibbs_gplayer_GPlayer_nSetFlags(JNIEnv *env, jobject thiz, jlong native
         return;
     }
     targetPlayer->setFlags(static_cast<uint32_t>(flags));
-}
-
-extern "C"
-JNIEXPORT jobject JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_readAudioSource(JNIEnv *env, jobject thiz,
-                                                             jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return nullptr;
-    }
-    MediaData *mediaData = nullptr;
-    targetPlayer->getOutputSource()->readAudioBuffer(&mediaData);
-    if (mediaData == nullptr) {
-        return nullptr;
-    }
-    return MediaDataJni::createJObject(mediaData);
-}
-
-extern "C"
-JNIEXPORT jobject JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_readVideoSource(JNIEnv *env, jobject thiz,
-                                                             jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return nullptr;
-    }
-    MediaData *mediaData = nullptr;
-    targetPlayer->getOutputSource()->readVideoBuffer(&mediaData);
-    if (mediaData == nullptr) {
-        return nullptr;
-    }
-    return MediaDataJni::createJObject(mediaData);
-}
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_removeFirstAudioPackage(JNIEnv *env, jobject thiz,
-                                                                     jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return;
-    }
-    targetPlayer->getOutputSource()->popAudioBuffer();
-}
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_removeFirstVideoPackage(JNIEnv *env, jobject thiz,
-                                                                     jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return;
-    }
-    targetPlayer->getOutputSource()->popVideoBuffer();
-}
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_flushBuffer(JNIEnv *env, jobject thiz,
-                                                         jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return;
-    }
-    targetPlayer->getOutputSource()->flushBuffer();
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getAudioBufferSize(JNIEnv *env, jobject thiz,
-                                                                jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getOutputSource()->getAudioBufferSize();
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getVideoBufferSize(JNIEnv *env, jobject thiz,
-                                                                jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getOutputSource()->getVideoBufferSize();
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getFrameRate(JNIEnv *env, jobject thiz,
-                                                          jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getInputSource()->getFormatInfo()->vidframerate;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getDuration(JNIEnv *env, jobject thiz,
-                                                         jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getInputSource()->getFormatInfo()->duration;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleRate(JNIEnv *env, jobject thiz,
-                                                           jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getInputSource()->getAudioAVCodecParameters()->sample_rate;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getSampleFormat(JNIEnv *env, jobject thiz,
-                                                             jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getInputSource()->getAudioAVCodecParameters()->format;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getChannels(JNIEnv *env, jobject thiz,
-                                                         jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getInputSource()->getAudioAVCodecParameters()->channels;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getWidth(JNIEnv *env, jobject thiz, jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getInputSource()->getVideoAVCodecParameters()->width;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getHeight(JNIEnv *env, jobject thiz, jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-    return targetPlayer->getInputSource()->getVideoAVCodecParameters()->height;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getRotate(JNIEnv *env, jobject thiz, jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-
-    return targetPlayer->getInputSource()->getFormatInfo()->vidrotate;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_gibbs_gplayer_source_MediaSourceImp_getBytesPerFrame(JNIEnv *env, jobject thiz,
-                                                              jlong nativePlayer) {
-    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
-    if (!targetPlayer) {
-        return -1;
-    }
-
-    return targetPlayer->getInputSource()->getAudioAVCodecParameters()->frame_size;
 }

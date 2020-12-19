@@ -5,6 +5,7 @@
 #ifndef GPLAYER_GPLAYER_H
 #define GPLAYER_GPLAYER_H
 
+#include <android/native_window.h>
 #include "DecoderHelper.h"
 #include "DemuxerHelper.h"
 #include "MessageHelper.h"
@@ -13,6 +14,7 @@
 #include "PacketSource.h"
 #include "FrameSource.h"
 #include "MessageQueue.h"
+#include "RenderHelper.h"
 
 #define AV_FLAG_SOURCE_MEDIA_CODEC 0x00000002
 
@@ -27,6 +29,10 @@ public:
     ~GPlayer();
 
 public:
+    void setSurface(ANativeWindow *window);
+
+    void setAudioTrack(AudioTrackJni *track);
+
     void prepare(const std::string &url);
 
     void start();
@@ -39,12 +45,9 @@ public:
 
     void stop();
 
-public:
-    void setFlags(uint32_t flags);
-
-    PacketSource *getInputSource();
-
-    FrameSource *getOutputSource();
+    void setFlags(uint32_t flags) {
+        mFlags = flags;
+    }
 
 private:
     void startMessageLoop();
@@ -59,19 +62,28 @@ private:
 
     void stopDecode();
 
+    void startRender();
+
+    void stopRender();
+
 private:
     uint32_t mFlags;
+    ANativeWindow *nativeWindow = nullptr;
+    AudioTrackJni *audioTrackJni = nullptr;
 
     PacketSource *inputSource;
     FrameSource *outputSource;
     MessageQueue *messageQueue;
     DemuxerHelper *demuxerHelper;
     DecoderHelper *decoderHelper;
+    RenderHelper  *renderHelper;
     MessageHelper *messageHelper;
 
+    LoopThread *demuxerThread;
     LoopThread *audioDecodeThread;
     LoopThread *videoDecodeThread;
-    LoopThread *demuxerThread;
+    LoopThread *audioRenderThread;
+    LoopThread *videoRenderThread;
     LoopThread *messageThread;
 };
 

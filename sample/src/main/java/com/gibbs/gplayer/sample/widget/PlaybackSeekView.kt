@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
-import com.gibbs.gplayer.utils.LogUtils
+import com.gibbs.gplayer.LogUtils
 import com.gibbs.gplayer.sample.R
 import kotlinx.android.synthetic.main.layout_playback_seek.view.*
 

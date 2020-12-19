@@ -15,28 +15,44 @@ GPlayer::GPlayer(uint32_t flag, jobject obj) {
     outputSource = new FrameSource();
     inputSource = new PacketSource();
     messageQueue = new MessageQueue();
-    messageHelper = new MessageHelper(messageQueue, obj);
-    decoderHelper = nullptr;
     demuxerHelper = nullptr;
+    decoderHelper = nullptr;
+    renderHelper = nullptr;
+    messageHelper = new MessageHelper(messageQueue, obj);
+    demuxerThread = nullptr;
     audioDecodeThread = nullptr;
     videoDecodeThread = nullptr;
-    demuxerThread = nullptr;
+    audioRenderThread = nullptr;
+    videoRenderThread = nullptr;
     messageThread = nullptr;
     mFlags = flag;
 }
 
 GPlayer::~GPlayer() {
+    delete audioRenderThread;
+    delete videoRenderThread;
     delete audioDecodeThread;
     delete videoDecodeThread;
     delete demuxerThread;
     delete messageThread;
     delete decoderHelper;
     delete demuxerHelper;
+    delete renderHelper;
     delete messageHelper;
     delete outputSource;
     delete inputSource;
     delete messageQueue;
     LOGI(TAG, "CoreFlow : GPlayerImp destroyed");
+}
+
+void GPlayer::setSurface(ANativeWindow *window) {
+    nativeWindow = window;
+    LOGI(TAG, "setSurface %p", nativeWindow);
+}
+
+void GPlayer::setAudioTrack(AudioTrackJni *track) {
+    audioTrackJni = track;
+    LOGI(TAG, "setAudioTrack %p", audioTrackJni);
 }
 
 void GPlayer::prepare(const std::string &url) {
@@ -48,9 +64,12 @@ void GPlayer::prepare(const std::string &url) {
 void GPlayer::start() {
     LOGI(TAG, "CoreFlow : start");
     startDecode();
+    startRender();
 }
 
 void GPlayer::pause() {
+    audioRenderThread->pause();
+    videoRenderThread->pause();
     audioDecodeThread->pause();
     videoDecodeThread->pause();
     demuxerThread->pause();
@@ -58,6 +77,8 @@ void GPlayer::pause() {
 }
 
 void GPlayer::resume() {
+    audioRenderThread->resume();
+    videoRenderThread->resume();
     audioDecodeThread->resume();
     videoDecodeThread->resume();
     demuxerThread->resume();
@@ -75,22 +96,14 @@ void GPlayer::stop() {
     stopDecode();
     LOGI(TAG, "CoreFlow : decoding threads were stopped!");
     inputSource->flush();
-    messageQueue->flush();
+    stopRender();
+    LOGI(TAG, "CoreFlow : render threads were stopped!");
+    outputSource->flush();
+
     messageQueue->pushMessage(MSG_DOMAIN_STATE, STATE_STOPPED, 0);
     stopMessageLoop();
     LOGI(TAG, "CoreFlow : message thread was stopped!");
-}
-
-void GPlayer::setFlags(uint32_t flags) {
-    mFlags = flags;
-}
-
-PacketSource *GPlayer::getInputSource() {
-    return inputSource;
-}
-
-FrameSource *GPlayer::getOutputSource() {
-    return outputSource;
+    messageQueue->flush();
 }
 
 void GPlayer::startMessageLoop() {
@@ -142,4 +155,35 @@ void GPlayer::stopDecode() {
         delete decoderHelper;
         decoderHelper = nullptr;
     }
+}
+
+void GPlayer::startRender() {
+    int sampleRate = inputSource->getAudioAVCodecParameters()->sample_rate;
+    int channels = inputSource->getAudioAVCodecParameters()->channels;
+    int format = inputSource->getAudioAVCodecParameters()->format;
+    int bytesPerSample = inputSource->getAudioAVCodecParameters()->frame_size;
+    renderHelper = new RenderHelper(outputSource, messageQueue);
+    renderHelper->setSurface(nativeWindow);
+    renderHelper->setAudioTrack(audioTrackJni);
+    renderHelper->setVideoParams(inputSource->getVideoAVCodecParameters()->width,
+                                 inputSource->getVideoAVCodecParameters()->height);
+    renderHelper->setAudioParams(sampleRate, channels, format, bytesPerSample);
+    audioRenderThread = LoopThreadHelper::createLoopThread(
+            MAX_VALUE,
+            std::bind(&RenderHelper::initAudioRenderer, renderHelper),
+            std::bind(&RenderHelper::renderAudio, renderHelper, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&RenderHelper::releaseAudioRenderer, renderHelper));
+
+    videoRenderThread = LoopThreadHelper::createLoopThread(
+            MAX_VALUE,
+            std::bind(&RenderHelper::initVideoRenderer, renderHelper),
+            std::bind(&RenderHelper::renderVideo, renderHelper, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&RenderHelper::releaseVideoRenderer, renderHelper));
+}
+
+void GPlayer::stopRender() {
+    LoopThreadHelper::destroyThread(&audioRenderThread);
+    LoopThreadHelper::destroyThread(&videoRenderThread);
+    delete renderHelper;
+    renderHelper = nullptr;
 }

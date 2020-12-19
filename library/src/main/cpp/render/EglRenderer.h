@@ -16,6 +16,8 @@ public:
 
     void setWindow(ANativeWindow *window);
 
+    void setVideoSize(int width, int height);
+
     bool initialize();
 
     void destroy();
@@ -27,6 +29,8 @@ public:
 private:
     YuvGlesProgram *_glProgram;
     ANativeWindow *_window{};
+    int videoWidth = 0;
+    int videoHeight = 0;
 
     EGLDisplay _display{};
     EGLSurface _surface{};
