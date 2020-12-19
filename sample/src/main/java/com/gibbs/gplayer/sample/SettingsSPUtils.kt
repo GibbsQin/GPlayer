@@ -1,4 +1,4 @@
-package com.gibbs.sample
+package com.gibbs.gplayer.sample
 
 import android.content.Context
 
@@ -29,7 +29,7 @@ class SettingsSPUtils {
     }
 
     companion object {
-        private const val SP_FILE = "com.gibbs.gplayer_preferences"
+        private const val SP_FILE = "com.gibbs.gplayer.sample_preferences"
         const val CODEC_TYPE = "codec_type"
         const val GPLAYER_STYLE = "gplayer_style"
         val instance: SettingsSPUtils

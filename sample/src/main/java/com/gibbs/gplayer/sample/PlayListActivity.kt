@@ -1,6 +1,8 @@
-package com.gibbs.sample
+package com.gibbs.gplayer.sample
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -11,9 +13,10 @@ import com.bumptech.glide.request.RequestOptions
 import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.listener.OnPreparedListener
 import com.gibbs.gplayer.listener.OnStateChangedListener
-import com.gibbs.sample.model.VideoItem
-import com.gibbs.sample.model.VideoItemHolder
-import com.gibbs.sample.widget.DividerItemDecoration
+import com.gibbs.gplayer.sample.model.VideoItem
+import com.gibbs.gplayer.sample.model.VideoItemHolder
+import com.gibbs.gplayer.sample.widget.DividerItemDecoration
+import com.gibbs.gplayer.utils.LogUtils
 import kotlinx.android.synthetic.main.activity_play_list.*
 
 class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListener {
@@ -49,6 +52,7 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
                         .load(videoItem.videoPath)
                         .into(holder.videoThumbnail)
                 holder.rootView.setOnClickListener {
+                    mHandler.removeCallbacksAndMessages(null)
                     startPlay(videoItem)
                 }
             }
@@ -69,6 +73,7 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
     }
 
     private fun startPlay(videoItem : VideoItem) {
+        LogUtils.i("PlayListActivity", "startPlay $videoItem")
         if (gl_surface_view.isPlaying) {
             gl_surface_view.stop()
             mPendingStart = true
@@ -77,6 +82,8 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
             gl_surface_view.setDataSource(videoItem.videoPath)
             gl_surface_view.prepare()
         }
+
+        startAutoTest()
     }
 
     override fun onStart() {
@@ -89,6 +96,7 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
         super.onStop()
         gl_surface_view.playerView.onPause()
         gl_surface_view.stop()
+        mHandler.removeCallbacksAndMessages(null)
     }
 
     override fun onPrepared() {
@@ -103,5 +111,11 @@ class PlayListActivity : BaseActivity(), OnPreparedListener, OnStateChangedListe
                 gl_surface_view.prepare()
             }
         }
+    }
+
+    private val mHandler: Handler = Handler(Looper.getMainLooper())
+    private fun startAutoTest() {
+        val index = System.nanoTime() % mVideoList.size;
+        mHandler.postDelayed(Runnable { startPlay(mVideoList[index.toInt()]) }, 10 * 1000)
     }
 }

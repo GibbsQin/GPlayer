@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.gibbs.sample.SimpleGPlayerViewActivity">
+    tools:context="com.gibbs.gplayer.sample.SimpleGPlayerViewActivity">
 
     <com.gibbs.gplayer.GPlayerView
         android:id="@+id/gl_surface_view"

@@ -1,4 +1,4 @@
-package com.gibbs.sample.widget
+package com.gibbs.gplayer.sample.widget
 
 import android.content.Context
 import android.util.AttributeSet
@@ -7,7 +7,7 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import com.gibbs.gplayer.utils.LogUtils
-import com.gibbs.sample.R
+import com.gibbs.gplayer.sample.R
 import kotlinx.android.synthetic.main.layout_playback_seek.view.*
 
 class PlaybackSeekView : LinearLayout {

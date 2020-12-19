@@ -1,4 +1,4 @@
-package com.gibbs.sample
+package com.gibbs.gplayer.sample
 
 import android.Manifest
 import android.content.Context
@@ -13,10 +13,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.gibbs.gplayer.utils.LogUtils
-import com.gibbs.sample.model.PlayList
-import com.gibbs.sample.model.VideoItem
-import com.gibbs.sample.model.VideoItemHolder
-import com.gibbs.sample.widget.DividerItemDecoration
+import com.gibbs.gplayer.sample.model.PlayList
+import com.gibbs.gplayer.sample.model.VideoItem
+import com.gibbs.gplayer.sample.model.VideoItemHolder
+import com.gibbs.gplayer.sample.widget.DividerItemDecoration
 import kotlinx.android.synthetic.main.activity_media_list.*
 import java.io.InputStream
 

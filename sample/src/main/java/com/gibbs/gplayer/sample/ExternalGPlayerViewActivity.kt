@@ -1,4 +1,4 @@
-package com.gibbs.sample
+package com.gibbs.gplayer.sample
 
 import android.os.Bundle
 import android.view.Menu
@@ -7,7 +7,7 @@ import android.view.WindowManager
 import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.listener.*
 import com.gibbs.gplayer.utils.LogUtils
-import com.gibbs.sample.widget.PlaybackSeekView.OnSeekChangeListener
+import com.gibbs.gplayer.sample.widget.PlaybackSeekView.OnSeekChangeListener
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_external_gplayer.*
 import kotlinx.android.synthetic.main.layout_gplayer_top.*

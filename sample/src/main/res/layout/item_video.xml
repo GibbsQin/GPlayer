@@ -9,7 +9,7 @@
     android:paddingTop="8dp"
     android:paddingBottom="8dp">
 
-    <com.gibbs.sample.widget.OvalImageView
+    <com.gibbs.gplayer.sample.widget.OvalImageView
         android:id="@+id/video_thumbnail"
         android:layout_width="0dp"
         android:layout_height="0dp"

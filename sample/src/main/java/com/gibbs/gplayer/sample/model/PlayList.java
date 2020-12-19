@@ -1,4 +1,4 @@
-package com.gibbs.sample.model;
+package com.gibbs.gplayer.sample.model;
 
 import com.google.gson.Gson;
 

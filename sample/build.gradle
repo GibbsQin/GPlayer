@@ -8,7 +8,7 @@ android {
 
 
     defaultConfig {
-        applicationId "com.gibbs.gplayer"
+        applicationId "com.gibbs.gplayer.sample"
         minSdkVersion 21
         targetSdkVersion 29
         versionCode rootProject.ext.versionCode

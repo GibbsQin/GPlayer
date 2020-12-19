@@ -1,4 +1,4 @@
-package com.gibbs.sample.model
+package com.gibbs.gplayer.sample.model
 
 import android.os.Parcel
 import android.os.Parcelable

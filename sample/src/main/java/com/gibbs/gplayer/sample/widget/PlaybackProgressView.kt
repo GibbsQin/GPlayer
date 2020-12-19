@@ -1,4 +1,4 @@
-package com.gibbs.sample.widget
+package com.gibbs.gplayer.sample.widget
 
 import android.content.Context
 import android.util.AttributeSet
@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import com.gibbs.sample.R
+import com.gibbs.gplayer.sample.R
 
 class PlaybackProgressView : LinearLayout {
     private var mPBDuration: ProgressBar? = null

@@ -38,8 +38,8 @@
             app:allowDividerAbove="true">
             <intent
                 android:action="android.intent.action.MAIN"
-                android:targetPackage="com.gibbs.gplayer"
-                android:targetClass="com.gibbs.sample.IntroduceActivity" />
+                android:targetPackage="com.gibbs.gplayer.sample"
+                android:targetClass="com.gibbs.gplayer.sample.IntroduceActivity" />
         </Preference>
     </PreferenceCategory>
 

@@ -1,4 +1,4 @@
-package com.gibbs.sample
+package com.gibbs.gplayer.sample
 
 import android.os.Bundle
 

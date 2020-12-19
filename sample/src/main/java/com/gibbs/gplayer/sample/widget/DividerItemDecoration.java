@@ -1,4 +1,4 @@
-package com.gibbs.sample.widget;
+package com.gibbs.gplayer.sample.widget;
 
 
 import android.content.Context;
