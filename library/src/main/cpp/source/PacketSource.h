@@ -45,10 +45,6 @@ public:
 
     void flush();
 
-    uint32_t getAudSize();
-
-    uint32_t getVidSize();
-
 private:
     void flushAudioBuffer();
 

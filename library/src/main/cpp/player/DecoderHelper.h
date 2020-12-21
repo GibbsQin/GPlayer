@@ -18,7 +18,7 @@
 
 class DecoderHelper {
 public:
-    DecoderHelper(PacketSource *input, FrameSource *output, MessageQueue *messageQueue, bool mediaCodecFirst);
+    DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageQueue *messageQueue);
 
     ~DecoderHelper();
 
@@ -33,6 +33,10 @@ public:
     int outputBuffer(MediaData **buffer, int type);
 
     void onRelease();
+
+    void setMediaCodec(bool enable) {
+        mediaCodecFirst = enable;
+    }
 
 private:
     bool hasInit;

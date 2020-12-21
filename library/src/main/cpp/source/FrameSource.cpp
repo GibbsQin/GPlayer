@@ -104,11 +104,3 @@ void FrameSource::flushAudioBuffer() {
         audioPacketQueue.pop_front();
     }
 }
-
-uint32_t FrameSource::getAudioBufferSize() {
-    return static_cast<uint32_t>(audioPacketQueue.size());
-}
-
-uint32_t FrameSource::getVideoBufferSize() {
-    return static_cast<uint32_t>(videoPacketQueue.size());
-}

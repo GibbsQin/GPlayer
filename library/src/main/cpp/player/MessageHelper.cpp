@@ -4,7 +4,9 @@
 
 #include <base/Log.h>
 #include "MessageHelper.h"
-#include "../codec/ffmpeg/libavutil/error.h"
+extern "C" {
+#include <codec/ffmpeg/libavutil/error.h>
+}
 
 MessageHelper::MessageHelper(MessageQueue *messageQueue, jobject obj) {
     this->messageQueue = messageQueue;
@@ -17,14 +19,13 @@ MessageHelper::~MessageHelper() {
 }
 
 int MessageHelper::processMessage(int arg1, long arg2) {
-    auto message = static_cast<Message *>(malloc(sizeof(Message)));
-    if (messageQueue->dequeMessage(message) < 0) {
-        free(message);
+    Message *message;
+    if (messageQueue->dequeMessage(&message) < 0) {
         return 0;
     }
     LOGI("MessageHelper", "processMessage %d, %d, %lld", message->from, message->type, message->extra);
     handleMessage(message);
-    free(message);
+    messageQueue->popMessage();
     return 0;
 }
 

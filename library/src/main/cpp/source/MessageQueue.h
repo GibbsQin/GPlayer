@@ -48,16 +48,26 @@ typedef struct Message {
 
 class MessageQueue {
 public:
+    MessageQueue();
+
+    ~MessageQueue();
+
     void pushMessage(int from, int type, long extra);
 
-    int dequeMessage(Message *message);
+    int dequeMessage(Message **message);
+
+    void popMessage();
 
     void flush();
+
+    void reset();
 
 private:
     std::deque<Message *> msgQueue;
     std::mutex messageLock;
     std::condition_variable conVar;
+    bool isReset = false;
+    std::mutex mQueueLock;
 };
 
 

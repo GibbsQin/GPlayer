@@ -15,10 +15,9 @@ extern "C" {
 
 #define TAG "CodecInterceptor"
 
-DecoderHelper::DecoderHelper(PacketSource *input, FrameSource *output, MessageQueue *messageQueue, bool mediaCodecFirst) {
-    inputSource = input;
-    outputSource = output;
-    this->mediaCodecFirst = mediaCodecFirst;
+DecoderHelper::DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageQueue *messageQueue) {
+    this->inputSource = inputSource;
+    this->outputSource = outputSource;
     this->messageQueue = messageQueue;
     hasInit = false;
 }

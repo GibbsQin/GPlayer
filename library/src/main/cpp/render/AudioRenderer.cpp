@@ -16,10 +16,10 @@ void AudioRenderer::setAudioTrack(AudioTrackJni *track) {
     audioTrackJni = track;
 }
 
-void AudioRenderer::setAudioParams(int rate, int count, int f, int bytes) {
+void AudioRenderer::setAudioParams(int rate, int count, int fmt, int bytes) {
     this->sampleRate = rate;
     this->channels = count;
-    this->format = f;
+    this->format = fmt;
     this->bytesPerSample = bytes;
 }
 
@@ -35,7 +35,7 @@ uint64_t AudioRenderer::render(uint64_t nowMs) {
         frameSource->popAudioBuffer();
         return mediaData->pts;
     }
-    return -1;
+    return 0;
 }
 
 void AudioRenderer::release() {

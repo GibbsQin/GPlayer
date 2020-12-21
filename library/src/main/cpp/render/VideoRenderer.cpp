@@ -41,5 +41,5 @@ uint64_t VideoRenderer::render(uint64_t nowMs) {
             return mediaData->pts;
         }
     }
-    return -1;
+    return 0;
 }

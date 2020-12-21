@@ -57,13 +57,13 @@ Java_com_gibbs_gplayer_GPlayer_nSetSurface(JNIEnv *env, jobject thiz, jlong nati
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_gibbs_gplayer_GPlayer_nSetAudioTrack(JNIEnv *env, jobject thiz, jlong nativePlayer,
-                                              jobject audio_track_wrap) {
+                                              jobject audio_track) {
     LOGI("GPlayerJni", "nSetAudioTrack channelId : %d", nativePlayer);
     auto targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
     if (!targetPlayer) {
         return;
     }
-    targetPlayer->setAudioTrack(new AudioTrackJni(audio_track_wrap));
+    targetPlayer->setAudioTrack(new AudioTrackJni(audio_track));
 }
 
 extern "C"

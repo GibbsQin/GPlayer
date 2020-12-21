@@ -36,10 +36,6 @@ public:
 
     void flush();
 
-    uint32_t getAudioBufferSize();
-
-    uint32_t getVideoBufferSize();
-
 private:
     void flushAudioBuffer();
 

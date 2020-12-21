@@ -8,10 +8,11 @@ import androidx.annotation.NonNull;
 
 import java.nio.ByteBuffer;
 
-public class AudioTrackWrap {
+class DefaultGAudioTrack implements GPlayer.GAudioTrack {
     private static final String TAG = "AudioTrackWrap";
     private AudioTrack mAudioTrack;
 
+    @Override
     public void openAudioTrack(int sampleRate, int sampleFormat, int channels, int bytesPerSample) {
         LogUtils.i(TAG, "openAudioTrack " + sampleRate + " " + sampleFormat + " " + channels + " " + bytesPerSample);
         try {
@@ -28,12 +29,14 @@ public class AudioTrackWrap {
         }
     }
 
+    @Override
     public int write(@NonNull ByteBuffer buffer, int size) {
         int sizeWrote = mAudioTrack.write(buffer, size, AudioTrack.WRITE_BLOCKING);
         LogUtils.i(TAG, "write buffer size " + size + ", sizeWrote " + sizeWrote);
         return sizeWrote;
     }
 
+    @Override
     public void stopAudioTrack() {
         if (mAudioTrack != null) {
             mAudioTrack.flush();

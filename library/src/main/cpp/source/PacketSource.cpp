@@ -125,11 +125,3 @@ void PacketSource::flushAudioBuffer() {
         audioPacketQueue.pop_front();
     }
 }
-
-uint32_t PacketSource::getAudSize() {
-    return static_cast<uint32_t>(audioPacketQueue.size());
-}
-
-uint32_t PacketSource::getVidSize() {
-    return static_cast<uint32_t>(videoPacketQueue.size());
-}

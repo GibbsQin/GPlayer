@@ -6,6 +6,10 @@ import android.text.TextUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
+import androidx.annotation.NonNull;
+
+import java.nio.ByteBuffer;
+
 public class GPlayer {
     private static final String TAG = "GPlayerJ";
 
@@ -30,7 +34,7 @@ public class GPlayer {
     private State mPlayState = State.IDLE;
     private State mTargetState = State.IDLE;
     private int mCurrentPositionUs;
-    private AudioTrackWrap mAudioTrackWrap;
+    private GAudioTrack mGAudioTrack;
     private final Object mStateLock = new Object();
 
     private OnPreparedListener mOnPreparedListener;
@@ -46,7 +50,6 @@ public class GPlayer {
     public GPlayer(boolean mediaCodec) {
         LogUtils.i(TAG, "CoreFlow : new GPlayer " + mediaCodec);
         mNativePlayer = nInit(mediaCodec ? USE_MEDIA_CODEC : 0, this);
-        mAudioTrackWrap = new AudioTrackWrap();
     }
 
     public void setSurface(Surface surface) {
@@ -55,6 +58,10 @@ public class GPlayer {
 
     public void setSurfaceHolder(SurfaceHolder holder) {
         nSetSurface(mNativePlayer, holder.getSurface());
+    }
+
+    public void setGAudioTrack(GAudioTrack audioTrack) {
+        mGAudioTrack = audioTrack;
     }
 
     public void setDataSource(String url) {
@@ -79,7 +86,10 @@ public class GPlayer {
 
     public synchronized void start() {
         if (mPlayState == State.PREPARED) {
-            nSetAudioTrack(mNativePlayer, mAudioTrackWrap);
+            if (mGAudioTrack == null) {
+                mGAudioTrack = new DefaultGAudioTrack();
+            }
+            nSetAudioTrack(mNativePlayer, mGAudioTrack);
             nStart(mNativePlayer);
         } else if (mPlayState == State.PAUSED) {
             nResume(mNativePlayer);
@@ -316,6 +326,14 @@ public class GPlayer {
         }
     }
 
+    interface GAudioTrack {
+        void openAudioTrack(int sampleRate, int sampleFormat, int channels, int bytesPerSample);
+
+        int write(@NonNull ByteBuffer buffer, int size);
+
+        void stopAudioTrack();
+    }
+
     // 创建GPlayer.c实例
     private native long nInit(int flag, GPlayer player);
 
@@ -323,7 +341,7 @@ public class GPlayer {
     private native void nSetSurface(long nativePlayer, Surface surface);
 
     // 设置audio render
-    private native void nSetAudioTrack(long nativePlayer, AudioTrackWrap audioTrackWrap);
+    private native void nSetAudioTrack(long nativePlayer, GAudioTrack audioTrack);
 
     // 开始解封装
     private native void nPrepare(long nativePlayer, String url);

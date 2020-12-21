@@ -58,13 +58,13 @@ private:
 
     void stopDemuxing();
 
-    void startDecode();
+    void startDecoding();
 
-    void stopDecode();
+    void stopDecoding();
 
-    void startRender();
+    void startRendering();
 
-    void stopRender();
+    void stopRendering();
 
 private:
     uint32_t mFlags;
