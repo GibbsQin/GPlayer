@@ -1,17 +1,22 @@
-//
-// Created by Gibbs on 2020/7/21.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <cstring>
 #include <base/Log.h>
 #include "MediaCodecVideoDecoder.h"
+
 extern "C" {
 #include <demuxing/avformat_def.h>
 }
 
 #define TAG "MediaCodecVideoDecoder"
 
-MediaCodecVideoDecoder::MediaCodecVideoDecoder() = default;
+MediaCodecVideoDecoder::MediaCodecVideoDecoder() {
+    nativeWindow = nullptr;
+    mAMediaCodec = nullptr;
+}
 
 MediaCodecVideoDecoder::~MediaCodecVideoDecoder() = default;
 
@@ -22,17 +27,26 @@ void MediaCodecVideoDecoder::init(AVCodecParameters *codecParameters) {
         LOGE(TAG, "can not find mine %s", mine);
         return;
     }
+    if (nativeWindow == nullptr) {
+        LOGE(TAG, "must set native window first");
+        return;
+    }
 
     mWidth = codecParameters->width;
     mHeight = codecParameters->height;
     LOGI(TAG, "CoreFlow : init mine=%s,width=%d,height=%d", mine, mWidth, mHeight);
+    if (mWidth == 0 || mHeight == 0) {
+        LOGE(TAG, "video size is invalid");
+        return;
+    }
 
     AMediaFormat *videoFormat = AMediaFormat_new();
     AMediaFormat_setString(videoFormat, AMEDIAFORMAT_KEY_MIME, mine);
     AMediaFormat_setInt32(videoFormat, AMEDIAFORMAT_KEY_WIDTH, mWidth);
     AMediaFormat_setInt32(videoFormat, AMEDIAFORMAT_KEY_HEIGHT, mHeight);
-    AMediaFormat_setBuffer(videoFormat, "csd-0", codecParameters->extradata, codecParameters->extradata_size);
-    media_status_t status = AMediaCodec_configure(mAMediaCodec, videoFormat, nullptr, nullptr, 0);
+    AMediaFormat_setBuffer(videoFormat, "csd-0", codecParameters->extradata,
+                           codecParameters->extradata_size);
+    media_status_t status = AMediaCodec_configure(mAMediaCodec, videoFormat, nativeWindow, nullptr, 0);
     if (status != AMEDIA_OK) {
         LOGE(TAG, "configure fail %d", status);
         AMediaCodec_delete(mAMediaCodec);
@@ -52,7 +66,7 @@ void MediaCodecVideoDecoder::init(AVCodecParameters *codecParameters) {
 
 int MediaCodecVideoDecoder::send_packet(AVPacket *inPacket) {
     if (!mAMediaCodec) {
-        return -1;
+        return INVALID_CODEC;
     }
 
     ssize_t bufferId = AMediaCodec_dequeueInputBuffer(mAMediaCodec, 500);
@@ -78,7 +92,7 @@ int MediaCodecVideoDecoder::send_packet(AVPacket *inPacket) {
 
 int MediaCodecVideoDecoder::receive_frame(MediaData *outFrame) {
     if (!mAMediaCodec) {
-        return -1;
+        return INVALID_CODEC;
     }
 
     AMediaCodecBufferInfo info;
@@ -87,8 +101,9 @@ int MediaCodecVideoDecoder::receive_frame(MediaData *outFrame) {
         size_t outsize;
         uint8_t *outputBuf = AMediaCodec_getOutputBuffer(mAMediaCodec, bufferId, &outsize);
         if (outputBuf != nullptr) {
-            extractFrame(outputBuf, outFrame, info);
-            AMediaCodec_releaseOutputBuffer(mAMediaCodec, bufferId, false);
+            outFrame->pts = info.presentationTimeUs;
+            outFrame->dts = outFrame->pts;
+            mCurrentBufferId = bufferId;
             return 0;
         }
     } else if (bufferId == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
@@ -105,21 +120,8 @@ int MediaCodecVideoDecoder::receive_frame(MediaData *outFrame) {
     return -3;
 }
 
-void
-MediaCodecVideoDecoder::extractFrame(uint8_t *outputBuf, MediaData *outFrame,
-                                     AMediaCodecBufferInfo info) {
-    outFrame->pts = info.presentationTimeUs;
-    outFrame->dts = outFrame->pts;
-    uint32_t ySize = mWidth * mHeight;
-    uint32_t frameSize = mWidth * mHeight;
-    memcpy(outFrame->data, outputBuf, frameSize);
-    outFrame->size = frameSize;
-    outFrame->size1 = 0;
-    outFrame->size2 = 0;
-    for (int i = ySize; i < ySize + frameSize / 2; i += 2) {
-        outFrame->data1[outFrame->size1++] = outputBuf[i];
-        outFrame->data2[outFrame->size2++] = outputBuf[i + 1];
-    }
+void MediaCodecVideoDecoder::release_buffer() {
+    AMediaCodec_releaseOutputBuffer(mAMediaCodec, mCurrentBufferId, true);
 }
 
 void MediaCodecVideoDecoder::release() {
@@ -129,4 +131,8 @@ void MediaCodecVideoDecoder::release() {
         AMediaCodec_delete(mAMediaCodec);
         mAMediaCodec = nullptr;
     }
+}
+
+void MediaCodecVideoDecoder::reset() {
+    AMediaCodec_flush(mAMediaCodec);
 }

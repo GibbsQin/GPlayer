@@ -24,23 +24,8 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ExternalGPlayerViewActivity"
-            android:label="GPlayer" />
-        <activity
-            android:name=".MediaListActivity"
-            android:label="Movies" />
-        <activity
-            android:name=".SettingsActivity"
-            android:label="@string/settings" />
-        <activity
-            android:name=".SimpleGPlayerViewActivity"
-            android:label="SimpleGPlayer" />
-        <activity
             android:name=".PlayListActivity"
             android:theme="@style/AppFullscreenTheme" />
-        <activity
-            android:name=".IntroduceActivity"
-            android:label="@string/software_introduce" />
     </application>
 
 </manifest>

@@ -1,36 +1,25 @@
-//
-// Created by qinshenghua on 2020/12/14.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_VIDEORENDERER_H
 #define GPLAYER_VIDEORENDERER_H
 
 
-#include "EglRenderer.h"
-#include "source/FrameSource.h"
-
 class VideoRenderer {
 public:
-    VideoRenderer(FrameSource *source);
+    virtual ~VideoRenderer() {};
 
-    ~VideoRenderer();
+    virtual void surfaceCreated(ANativeWindow *window, int videoWidth, int videoHeight) = 0;
 
-    void surfaceCreated(ANativeWindow *window, int videoWidth, int videoHeight);
+    virtual void surfaceChanged(int width, int height) = 0;
 
-    void surfaceChanged(int width, int height);
+    virtual void surfaceDestroyed() = 0;
 
-    void surfaceDestroyed();
+    virtual uint64_t render(uint64_t nowMs) = 0;
 
-    uint64_t render(uint64_t nowMs);
-
-    bool isRenderValid() {
-        return isEglInit;
-    }
-
-private:
-    EglRenderer *eglRenderer;
-    FrameSource *mediaSource;
-    bool isEglInit = false;
+    virtual bool isRenderValid() = 0;
 };
 
 

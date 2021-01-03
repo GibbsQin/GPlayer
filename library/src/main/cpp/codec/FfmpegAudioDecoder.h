@@ -1,13 +1,18 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #ifndef GPLAYER_FFMPEGAUDIODECODER_H
 #define GPLAYER_FFMPEGAUDIODECODER_H
-extern "C"
-{
+
+#include "Codec.h"
+
+extern "C" {
 #include <ffmpeg/libavcodec/avcodec.h>
 #include <ffmpeg/libavformat/avformat.h>
 #include <ffmpeg/libswresample/swresample.h>
 }
-
-#include "Codec.h"
 
 class FfmpegAudioDecoder : public AudioDecoder {
 public:
@@ -17,16 +22,18 @@ public:
 
     void init(AVCodecParameters *codecParameters) override;
 
-    virtual int send_packet(AVPacket *inPacket) override;
+    int send_packet(AVPacket *inPacket) override;
 
-    virtual int receive_frame(MediaData *outFrame) override;
+    int receive_frame(MediaData *outFrame) override;
 
     void release() override;
-private:
 
-    bool isInitSuccess{};
-    AVCodecContext *mCodecContext{};
-    AVFrame *mOutFrame{};
+    void reset() override;
+
+private:
+    bool isInitSuccess = false;
+    AVCodecContext *mCodecContext = nullptr;
+    AVFrame *mOutFrame = nullptr;
 };
 
 

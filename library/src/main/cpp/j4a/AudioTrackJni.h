@@ -1,12 +1,14 @@
-//
-// Created by Gibbs on 2020/12/20.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_AUDIOTRACKJNI_H
 #define GPLAYER_AUDIOTRACKJNI_H
 
 
-#include "../source/FrameSource.h"
+#include <jni.h>
+#include "source/FrameSource.h"
 
 class AudioTrackJni {
 public:

@@ -1,8 +1,10 @@
-//
-// Created by Gibbs on 2020/12/20.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <base/Log.h>
+#include <thread>
 #include "AudioRenderer.h"
 
 AudioRenderer::AudioRenderer(FrameSource *source) {
@@ -29,11 +31,12 @@ void AudioRenderer::init() {
 
 uint64_t AudioRenderer::render(uint64_t nowMs) {
     MediaData *mediaData;
-    if (frameSource->readAudioBuffer(&mediaData) > 0) {
-        LOGI("AudioRenderer", "render audio %lld", mediaData->pts);
+    if (frameSource->readAudFrame(&mediaData) > 0) {
         audioTrackJni->write(mediaData->data, mediaData->size);
-        frameSource->popAudioBuffer();
+        frameSource->popAudFrame(mediaData);
         return mediaData->pts;
+    } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     return 0;
 }

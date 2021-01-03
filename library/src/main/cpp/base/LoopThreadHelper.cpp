@@ -1,23 +1,31 @@
-//
-// Created by qinshenghua on 2020/12/18.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include "LoopThreadHelper.h"
 
-LoopThread *LoopThreadHelper::createLoopThread(const std::function<int(int, long)>& updateFunc) {
-    return LoopThreadHelper::createLoopThread(MAX_VALUE, updateFunc);
-}
-
 LoopThread *
-LoopThreadHelper::createLoopThread(int maxValue, const std::function<int(int, long)>& updateFunc) {
-    return LoopThreadHelper::createLoopThread(maxValue, nullptr, updateFunc, nullptr);
+LoopThreadHelper::createLoopThread(const std::function<int(int, long)>& updateFunc) {
+    return LoopThreadHelper::createLoopThread(nullptr, updateFunc, nullptr);
 }
 
-LoopThread *LoopThreadHelper::createLoopThread(int maxValue,
-                                               const std::function<void(void)>& startFunc,
+LoopThread *LoopThreadHelper::createLoopThread(const std::function<int(int, long)>& updateFunc,
+                                               const std::function<void(int)>& notifyFunc) {
+    return LoopThreadHelper::createLoopThread(nullptr, updateFunc, nullptr, notifyFunc);
+}
+
+LoopThread *LoopThreadHelper::createLoopThread(const std::function<void(void)>& startFunc,
                                                const std::function<int(int, long)>& updateFunc,
                                                const std::function<void()>& endFunc) {
-    auto *thread = new LoopThread(maxValue);
+    return LoopThreadHelper::createLoopThread(startFunc, updateFunc, endFunc, nullptr);
+}
+
+LoopThread *LoopThreadHelper::createLoopThread(const std::function<void(void)>& startFunc,
+                                               const std::function<int(int, long)>& updateFunc,
+                                               const std::function<void()>& endFunc,
+                                               const std::function<void(int)>& notifyFunc) {
+    auto *thread = new LoopThread();
     if (startFunc != nullptr) {
         thread->setStartFunc(startFunc);
     }
@@ -27,15 +35,9 @@ LoopThread *LoopThreadHelper::createLoopThread(int maxValue,
     if (endFunc != nullptr) {
         thread->setEndFunc(endFunc);
     }
+    if (notifyFunc != nullptr) {
+        thread->setNotifyFunc(notifyFunc);
+    }
     thread->start();
     return thread;
-}
-
-void LoopThreadHelper::destroyThread(LoopThread **thread) {
-    if ((*thread) && (*thread)->hasStarted()) {
-        (*thread)->stop();
-        (*thread)->join();
-        delete (*thread);
-        (*thread) = nullptr;
-    }
 }

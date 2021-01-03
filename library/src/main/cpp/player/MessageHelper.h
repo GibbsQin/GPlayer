@@ -1,28 +1,29 @@
-//
-// Created by qinshenghua on 2020/12/18.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_MESSAGEHELPER_H
 #define GPLAYER_MESSAGEHELPER_H
 
 
 #include "GPlayerJni.h"
-#include "MessageQueue.h"
+#include "MessageSource.h"
 
 class MessageHelper {
 public:
-    MessageHelper(MessageQueue *messageQueue, jobject obj);
+    MessageHelper(MessageSource *messageSource, jobject obj);
 
     ~MessageHelper();
 
-    int processMessage(int arg1, long arg2);
+    void handleErrorMessage(Message *message);
 
-    void handleMessage(Message *message);
+    static const char *error2String(int errorCode, int errorExtra);
 
-    void notifyJava(int msgId, int arg1, long arg2, char* msg1, char* msg2);
+    void notifyJava(int msgId, int arg1, long arg2, const char* msg1, const char* msg2);
 
 private:
-    MessageQueue *messageQueue;
+    MessageSource *messageSource;
     GPlayerJni *playerJni;
 };
 

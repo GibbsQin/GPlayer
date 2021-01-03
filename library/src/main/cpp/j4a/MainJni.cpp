@@ -1,3 +1,8 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include <jni.h>
 #include <j4a/JniHelper.h>
 #include <base/Log.h>
@@ -153,4 +158,34 @@ Java_com_gibbs_gplayer_GPlayer_nSetFlags(JNIEnv *env, jobject thiz, jlong native
         return;
     }
     targetPlayer->setFlags(static_cast<uint32_t>(flags));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_GPlayer_nGetDuration(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
+    if (!targetPlayer) {
+        return 0;
+    }
+    return targetPlayer->getDuration();
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_GPlayer_nGetVideoWidth(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
+    if (!targetPlayer) {
+        return 0;
+    }
+    return targetPlayer->getVideoWidth();
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_gibbs_gplayer_GPlayer_nGetVideoHeight(JNIEnv *env, jobject thiz, jlong nativePlayer) {
+    auto *targetPlayer = reinterpret_cast<GPlayer *>(nativePlayer);
+    if (!targetPlayer) {
+        return 0;
+    }
+    return targetPlayer->getVideoHeight();
 }

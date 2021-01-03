@@ -1,3 +1,8 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #ifndef __GPLAYER_THREAD_H__
 #define __GPLAYER_THREAD_H__
 

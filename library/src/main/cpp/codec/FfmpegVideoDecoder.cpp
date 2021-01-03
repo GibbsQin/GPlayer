@@ -1,3 +1,8 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include "base/Log.h"
 #include "FfmpegVideoDecoder.h"
 
@@ -30,14 +35,14 @@ void FfmpegVideoDecoder::init(AVCodecParameters *codecParameters) {
 }
 
 int FfmpegVideoDecoder::send_packet(AVPacket *inPacket) {
+    if (!isInitSuccess) {
+        LOGE(TAG, "Error: decoder init error");
+        return INVALID_CODEC;
+    }
+
     if (inPacket == nullptr) {
         LOGE(TAG, "Error: decode the param is nullptr");
         return -1;
-    }
-
-    if (!isInitSuccess) {
-        LOGE(TAG, "Error: decoder init error");
-        return -2;
     }
 
     int ret = avcodec_send_packet(mCodecContext, inPacket);
@@ -52,14 +57,14 @@ int FfmpegVideoDecoder::send_packet(AVPacket *inPacket) {
 }
 
 int FfmpegVideoDecoder::receive_frame(MediaData *outFrame) {
+    if (!isInitSuccess) {
+        LOGE(TAG, "Error: decoder init error");
+        return INVALID_CODEC;
+    }
+
     if (outFrame == nullptr) {
         LOGE(TAG, "Error: decode the param is nullptr");
         return -1;
-    }
-
-    if (!isInitSuccess) {
-        LOGE(TAG, "Error: decoder init error");
-        return -2;
     }
 
     int ret = avcodec_receive_frame(mCodecContext, mOutFrame);
@@ -75,6 +80,10 @@ int FfmpegVideoDecoder::receive_frame(MediaData *outFrame) {
     return 0;
 }
 
+void FfmpegVideoDecoder::release_buffer() {
+
+}
+
 void FfmpegVideoDecoder::release() {
     LOGI(TAG, "release");
     if (mOutFrame != nullptr) {
@@ -87,6 +96,14 @@ void FfmpegVideoDecoder::release() {
         avcodec_free_context(&mCodecContext);
         mCodecContext = nullptr;
     }
+}
+
+void FfmpegVideoDecoder::reset() {
+    avcodec_flush_buffers(mCodecContext);
+}
+
+void FfmpegVideoDecoder::setNativeWindow(ANativeWindow *nativeWindow) {
+
 }
 
 void FfmpegVideoDecoder::copy_mediadata_from_frame(MediaData *mediaData, AVFrame *frame) {

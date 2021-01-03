@@ -3,7 +3,6 @@ package com.gibbs.gplayer.sample
 import android.os.Bundle
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import com.gibbs.gplayer.LogUtils
 
 open class BaseActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

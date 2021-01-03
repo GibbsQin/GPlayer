@@ -1,15 +1,15 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include "EglRenderer.h"
 
 #define TAG "EglRenderer"
 
-EglRenderer::EglRenderer() {
-    _glProgram = new YuvGlesProgram();
-}
+EglRenderer::EglRenderer() = default;
 
-EglRenderer::~EglRenderer() {
-    delete _glProgram;
-    _glProgram = nullptr;
-}
+EglRenderer::~EglRenderer() = default;
 
 void EglRenderer::setWindow(ANativeWindow *window) {
     LOGI(TAG, "setWindow");
@@ -107,11 +107,6 @@ bool EglRenderer::initialize() {
     glClearColor(0, 0, 0, 0);
     glViewport(0, 0, width, height);
 
-    if (!_glProgram->buildProgram()) {
-        LOGE(TAG, "buildProgram fail");
-        return false;
-    }
-
     return true;
 }
 
@@ -128,15 +123,7 @@ void EglRenderer::destroy() {
     _context = EGL_NO_CONTEXT;
 }
 
-void EglRenderer::buildTextures(uint8_t *y, uint8_t *u, uint8_t *v, uint32_t width, uint32_t height) {
-    _glProgram->buildTextures(y, u, v, width, height);
-}
-
-void EglRenderer::drawFrame() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    _glProgram->drawFrame();
-
+void EglRenderer::swapBuffers() {
     if (_display) {
         if (!eglSwapBuffers(_display, _surface)) {
             LOGE(TAG, "eglSwapBuffers() returned error 0x%x", eglGetError());

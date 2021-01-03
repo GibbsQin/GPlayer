@@ -1,22 +1,23 @@
-//
-// Created by Gibbs on 2020/12/20.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_RENDERHELPER_H
 #define GPLAYER_RENDERHELPER_H
 
 
 #include <render/AudioRenderer.h>
-#include <render/VideoRenderer.h>
-#include <source/MessageQueue.h>
+#include <render/YuvVideoRenderer.h>
+#include <source/MessageSource.h>
 
 class RenderHelper {
 public:
-    RenderHelper(FrameSource *source, MessageQueue *messageQueue);
+    RenderHelper(FrameSource *source, MessageSource *messageSource, int mediaCodecFlag);
 
     ~RenderHelper();
 
-    void setSurface(ANativeWindow *window);
+    void setNativeWindow(ANativeWindow *window);
 
     void setAudioTrack(AudioTrackJni *track);
 
@@ -36,14 +37,20 @@ public:
 
     void releaseVideoRenderer();
 
+    void setStopWhenEmpty(bool enable) {
+        stopWhenEmpty = enable;
+    }
+
 private:
     AudioRenderer *audioRenderer;
     VideoRenderer *videoRenderer;
-    MessageQueue *messageQueue;
+    MessageSource *messageSource;
     ANativeWindow *nativeWindow = nullptr;
     int videoWidth = 0;
     int videoHeight = 0;
     uint64_t nowPts = 0;
+    bool hasNotifyFirstFrame = false;
+    bool stopWhenEmpty = false;
 };
 
 

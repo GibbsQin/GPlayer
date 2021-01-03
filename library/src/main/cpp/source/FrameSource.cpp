@@ -1,106 +1,85 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include <base/Log.h>
 #include <media/MediaHelper.h>
+#include <thread>
 #include "FrameSource.h"
 
 #define TAG "FrameSource"
 
-FrameSource::FrameSource() {
-    LOGI(TAG, "CoreFlow : create OutputSource");
+FrameSource::FrameSource(int audioMaxSize, int videoMaxSize) {
+    LOGI(TAG, "CoreFlow : create FrameSource");
+    audioPacketQueue = new ConcurrentQueue<MediaData*>(audioMaxSize, "AudioFrameQueue");
+    videoPacketQueue = new ConcurrentQueue<MediaData*>(videoMaxSize, "VideoFrameQueue");
 }
 
 FrameSource::~FrameSource() {
-    LOGI(TAG, "CoreFlow : OutputSource destroyed %d %d",
-         audioPacketQueue.size(), videoPacketQueue.size());
+    LOGI(TAG, "CoreFlow : FrameSource destroyed %d %d",
+         audioPacketQueue->size(), videoPacketQueue->size());
+    delete audioPacketQueue;
+    audioPacketQueue = nullptr;
+    delete videoPacketQueue;
+    videoPacketQueue = nullptr;
 }
 
-uint32_t FrameSource::onReceiveAudio(MediaData *inPacket) {
+unsigned long FrameSource::pushAudFrame(MediaData *frame) {
+    LOGD(TAG, "pushAudFrame %lld", frame->pts);
     auto desBuffer = new MediaData();
-    MediaHelper::copy(inPacket, desBuffer);
-    audioPacketQueue.push_back(desBuffer);
-    auto queueSize = static_cast<uint32_t>(audioPacketQueue.size());
-    LOGD(TAG, "queue audio packet %lld", desBuffer->pts);
-    return queueSize;
+    MediaHelper::copy(frame, desBuffer);
+    return audioPacketQueue->push(desBuffer);
 }
 
-uint32_t FrameSource::onReceiveVideo(MediaData *inPacket) {
+unsigned long FrameSource::pushVidFrame(MediaData *frame) {
+    LOGD(TAG, "pushVidFrame %lld", frame->pts);
     auto desBuffer = new MediaData();
-    MediaHelper::copy(inPacket, desBuffer);
-    videoPacketQueue.push_back(desBuffer);
-    auto queueSize = static_cast<uint32_t>(videoPacketQueue.size());
-    LOGD(TAG, "queue video packet %lld", desBuffer->pts);
-    return queueSize;
+    MediaHelper::copy(frame, desBuffer);
+    return videoPacketQueue->push(desBuffer);
 }
 
-int FrameSource::readAudioBuffer(MediaData **avData) {
-    if (audioPacketQueue.size() <= 0) {
-        return AV_SOURCE_EMPTY;
+unsigned long FrameSource::readAudFrame(MediaData **frame) {
+    unsigned long size = audioPacketQueue->front(frame);
+    if (size > 0) {
+        LOGD(TAG, "readAudFrame %lld", (*frame)->pts);
     }
-    *avData = audioPacketQueue.front();
-    if (!(*avData)) {
-        LOGE(TAG, "readAudioBuffer item is null");
-        popAudioBuffer();
-        return 0;
-    }
-    return static_cast<int>(audioPacketQueue.size());
+    return size;
 }
 
-int FrameSource::readVideoBuffer(MediaData **avData) {
-    if (videoPacketQueue.size() <= 0) {
-        return AV_SOURCE_EMPTY;
+unsigned long FrameSource::readVidFrame(MediaData **frame) {
+    unsigned long size = videoPacketQueue->front(frame);
+    if (size > 0) {
+        LOGD(TAG, "readVidFrame %lld", (*frame)->pts);
     }
-    *avData = videoPacketQueue.front();
-    if (!(*avData)) {
-        LOGE(TAG, "readVideoBuffer item is null");
-        popVideoBuffer();
-        return 0;
-    }
-    return static_cast<int>(videoPacketQueue.size());
+    return size;
 }
 
-void FrameSource::popAudioBuffer() {
-    mAudioLock.lock();
-    if (audioPacketQueue.size() > 0) {
-        MediaData *mediaData = audioPacketQueue.front();
-        delete mediaData;
-        audioPacketQueue.pop_front();
-        LOGD(TAG, "pop audio packet");
-    }
-    mAudioLock.unlock();
+void FrameSource::popAudFrame(MediaData *frame) {
+    LOGD(TAG, "popAudFrame %lld", frame->pts);
+    audioPacketQueue->pop();
 }
 
-void FrameSource::popVideoBuffer() {
-    mVideoLock.lock();
-    if (videoPacketQueue.size() > 0) {
-        MediaData *mediaData = videoPacketQueue.front();
-        delete mediaData;
-        videoPacketQueue.pop_front();
-        LOGD(TAG, "pop video packet");
-    }
-    mVideoLock.unlock();
+void FrameSource::popVidFrame(MediaData *frame) {
+    LOGD(TAG, "popVidFrame %lld", frame->pts);
+    videoPacketQueue->pop();
 }
 
 void FrameSource::flush() {
-    mVideoLock.lock();
-    mAudioLock.lock();
-    flushAudioBuffer();
-    flushVideoBuffer();
-    mAudioLock.unlock();
-    mVideoLock.unlock();
-    LOGI(TAG, "CoreFlow : flushBuffer");
+    audioPacketQueue->flush();
+    videoPacketQueue->flush();
+    LOGI(TAG, "flushBuffer");
 }
 
-void FrameSource::flushVideoBuffer() {
-    while (videoPacketQueue.size() > 0) {
-        MediaData *mediaData = videoPacketQueue.front();
-        delete mediaData;
-        videoPacketQueue.pop_front();
-    }
+void FrameSource::reset() {
+    audioPacketQueue->reset();
+    videoPacketQueue->reset();
 }
 
-void FrameSource::flushAudioBuffer() {
-    while (audioPacketQueue.size() > 0) {
-        MediaData *mediaData = audioPacketQueue.front();
-        delete mediaData;
-        audioPacketQueue.pop_front();
-    }
+unsigned long FrameSource::audioSize() {
+    return audioPacketQueue->size();
+}
+
+unsigned long FrameSource::videoSize() {
+    return videoPacketQueue->size();
 }

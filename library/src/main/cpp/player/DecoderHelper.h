@@ -1,6 +1,7 @@
-//
-// Created by Gibbs on 2020/7/18.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_DECODERHELPER_H
 #define GPLAYER_DECODERHELPER_H
@@ -11,14 +12,11 @@
 #include <mutex>
 #include <source/PacketSource.h>
 #include <source/FrameSource.h>
-#include <source/MessageQueue.h>
-
-#define AV_TYPE_AUDIO 0
-#define AV_TYPE_VIDEO 1
+#include <source/MessageSource.h>
 
 class DecoderHelper {
 public:
-    DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageQueue *messageQueue);
+    DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageSource *messageSource);
 
     ~DecoderHelper();
 
@@ -28,28 +26,36 @@ public:
 
     int processVideoBuffer(int type, long extra);
 
-    int inputBuffer(AVPacket *buffer, int type);
-
-    int outputBuffer(MediaData **buffer, int type);
-
     void onRelease();
+
+    void reset();
 
     void setMediaCodec(bool enable) {
         mediaCodecFirst = enable;
     }
 
+    void setANativeWindow(ANativeWindow *window) {
+        nativeWindow = window;
+    }
+
+    void setStopWhenEmpty(bool enable) {
+        stopWhenEmpty = enable;
+    }
+
 private:
     bool hasInit;
     bool mediaCodecFirst;
+    bool stopWhenEmpty = false;
     PacketSource *inputSource;
     FrameSource *outputSource;
-    MessageQueue *messageQueue;
+    MessageSource *messageSource;
     VideoDecoder *videoDecoder{};
     AudioDecoder *audioDecoder{};
     MediaData *videoOutFrame{};
     MediaData *audioOutFrame{};
     std::mutex audioLock;
     std::mutex videoLock;
+    ANativeWindow  *nativeWindow{};
 };
 
 

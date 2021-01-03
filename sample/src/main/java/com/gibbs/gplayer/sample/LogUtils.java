@@ -1,9 +1,11 @@
-package com.gibbs.gplayer;
+package com.gibbs.gplayer.sample;
 
 import android.util.Log;
 
 
 public class LogUtils {
+    private static final boolean LOG_SWITCH = false;
+
     public static void e(final String tag, final String msg) {
         e(tag, msg, (Object[]) null);
     }
@@ -37,7 +39,7 @@ public class LogUtils {
     }
 
     public static void d(String tag, final String format, final Object... obj) {
-        Log.d(tag, format);
+        if (LOG_SWITCH) Log.d(tag, format);
     }
 
     public static void v(String tag, final String format, final Object... obj) {

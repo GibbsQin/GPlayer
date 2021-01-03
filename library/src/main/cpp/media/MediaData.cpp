@@ -1,6 +1,7 @@
-//
-// Created by qinshenghua on 2020/12/4.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <cstdint>
 #include <cstdlib>
@@ -62,6 +63,6 @@ MediaData::~MediaData() {
     }
 }
 
-void MediaData::print() {
+void MediaData::print() const {
     LOGI("MediaData", "print MediaData %d %d %d", size, size1, size2);
 }

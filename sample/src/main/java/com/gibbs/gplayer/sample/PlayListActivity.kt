@@ -14,14 +14,16 @@ import com.gibbs.gplayer.GPlayer
 import com.gibbs.gplayer.sample.model.VideoItem
 import com.gibbs.gplayer.sample.model.VideoItemHolder
 import com.gibbs.gplayer.sample.widget.DividerItemDecoration
-import com.gibbs.gplayer.LogUtils
 import kotlinx.android.synthetic.main.activity_play_list.*
 
 class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnStateChangedListener {
+    private val AUTO_TEST: Boolean = false
+
     private var mAdapter: RecyclerView.Adapter<VideoItemHolder>? = null
     private val mVideoList: ArrayList<VideoItem> = ArrayList()
-    private var mPendingStart : Boolean = false
-    private var mPendingUrl : String = ""
+    private var mPendingStart: Boolean = false
+    private var mPendingUrl: String = ""
+    private var mCurrentMediaIndex = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,12 +31,6 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
         setContentView(R.layout.activity_play_list)
         gl_surface_view.setOnPreparedListener(this)
         gl_surface_view.setOnStateChangedListener(this)
-        val url = intent.getStringExtra("url")
-        val useMediaCodec = intent.getBooleanExtra("useMediaCodec", false)
-        if (useMediaCodec) {
-            gl_surface_view.setFlags(GPlayer.USE_MEDIA_CODEC)
-        }
-        gl_surface_view.setDataSource(url)
 
         mAdapter = object : RecyclerView.Adapter<VideoItemHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoItemHolder {
@@ -51,7 +47,14 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
                         .into(holder.videoThumbnail)
                 holder.rootView.setOnClickListener {
                     mHandler.removeCallbacksAndMessages(null)
+                    GPlayer.enableMediaCodec = true
                     startPlay(videoItem)
+                }
+                holder.rootView.setOnLongClickListener{
+                    mHandler.removeCallbacksAndMessages(null)
+                    GPlayer.enableMediaCodec = false
+                    startPlay(videoItem)
+                    true
                 }
             }
 
@@ -70,7 +73,11 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
         mAdapter!!.notifyDataSetChanged()
     }
 
-    private fun startPlay(videoItem : VideoItem) {
+    override fun onBackPressed() {
+        gl_surface_view.stop()
+    }
+
+    private fun startPlay(videoItem: VideoItem) {
         LogUtils.i("PlayListActivity", "startPlay $videoItem")
         if (gl_surface_view.isPlaying) {
             gl_surface_view.stop()
@@ -81,12 +88,9 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
             gl_surface_view.prepare()
         }
 
-        startAutoTest()
-    }
-
-    override fun onStart() {
-        super.onStart()
-        gl_surface_view.prepare()
+        if (AUTO_TEST) {
+            startAutoTest()
+        }
     }
 
     override fun onStop() {
@@ -111,7 +115,7 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
 
     private val mHandler: Handler = Handler(Looper.getMainLooper())
     private fun startAutoTest() {
-        val index = System.nanoTime() % mVideoList.size;
-        mHandler.postDelayed(Runnable { startPlay(mVideoList[index.toInt()]) }, 10 * 1000)
+        val index = (mCurrentMediaIndex++) % mVideoList.size;
+        mHandler.postDelayed({ startPlay(mVideoList[index]) }, 10 * 1000)
     }
 }

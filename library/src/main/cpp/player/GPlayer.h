@@ -1,6 +1,7 @@
-//
-// Created by Gibbs on 2020/7/16.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_GPLAYER_H
 #define GPLAYER_GPLAYER_H
@@ -13,13 +14,10 @@
 #include "LoopThread.h"
 #include "PacketSource.h"
 #include "FrameSource.h"
-#include "MessageQueue.h"
+#include "MessageSource.h"
 #include "RenderHelper.h"
 
 #define AV_FLAG_SOURCE_MEDIA_CODEC 0x00000002
-
-#define MAX_BUFFER_PACKET_SIZE 30
-#define MAX_BUFFER_FRAME_SIZE  5
 
 class GPlayer {
 
@@ -49,7 +47,27 @@ public:
         mFlags = flags;
     }
 
+    int getDuration();
+
+    int getVideoWidth();
+
+    int getVideoHeight();
+
+    void onDemuxingChanged(int state);
+
+    void onDecodingChanged(int state);
+
+    void onRenderingChanged(int state);
+
+    void onSeekStateChanged(int state);
+
+    void onBufferStateChanged(int state);
+
+    void onPlayStateChanged(int state);
+
 private:
+    int processMessage(int arg1, long arg2);
+
     void startMessageLoop();
 
     void stopMessageLoop();
@@ -66,14 +84,18 @@ private:
 
     void stopRendering();
 
+    void pauseThreads(bool demuxing, bool decoding, bool rendering, bool messaging);
+
+    void resumeThreads(bool demuxing, bool decoding, bool rendering, bool messaging);
+
 private:
     uint32_t mFlags;
     ANativeWindow *nativeWindow = nullptr;
     AudioTrackJni *audioTrackJni = nullptr;
 
-    PacketSource *inputSource;
-    FrameSource *outputSource;
-    MessageQueue *messageQueue;
+    PacketSource *packetSource;
+    FrameSource *frameSource;
+    MessageSource *messageSource;
     DemuxerHelper *demuxerHelper;
     DecoderHelper *decoderHelper;
     RenderHelper  *renderHelper;
@@ -85,6 +107,12 @@ private:
     LoopThread *audioRenderThread;
     LoopThread *videoRenderThread;
     LoopThread *messageThread;
+
+    int playState = -1;
+    int bufferState = -1;
+    int seekState = -1;
+    bool isEof = false;
+    std::mutex playerLock;
 };
 
 
