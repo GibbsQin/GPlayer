@@ -5,61 +5,35 @@
 #ifndef GPLAYER_GPLAYER_H
 #define GPLAYER_GPLAYER_H
 
-#include <interceptor/CodecInterceptor.h>
-#include <player/GPlayerJni.h>
-#include "DecodeThread.h"
-#include "DemuxingThread.h"
-#include "InputSource.h"
-#include "OutputSource.h"
-
-extern "C" {
-#include <demuxing/demuxing.h>
-}
+#include <android/native_window.h>
+#include "DecoderHelper.h"
+#include "DemuxerHelper.h"
+#include "MessageHelper.h"
+#include "GPlayerJni.h"
+#include "LoopThread.h"
+#include "PacketSource.h"
+#include "FrameSource.h"
+#include "MessageQueue.h"
+#include "RenderHelper.h"
 
 #define AV_FLAG_SOURCE_MEDIA_CODEC 0x00000002
 
-#define MAX_BUFFER_SIZE 30
-
-#define MSG_TYPE_ERROR 0
-#define MSG_TYPE_STATE 1
-#define MSG_TYPE_TIME  2
-#define MSG_TYPE_SIZE  3
-
-#define STATE_IDLE      0
-#define STATE_PREPARING 1
-#define STATE_PREPARED  2
-#define STATE_PAUSED    3
-#define STATE_PLAYING   4
-#define STATE_STOPPING  5
-#define STATE_STOPPED   6
-#define STATE_RELEASED  7
-
-#define MSG_TYPE_SIZE_AUDIO_PACKET 1
-#define MSG_TYPE_SIZE_VIDEO_PACKET 2
-#define MSG_TYPE_SIZE_AUDIO_FRAME  3
-#define MSG_TYPE_SIZE_VIDEO_FRAME  4
+#define MAX_BUFFER_PACKET_SIZE 30
+#define MAX_BUFFER_FRAME_SIZE  5
 
 class GPlayer {
 
 public:
-    GPlayer(int channelId, uint32_t flag, jobject obj);
+    GPlayer(uint32_t flag, jobject obj);
 
     ~GPlayer();
 
 public:
-    void av_init(FormatInfo *formatInfo);
+    void setSurface(ANativeWindow *window);
 
-    uint32_t av_feed_audio(AVPacket *packet, AVRational time_base);
+    void setAudioTrack(AudioTrackJni *track);
 
-    uint32_t av_feed_video(AVPacket *packet, AVRational time_base);
-
-    void av_destroy();
-
-    void av_error(int code, char *msg);
-
-public:
-
-    void prepare(const std::string& url);
+    void prepare(const std::string &url);
 
     void start();
 
@@ -71,50 +45,46 @@ public:
 
     void stop();
 
-    void setFlags(uint32_t flags);
-
-    void startDemuxing(char *web_url, int channelId, FfmpegCallback callback, FormatInfo *formatInfo);
-
-    LoopFlag loopWait(int64_t *seekUs);
-
-    InputSource *getInputSource();
-
-    OutputSource *getOutputSource();
+    void setFlags(uint32_t flags) {
+        mFlags = flags;
+    }
 
 private:
-    void startDecode();
+    void startMessageLoop();
 
-    void stopDecode();
+    void stopMessageLoop();
 
-    void onAudioThreadStart();
+    void startDemuxing(const std::string &url);
 
-    int processAudioBuffer();
+    void stopDemuxing();
 
-    void onAudioThreadEnd();
+    void startDecoding();
 
-    void onVideoThreadStart();
+    void stopDecoding();
 
-    int processVideoBuffer();
+    void startRendering();
 
-    void onVideoThreadEnd();
-
-private:
-    InputSource *inputSource;
-    OutputSource *outputSource;
-    GPlayerJni *playerJni;
+    void stopRendering();
 
 private:
-    bool mediaCodecFlag;
-    char *mUrl{};
-    int mChannelId;
-    bool isDemuxing{};
     uint32_t mFlags;
-    DecodeThread *audioEngineThread;
-    DecodeThread *videoEngineThread;
-    DemuxingThread *demuxingThread{};
-    Interceptor *codeInterceptor;
-    bool mIsPausing;
-    int mSeekUs;
+    ANativeWindow *nativeWindow = nullptr;
+    AudioTrackJni *audioTrackJni = nullptr;
+
+    PacketSource *inputSource;
+    FrameSource *outputSource;
+    MessageQueue *messageQueue;
+    DemuxerHelper *demuxerHelper;
+    DecoderHelper *decoderHelper;
+    RenderHelper  *renderHelper;
+    MessageHelper *messageHelper;
+
+    LoopThread *demuxerThread;
+    LoopThread *audioDecodeThread;
+    LoopThread *videoDecodeThread;
+    LoopThread *audioRenderThread;
+    LoopThread *videoRenderThread;
+    LoopThread *messageThread;
 };
 
 

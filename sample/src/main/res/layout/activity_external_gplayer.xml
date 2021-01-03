@@ -16,7 +16,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
-    <com.gibbs.sample.widget.PlaybackSeekView
+    <com.gibbs.gplayer.sample.widget.PlaybackSeekView
         android:id="@+id/video_playback_seek_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -8,22 +8,40 @@ EglRenderer::EglRenderer() {
 
 EglRenderer::~EglRenderer() {
     delete _glProgram;
+    _glProgram = nullptr;
 }
 
 void EglRenderer::setWindow(ANativeWindow *window) {
+    LOGI(TAG, "setWindow");
     _window = window;
+}
+
+void EglRenderer::setVideoSize(int width, int height) {
+    LOGI(TAG, "setVideoSize %d %d", width, height);
+    videoWidth = width;
+    videoHeight = height;
 }
 
 bool EglRenderer::initialize() {
     const EGLint attrib[] = {
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
             EGL_BLUE_SIZE, 8,
             EGL_GREEN_SIZE, 8,
             EGL_RED_SIZE, 8,
+            EGL_ALPHA_SIZE, 0,
+            EGL_DEPTH_SIZE, 16,
+            EGL_STENCIL_SIZE, 0,
             EGL_NONE
     };
+    const EGLint version[] = {
+            EGL_CONTEXT_CLIENT_VERSION, 2,
+            EGL_NONE
+    };
+
     EGLDisplay display;
     EGLConfig config;
+    EGLint major;
+    EGLint minor;
     EGLint numConfigs;
     EGLint format;
     EGLSurface surface;
@@ -32,62 +50,67 @@ bool EglRenderer::initialize() {
     EGLint height;
 
     if ((display = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY) {
-        LOGE(TAG, "eglGetDisplay() returned error %d", eglGetError());
+        LOGE(TAG, "eglGetDisplay() returned error 0x%x", eglGetError());
         return false;
     }
 
-    if (!eglInitialize(display, nullptr, nullptr)) {
-        LOGE(TAG, "eglInitialize() returned error %d", eglGetError());
+    if (!eglInitialize(display, &major, &minor)) {
+        LOGE(TAG, "eglInitialize() returned error 0x%x", eglGetError());
         return false;
     }
+    LOGI(TAG, "initialize major %d minor %d", major, minor);
 
     if (!eglChooseConfig(display, attrib, &config, 1, &numConfigs)) {
-        LOGE(TAG, "eglChooseConfig() returned error %d", eglGetError());
+        LOGE(TAG, "eglChooseConfig() returned error 0x%x", eglGetError());
         destroy();
         return false;
     }
 
     if (!eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format)) {
-        LOGE(TAG, "eglGetConfigAttrib() returned error %d", eglGetError());
+        LOGE(TAG, "eglGetConfigAttrib() returned error 0x%x", eglGetError());
         destroy();
         return false;
     }
 
-    ANativeWindow_setBuffersGeometry(_window, 0, 0, format);
+    ANativeWindow_setBuffersGeometry(_window, videoWidth, videoHeight, format);
 
     if (!(surface = eglCreateWindowSurface(display, config, _window, nullptr))) {
-        LOGE(TAG, "eglCreateWindowSurface() returned error %d", eglGetError());
+        LOGE(TAG, "eglCreateWindowSurface() returned error 0x%x", eglGetError());
         destroy();
         return false;
     }
 
-    if (!(context = eglCreateContext(display, config, nullptr, nullptr))) {
-        LOGE(TAG, "eglCreateContext() returned error %d", eglGetError());
+    if (!(context = eglCreateContext(display, config, EGL_NO_CONTEXT, version))) {
+        LOGE(TAG, "eglCreateContext() returned error 0x%x", eglGetError());
         destroy();
         return false;
     }
 
     if (!eglMakeCurrent(display, surface, surface, context)) {
-        LOGE(TAG, "eglMakeCurrent() returned error %d", eglGetError());
+        LOGE(TAG, "eglMakeCurrent() returned error 0x%x", eglGetError());
         destroy();
         return false;
     }
 
     if (!eglQuerySurface(display, surface, EGL_WIDTH, &width) ||
         !eglQuerySurface(display, surface, EGL_HEIGHT, &height)) {
-        LOGE(TAG, "eglQuerySurface() returned error %d", eglGetError());
+        LOGE(TAG, "eglQuerySurface() returned error 0x%x", eglGetError());
         destroy();
         return false;
     }
+    LOGI(TAG, "initialize width %d height %d", width, height);
 
     _display = display;
     _surface = surface;
     _context = context;
 
-    _glProgram->buildProgram();
-
     glClearColor(0, 0, 0, 0);
     glViewport(0, 0, width, height);
+
+    if (!_glProgram->buildProgram()) {
+        LOGE(TAG, "buildProgram fail");
+        return false;
+    }
 
     return true;
 }
@@ -105,7 +128,7 @@ void EglRenderer::destroy() {
     _context = EGL_NO_CONTEXT;
 }
 
-void EglRenderer::buildTextures(char *y, char *u, char *v, uint32_t width, uint32_t height) {
+void EglRenderer::buildTextures(uint8_t *y, uint8_t *u, uint8_t *v, uint32_t width, uint32_t height) {
     _glProgram->buildTextures(y, u, v, width, height);
 }
 
@@ -116,7 +139,7 @@ void EglRenderer::drawFrame() {
 
     if (_display) {
         if (!eglSwapBuffers(_display, _surface)) {
-            LOGE(TAG, "eglSwapBuffers() returned error %d", eglGetError());
+            LOGE(TAG, "eglSwapBuffers() returned error 0x%x", eglGetError());
         }
     }
 }

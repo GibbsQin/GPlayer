@@ -3,23 +3,14 @@ package com.gibbs.gplayer;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.view.SurfaceView;
+import android.view.Surface;
+import android.view.SurfaceHolder;
 
-import com.gibbs.gplayer.listener.OnBufferChangedListener;
-import com.gibbs.gplayer.listener.OnErrorListener;
-import com.gibbs.gplayer.listener.OnPositionChangedListener;
-import com.gibbs.gplayer.listener.OnPreparedListener;
-import com.gibbs.gplayer.listener.OnStateChangedListener;
-import com.gibbs.gplayer.media.MediaData;
-import com.gibbs.gplayer.render.AudioRender;
-import com.gibbs.gplayer.render.PcmAudioRender;
-import com.gibbs.gplayer.render.VideoRender;
-import com.gibbs.gplayer.render.YUVGLRenderer;
-import com.gibbs.gplayer.source.MediaSource;
-import com.gibbs.gplayer.source.MediaSourceImp;
-import com.gibbs.gplayer.utils.LogUtils;
+import androidx.annotation.NonNull;
 
-public class GPlayer implements IGPlayer {
+import java.nio.ByteBuffer;
+
+public class GPlayer {
     private static final String TAG = "GPlayerJ";
 
     private static final int MSG_TYPE_ERROR = 0;
@@ -37,19 +28,14 @@ public class GPlayer implements IGPlayer {
         IDLE, PREPARING, PREPARED, PAUSED, PLAYING, STOPPING, STOPPED, RELEASED
     }
 
-    private int mChannelId = hashCode();
+    private final long mNativePlayer;
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
     private String mUrl;
-    private MediaSource mMediaSource;
-    private AudioPlayThread mAudioPlayThread;
-    private VideoPlayThread mVideoPlayThread;
-    private boolean mIsProcessingSource;
     private State mPlayState = State.IDLE;
     private State mTargetState = State.IDLE;
     private int mCurrentPositionUs;
-    private Handler mHandler = new Handler(Looper.getMainLooper());
-
-    private AudioRender mAudioRender = null;
-    private VideoRender mVideoRender = null;
+    private GAudioTrack mGAudioTrack;
+    private final Object mStateLock = new Object();
 
     private OnPreparedListener mOnPreparedListener;
     private OnErrorListener mOnErrorListener;
@@ -63,16 +49,21 @@ public class GPlayer implements IGPlayer {
 
     public GPlayer(boolean mediaCodec) {
         LogUtils.i(TAG, "CoreFlow : new GPlayer " + mediaCodec);
-        mMediaSource = new MediaSourceImp(mChannelId);
-        nInit(mChannelId, mediaCodec ? USE_MEDIA_CODEC : 0, this);
+        mNativePlayer = nInit(mediaCodec ? USE_MEDIA_CODEC : 0, this);
     }
 
-    @Override
-    public void setSurface(SurfaceView view) {
-        mVideoRender = YUVGLRenderer.createVideoRender(view, mMediaSource);
+    public void setSurface(Surface surface) {
+        nSetSurface(mNativePlayer, surface);
     }
 
-    @Override
+    public void setSurfaceHolder(SurfaceHolder holder) {
+        nSetSurface(mNativePlayer, holder.getSurface());
+    }
+
+    public void setGAudioTrack(GAudioTrack audioTrack) {
+        mGAudioTrack = audioTrack;
+    }
+
     public void setDataSource(String url) {
         mUrl = url;
     }
@@ -80,7 +71,6 @@ public class GPlayer implements IGPlayer {
     /**
      * start to play
      */
-    @Override
     public synchronized void prepare() {
         if (mPlayState != State.IDLE && mPlayState != State.STOPPED) {
             LogUtils.e(TAG, "CoreFlow : not idle");
@@ -90,32 +80,23 @@ public class GPlayer implements IGPlayer {
             LogUtils.e(TAG, "CoreFlow : invalid data source");
             return;
         }
-        LogUtils.i(TAG, "CoreFlow : prepare " + mUrl);
         setPlayState(State.PREPARING);
-        nPrepare(mChannelId, mUrl);
+        nPrepare(mNativePlayer, mUrl);
     }
 
-    @Override
     public synchronized void start() {
         if (mPlayState == State.PREPARED) {
-            LogUtils.i(TAG, "CoreFlow : start");
-            nStart(mChannelId);
-
-            mIsProcessingSource = true;
-            mAudioPlayThread = new AudioPlayThread();
-            mAudioPlayThread.setName("GPlayer_AudioPlayThread");
-            mAudioPlayThread.start();
-            mVideoPlayThread = new VideoPlayThread();
-            mVideoPlayThread.setName("GPlayer_VideoPlayThread");
-            mVideoPlayThread.start();
+            if (mGAudioTrack == null) {
+                mGAudioTrack = new DefaultGAudioTrack();
+            }
+            nSetAudioTrack(mNativePlayer, mGAudioTrack);
+            nStart(mNativePlayer);
         } else if (mPlayState == State.PAUSED) {
-            LogUtils.i(TAG, "CoreFlow : resume");
-            nResume(mChannelId);
+            nResume(mNativePlayer);
             setPlayState(GPlayer.State.PLAYING);
         }
     }
 
-    @Override
     public synchronized void stop() {
         if (mPlayState != State.PREPARING && mPlayState != State.PREPARED &&
                 mPlayState != State.PAUSED && mPlayState != State.PLAYING) {
@@ -123,108 +104,135 @@ public class GPlayer implements IGPlayer {
             return;
         }
         setPlayState(State.STOPPING);
-        nStop(mChannelId, true);
+        nStop(mNativePlayer, true);
     }
 
-    @Override
     public synchronized void pause() {
         LogUtils.i(TAG, "CoreFlow : pause");
-        nPause(mChannelId);
+        nPause(mNativePlayer);
         setPlayState(State.PAUSED);
     }
 
-    @Override
     public synchronized void release() {
         if (mPlayState == State.STOPPED) {
-            LogUtils.i(TAG, "CoreFlow : release channelId " + mChannelId);
-            nRelease(mChannelId);
+            LogUtils.i(TAG, "CoreFlow : release channelId " + mNativePlayer);
+            nRelease(mNativePlayer);
         } else {
             LogUtils.i(TAG, "CoreFlow : target to release");
             mTargetState = State.RELEASED;
         }
     }
 
-    @Override
     public synchronized void seekTo(int secondMs) {
         LogUtils.i(TAG, "CoreFlow : seekTo " + secondMs);
-        nSeekTo(mChannelId, secondMs);
+        nSeekTo(mNativePlayer, secondMs);
     }
 
-    @Override
     public boolean isPlaying() {
         return mPlayState == State.PLAYING;
     }
 
-    @Override
     public void setFlags(int flags) {
-        nSetFlags(mChannelId, flags);
+        nSetFlags(mNativePlayer, flags);
     }
 
-    @Override
     public int getCurrentPosition() {
         return mCurrentPositionUs;
     }
 
-    @Override
-    public int getDuration() {
-        return mMediaSource.getDuration();
-    }
-
-    @Override
-    public int getVideoWidth() {
-        return mMediaSource.getWidth();
-    }
-
-    @Override
-    public int getVideoHeight() {
-        return mMediaSource.getHeight();
-    }
-
-    @Override
-    public int getVideoRotate() {
-        return mMediaSource.getRotate();
-    }
-
-    @Override
     public State getState() {
         return mPlayState;
     }
 
-    @Override
     public void setOnPreparedListener(OnPreparedListener listener) {
         mOnPreparedListener = listener;
     }
 
-    @Override
+    public interface OnPreparedListener {
+        void onPrepared();
+    }
+
     public void setOnErrorListener(OnErrorListener listener) {
         mOnErrorListener = listener;
     }
 
-    @Override
+    public interface OnErrorListener {
+        void onError(int errorCode, String errorMessage);
+    }
+
     public void setOnStateChangedListener(OnStateChangedListener listener) {
         mOnStateChangedListener = listener;
     }
 
-    @Override
+    public interface OnStateChangedListener {
+        void onStateChanged(GPlayer.State state);
+    }
+
     public void setOnPositionChangedListener(OnPositionChangedListener listener) {
         mOnPositionChangedListener = listener;
     }
 
-    @Override
+    /**
+     * playing timestamp
+     */
+    public interface OnPositionChangedListener {
+        /**
+         * video timestamp changed
+         *
+         * @param timeMs timestamp
+         */
+        void onPositionChanged(int timeMs);
+    }
+
     public void setOnBufferChangedListener(OnBufferChangedListener listener) {
         mOnBufferChangedListener = listener;
+    }
+
+    /**
+     * media buffer size listener
+     */
+    public interface OnBufferChangedListener {
+        /**
+         * audio decoded frame size changed
+         *
+         * @param size frame size
+         */
+        void onAudioFrameSizeChanged(int size);
+
+        /**
+         * video decoded frame size changed
+         *
+         * @param size frame size
+         */
+        void onVideoFrameSizeChanged(int size);
+
+        /**
+         * audio compressed frame size changed
+         *
+         * @param size frame size
+         */
+        void onAudioPacketSizeChanged(int size);
+
+        /**
+         * video compressed frame size changed
+         *
+         * @param size frame size
+         */
+        void onVideoPacketSizeChanged(int size);
     }
 
     public String getUrl() {
         return mUrl;
     }
 
-    private synchronized void setPlayState(State state) {
-        if (mPlayState == state) {
-            return;
+    private void setPlayState(State state) {
+        synchronized (mStateLock) {
+            if (mPlayState == state) {
+                return;
+            }
+            LogUtils.e(TAG, "CoreFlow : setPlayState from " + mPlayState + " to " + state);
+            mPlayState = state;
         }
-        LogUtils.e(TAG, "CoreFlow : setPlayState from " + mPlayState + " to " + state);
-        mPlayState = state;
         switch (state) {
             case PREPARED:
                 onPrepared();
@@ -242,30 +250,12 @@ public class GPlayer implements IGPlayer {
     }
 
     private void onPrepared() {
-        mMediaSource.init();
-        mAudioRender = new PcmAudioRender(mMediaSource);
         if (mOnPreparedListener != null) {
             mOnPreparedListener.onPrepared();
         }
     }
 
     private void onStopped() {
-        mIsProcessingSource = false;
-        if (mAudioPlayThread != null && mAudioPlayThread.isAlive()) {
-            try {
-                mAudioPlayThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        if (mVideoPlayThread != null && mVideoPlayThread.isAlive()) {
-            try {
-                mVideoPlayThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        mMediaSource.flushBuffer();
         if (mTargetState == State.RELEASED) {
             release();
         }
@@ -275,78 +265,8 @@ public class GPlayer implements IGPlayer {
         setPlayState(State.IDLE);
     }
 
-    private class AudioPlayThread extends Thread {
-        @Override
-        public void run() {
-            super.run();
-            LogUtils.i(TAG, "AudioPlayThread start " + getId());
-            while (mAudioRender == null) {
-                if (!mIsProcessingSource) {
-                    return;
-                }
-                while (mMediaSource.getAudioBufferSize() > 0) {
-                    mMediaSource.removeFirstAudioPackage();
-                }
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            LogUtils.i(TAG, "CoreFlow : start audio render");
-            mAudioRender.init(mMediaSource);
-            long renderTime;
-            while (mIsProcessingSource) {
-                renderTime = mAudioRender.render();
-                if (renderTime > 0) {
-                    onMessageCallback(MSG_TYPE_TIME, (int) renderTime, 0, null, null, null);
-                }
-            }
-            mAudioRender.release();
-            LogUtils.i(TAG, "CoreFlow : stop audio render");
-        }
-    }
-
-    private class VideoPlayThread extends Thread {
-        @Override
-        public void run() {
-            super.run();
-            LogUtils.i(TAG, "VideoPlayThread start " + getId());
-            while (mVideoRender == null) {
-                if (!mIsProcessingSource) {
-                    return;
-                }
-                while (mMediaSource.getVideoBufferSize() > 0) {
-                    MediaData mediaData = mMediaSource.readVideoSource();
-                    if (mediaData.pts < mCurrentPositionUs) {
-                        mMediaSource.removeFirstVideoPackage();
-                    }
-                }
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            LogUtils.i(TAG, "CoreFlow : start video render");
-            mVideoRender.init(mMediaSource);
-            while (mIsProcessingSource) {
-                long renderTime = mVideoRender.render();
-                notifyRenderStarted(renderTime);
-            }
-            mVideoRender.release();
-            LogUtils.i(TAG, "CoreFlow : stop video render");
-        }
-    }
-
-    private void notifyRenderStarted(long renderTime) {
-        if (renderTime > 0 && mPlayState == State.PREPARED) {
-            onMessageCallback(MSG_TYPE_STATE, State.PLAYING.ordinal(), 0, null, null, null);
-        }
-    }
-
     //call by jni
-    public void onMessageCallback(final int what, final int arg1, final int arg2, final String msg1,
+    public void onMessageCallback(final int what, final int arg1, final long arg2, final String msg1,
                                   final String msg2, final Object object) {
         mHandler.post(new Runnable() {
             @Override
@@ -362,7 +282,7 @@ public class GPlayer implements IGPlayer {
                         handleTimeMsg(arg1);
                         break;
                     case MSG_TYPE_SIZE:
-                        handleSizeMsg(arg1, arg2);
+                        handleSizeMsg(arg1, (int) arg2);
                         break;
                 }
             }
@@ -373,6 +293,7 @@ public class GPlayer implements IGPlayer {
         if (mOnErrorListener != null) {
             mOnErrorListener.onError(code, errorMsg);
         }
+        stop();
     }
 
     private void handleStateMsg(int state) {
@@ -405,29 +326,44 @@ public class GPlayer implements IGPlayer {
         }
     }
 
+    interface GAudioTrack {
+        void openAudioTrack(int sampleRate, int sampleFormat, int channels, int bytesPerSample);
+
+        int write(@NonNull ByteBuffer buffer, int size);
+
+        void stopAudioTrack();
+    }
+
     // 创建GPlayer.c实例
-    private native void nInit(int channelId, int flag, GPlayer player);
+    private native long nInit(int flag, GPlayer player);
+
+    // 设置surface
+    private native void nSetSurface(long nativePlayer, Surface surface);
+
+    // 设置audio render
+    private native void nSetAudioTrack(long nativePlayer, GAudioTrack audioTrack);
 
     // 开始解封装
-    private native void nPrepare(int channelId, String url);
+    private native void nPrepare(long nativePlayer, String url);
 
     // 开始解码
-    private native void nStart(int channelId);
+    private native void nStart(long nativePlayer);
 
     // 暂停解码和解封装
-    private native void nPause(int channelId);
+    private native void nPause(long nativePlayer);
 
     // 恢复解码和解封装
-    private native void nResume(int channelId);
+    private native void nResume(long nativePlayer);
 
     // seek
-    private native void nSeekTo(int channelId, int secondMs);
+    private native void nSeekTo(long nativePlayer, int secondMs);
 
     // 停止解封装和解码
-    private native void nStop(int channelId, boolean force);
+    private native void nStop(long nativePlayer, boolean force);
 
     // 释放GPlayer.c实例
-    private native void nRelease(int channelId);
+    private native void nRelease(long nativePlayer);
 
-    private native void nSetFlags(int channelId, int flags);
+    // 设置播放器属性
+    private native void nSetFlags(long nativePlayer, int flags);
 }

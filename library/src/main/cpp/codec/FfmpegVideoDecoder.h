@@ -9,8 +9,6 @@ extern "C"
 
 #include "Codec.h"
 
-#define TAG "FfmpegVideoDecoder"
-
 class FfmpegVideoDecoder : public VideoDecoder {
 public:
 

@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 //调试日志开关，1为开，其它为关
-#define LOG_OPEN 1
+#define LOG_OPEN 0
 
 enum LogLevel
 {

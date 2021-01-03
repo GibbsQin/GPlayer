@@ -1,16 +1,16 @@
 #include <cstdlib>
 #include "YuvGlesProgram.h"
 
-#define TAG "YuvRenderer"
+#define TAG "YuvGlesProgram"
 
 static void printGLString(const char *name, GLenum s) {
     const char *v = (const char *) glGetString(s);
-    LOGI("GL %s = %s\n", name, v);
+    LOGI(TAG, "GL %s = %s\n", name, v);
 }
 
 static void checkGlError(const char *op) {
     for (GLint error = glGetError(); error; error = glGetError()) {
-        LOGI("after %s() glError (0x%x)\n", op, error);
+        LOGE(TAG, "after %s() glError (0x%x)\n", op, error);
     }
 }
 
@@ -22,7 +22,7 @@ YuvGlesProgram::YuvGlesProgram() {
     _tIIindex = 1;
     _tIIIindex = 2;
 
-    SQUARE_VERTICES = new GLfloat[8]{-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, .0f};// fullscreen
+    SQUARE_VERTICES = new GLfloat[8]{-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f};// fullscreen
     COORD_VERTICES = new GLfloat[8]{0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f};// whole-texture
     MVP_MATRIX = new GLfloat[16]{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
 }
@@ -33,71 +33,75 @@ YuvGlesProgram::~YuvGlesProgram() {
     delete[] MVP_MATRIX;
 }
 
-void YuvGlesProgram::buildProgram() {
+bool YuvGlesProgram::buildProgram() {
+    checkGlError("before buildProgram");
     _program = createProgram(const_cast<char *>(VERTEX_SHADER),
                              const_cast<char *>(FRAGMENT_SHADER));
-    LOGD(TAG, "_program = %d", _program);
+    LOGI(TAG, "_program = %d", _program);
 
     _mvpHandle = glGetUniformLocation(_program, "u_mvp");
-    LOGD(TAG, "_mvpHandle = %d", _mvpHandle);
+    LOGI(TAG, "_mvpHandle = %d", _mvpHandle);
     checkGlError("glGetUniformLocation u_mvp");
     if (_mvpHandle == -1) {
         LOGE(TAG, "Could not get uniform location for u_mvp");
-        return;
+        return false;
     }
 
     /*
      * get handle for "a_position" and "a_texCoord"
      */
     _positionHandle = glGetAttribLocation(_program, "a_position");
-    LOGD(TAG, "_positionHandle = %d", _positionHandle);
+    LOGI(TAG, "_positionHandle = %d", _positionHandle);
     checkGlError("glGetAttribLocation a_position");
     if (_positionHandle == -1) {
         LOGE(TAG, "Could not get attribute location for a_position");
-        return;
+        return false;
     }
 
     _coordHandle = glGetAttribLocation(_program, "a_texCoord");
-    LOGD(TAG, "_coordHandle = %d", _coordHandle);
+    LOGI(TAG, "_coordHandle = %d", _coordHandle);
     checkGlError("glGetAttribLocation a_texCoord");
     if (_coordHandle == -1) {
         LOGE(TAG, "Could not get attribute location for a_texCoord");
-        return;
+        return false;
     }
 
     /*
      * get uniform location for y/u/v, we pass data through these uniforms
      */
     _yhandle = glGetUniformLocation(_program, "tex_y");
-    LOGD(TAG, "_yhandle = %d", _yhandle);
+    LOGI(TAG, "_yhandle = %d", _yhandle);
     checkGlError("glGetUniformLocation tex_y");
     if (_yhandle == -1) {
         LOGE(TAG, "Could not get uniform location for tex_y");
-        return;
+        return false;
     }
     _uhandle = glGetUniformLocation(_program, "tex_u");
-    LOGD(TAG, "_uhandle = %d", _uhandle);
+    LOGI(TAG, "_uhandle = %d", _uhandle);
     checkGlError("glGetUniformLocation tex_u");
     if (_uhandle == -1) {
         LOGE(TAG, "Could not get uniform location for tex_u");
-        return;
+        return false;
     }
     _vhandle = glGetUniformLocation(_program, "tex_v");
-    LOGD(TAG, "_vhandle = %d", _vhandle);
+    LOGI(TAG, "_vhandle = %d", _vhandle);
     checkGlError("glGetUniformLocation tex_v");
     if (_vhandle == -1) {
         LOGE(TAG, "Could not get uniform location for tex_v");
-        return;
+        return false;
     }
+    return true;
 }
 
 GLuint YuvGlesProgram::createProgram(char *vertexSource, char *fragmentSource) {
+    LOGI(TAG, "createProgram vertexSource =\n%s", vertexSource);
+    LOGI(TAG, "createProgram fragmentSource =\n%s", fragmentSource);
     // create shaders
     GLuint vertexShader = loadShader(GL_VERTEX_SHADER, vertexSource);
     GLuint pixelShader = loadShader(GL_FRAGMENT_SHADER, fragmentSource);
     // just check
-    LOGD(TAG, "vertexShader = %d", vertexShader);
-    LOGD(TAG, "pixelShader = %d", pixelShader);
+    LOGI(TAG, "vertexShader = %d", vertexShader);
+    LOGI(TAG, "pixelShader = %d", pixelShader);
 
     GLuint program = glCreateProgram();
     if (program != 0) {
@@ -106,6 +110,7 @@ GLuint YuvGlesProgram::createProgram(char *vertexSource, char *fragmentSource) {
         glAttachShader(program, pixelShader);
         checkGlError("glAttachShader");
         glLinkProgram(program);
+        checkGlError("glLinkProgram");
         GLint linkStatus = 0;
         glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
         if (linkStatus != GL_TRUE) {
@@ -114,7 +119,7 @@ GLuint YuvGlesProgram::createProgram(char *vertexSource, char *fragmentSource) {
             if (bufLength) {
                 char *buf = (char *) malloc(static_cast<size_t>(bufLength));
                 if (buf) {
-                    glGetProgramInfoLog(program, bufLength, NULL, buf);
+                    glGetProgramInfoLog(program, bufLength, nullptr, buf);
                     LOGE("Could not link program:\n%s\n", buf);
                     free(buf);
                 }
@@ -129,8 +134,10 @@ GLuint YuvGlesProgram::createProgram(char *vertexSource, char *fragmentSource) {
 GLuint YuvGlesProgram::loadShader(GLenum shaderType, char *source) {
     GLuint shader = glCreateShader(shaderType);
     if (shader != 0) {
-        glShaderSource(shader, 1, &source, NULL);
+        glShaderSource(shader, 1, &source, nullptr);
+        checkGlError("glShaderSource");
         glCompileShader(shader);
+        checkGlError("glCompileShader");
         GLint compiled = 0;
         glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
         if (compiled != GL_TRUE) {
@@ -139,7 +146,7 @@ GLuint YuvGlesProgram::loadShader(GLenum shaderType, char *source) {
             if (infoLen) {
                 char *buf = (char *) malloc(static_cast<size_t>(infoLen));
                 if (buf) {
-                    glGetShaderInfoLog(shader, infoLen, NULL, buf);
+                    glGetShaderInfoLog(shader, infoLen, nullptr, buf);
                     LOGE("Could not compile shader :\n%s\n", buf);
                     free(buf);
                 }
@@ -147,34 +154,36 @@ GLuint YuvGlesProgram::loadShader(GLenum shaderType, char *source) {
                 shader = 0;
             }
         }
+    } else {
+        checkGlError("glCreateShader");
     }
     return shader;
 }
 
-void YuvGlesProgram::buildTextures(char *y, char *u, char *v, uint32_t width, uint32_t height) {
+void YuvGlesProgram::buildTextures(uint8_t *y, uint8_t *u, uint8_t *v, uint32_t width, uint32_t height) {
     bool videoSizeChanged = (width != _video_width || height != _video_height);
     if (videoSizeChanged) {
         _video_width = width;
         _video_height = height;
-        LOGD(TAG, "buildTextures videoSizeChanged: w=%d h=%d", _video_width, _video_height);
+        LOGI(TAG, "buildTextures videoSizeChanged: w=%d h=%d", _video_width, _video_height);
     }
 
     // building texture for Y data
     if (_ytid < 0 || videoSizeChanged) {
         if (_ytid >= 0) {
-            LOGD(TAG, "glDeleteTextures Y");
+            LOGI(TAG, "glDeleteTextures Y");
             glDeleteTextures(1, &_ytid);
             checkGlError("glDeleteTextures");
         }
         // glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glGenTextures(1, &_ytid);
         checkGlError("glGenTextures");
-        LOGD(TAG, "glGenTextures Y = %d", _ytid);
+        LOGI(TAG, "glGenTextures Y = %d", _ytid);
     }
     glBindTexture(GL_TEXTURE_2D, _ytid);
     checkGlError("glBindTexture");
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _video_width, _video_height, 0, GL_LUMINANCE,
-                 GL_UNSIGNED_BYTE, y);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _video_width, _video_height, 0,
+                 GL_LUMINANCE, GL_UNSIGNED_BYTE, y);
     checkGlError("glTexImage2D");
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -184,13 +193,13 @@ void YuvGlesProgram::buildTextures(char *y, char *u, char *v, uint32_t width, ui
     // building texture for U data
     if (_utid < 0 || videoSizeChanged) {
         if (_utid >= 0) {
-            LOGD(TAG, "glDeleteTextures U");
+            LOGI(TAG, "glDeleteTextures U");
             glDeleteTextures(1, &_utid);
             checkGlError("glDeleteTextures");
         }
         glGenTextures(1, &_utid);
         checkGlError("glGenTextures");
-        LOGD(TAG, "glGenTextures U = %d", _utid);
+        LOGI(TAG, "glGenTextures U = %d", _utid);
     }
     glBindTexture(GL_TEXTURE_2D, _utid);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _video_width / 2, _video_height / 2, 0,
@@ -203,13 +212,13 @@ void YuvGlesProgram::buildTextures(char *y, char *u, char *v, uint32_t width, ui
     // building texture for V data
     if (_vtid < 0 || videoSizeChanged) {
         if (_vtid >= 0) {
-            LOGD(TAG, "glDeleteTextures V");
+            LOGI(TAG, "glDeleteTextures V");
             glDeleteTextures(1, &_vtid);
             checkGlError("glDeleteTextures");
         }
         glGenTextures(1, &_vtid);
         checkGlError("glGenTextures");
-        LOGD(TAG, "glGenTextures V = ", _vtid);
+        LOGI(TAG, "glGenTextures V = %d", _vtid);
     }
     glBindTexture(GL_TEXTURE_2D, _vtid);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _video_width / 2, _video_height / 2, 0,

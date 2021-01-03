@@ -1,6 +1,8 @@
 #include "base/Log.h"
 #include "FfmpegAudioDecoder.h"
 
+#define TAG "FfmpegAudioDecoder"
+
 FfmpegAudioDecoder::FfmpegAudioDecoder() = default;
 
 FfmpegAudioDecoder::~FfmpegAudioDecoder() = default;

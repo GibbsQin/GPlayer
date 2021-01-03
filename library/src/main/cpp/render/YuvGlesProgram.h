@@ -7,7 +7,7 @@
 
 
 #define VERTEX_SHADER \
-        "attribute vec4 a_position;" \
+        "attribute vec4 a_position;\n" \
         "attribute vec2 a_texCoord;\n" \
         "varying vec2 v_color;\n" \
         "uniform mat4 u_mvp;\n" \
@@ -44,15 +44,16 @@ public:
 
     ~YuvGlesProgram();
 
-    void buildProgram();
+    bool buildProgram();
 
+    void buildTextures(uint8_t *y, uint8_t *u, uint8_t *v, uint32_t width, uint32_t height);
+
+    void drawFrame();
+
+private:
     GLuint createProgram(char *vertexSource, char *fragmentSource);
 
     GLuint loadShader(GLenum shaderType, char *source);
-
-    void buildTextures(char *y, char *u, char *v, uint32_t width, uint32_t height);
-
-    void drawFrame();
 
 private:
     // program id
