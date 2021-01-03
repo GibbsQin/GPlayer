@@ -1,40 +1,95 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 package com.gibbs.gplayer;
 
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.ArrayMap;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
 import androidx.annotation.NonNull;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 public class GPlayer {
     private static final String TAG = "GPlayerJ";
+
+    /**
+     * ffmpeg sample fmt
+     */
+    private static final int FFMPEG_SAMPLE_FMT_U8 = 0;          ///< unsigned 8 bits
+    private static final int FFMPEG_SAMPLE_FMT_S16 = 1;         ///< signed 16 bits
+    private static final int FFMPEG_SAMPLE_FMT_S32 = 2;         ///< signed 32 bits
+    private static final int FFMPEG_SAMPLE_FMT_FLT = 3;         ///< float
+    private static final int FFMPEG_SAMPLE_FMT_DBL = 4;         ///< double
+    private static final int FFMPEG_SAMPLE_FMT_U8P = 5;         ///< unsigned 8 bits, planar
+    private static final int FFMPEG_SAMPLE_FMT_S16P = 6;        ///< signed 16 bits, planar
+    private static final int FFMPEG_SAMPLE_FMT_S32P = 7;        ///< signed 32 bits, planar
+    private static final int FFMPEG_SAMPLE_FMT_FLTP = 8;        ///< float, planar
+    private static final int FFMPEG_SAMPLE_FMT_DBLP = 9;        ///< double, planar
+    private static final int FFMPEG_SAMPLE_FMT_S64 = 10;        ///< signed 64 bits
+    private static final int FFMPEG_SAMPLE_FMT_S64P = 11;       ///< signed 64 bits, planar
+
+    private static final Map<Integer, Integer> sSampleFmtMap = new ArrayMap<>();
+    private static final Map<Integer, Integer> sChannelFmtMap = new ArrayMap<>();
+
+    static {
+        sChannelFmtMap.put(1, AudioFormat.CHANNEL_OUT_MONO);
+        sChannelFmtMap.put(2, AudioFormat.CHANNEL_OUT_STEREO);
+        sChannelFmtMap.put(3, AudioFormat.CHANNEL_OUT_SURROUND);
+        sChannelFmtMap.put(4, AudioFormat.CHANNEL_OUT_QUAD);
+        sChannelFmtMap.put(6, AudioFormat.CHANNEL_OUT_5POINT1);
+
+        sSampleFmtMap.put(FFMPEG_SAMPLE_FMT_U8, AudioFormat.ENCODING_PCM_8BIT);
+        sSampleFmtMap.put(FFMPEG_SAMPLE_FMT_S16, AudioFormat.ENCODING_PCM_16BIT);
+        sSampleFmtMap.put(FFMPEG_SAMPLE_FMT_FLTP, AudioFormat.ENCODING_PCM_FLOAT);
+    }
 
     private static final int MSG_TYPE_ERROR = 0;
     private static final int MSG_TYPE_STATE = 1;
     private static final int MSG_TYPE_TIME = 2;
     private static final int MSG_TYPE_SIZE = 3;
+    private static final int MSG_TYPE_COMPLETE = 6;
+    private static final int MSG_TYPE_SEEK = 7;
 
-    public static final int USE_MEDIA_CODEC = 2;
+    private static final int ERROR_DEMUXING = 0;
+    private static final int ERROR_DECODING = 1;
+    private static final int ERROR_RENDERING = 2;
+    private static final int ERROR_SEEK = 3;
+
+    private static final int ERROR_ILLEGAL_STATE = 100;
+    private static final int ERROR_INVALID_SOURCE = 101;
+
+    public static final int AV_FLAG_SOURCE_MEDIA_CODEC = 0x00000002;
+
+    public static boolean enableMediaCodec = false;
 
     static {
         System.loadLibrary("gplayer");
     }
 
     public enum State {
-        IDLE, PREPARING, PREPARED, PAUSED, PLAYING, STOPPING, STOPPED, RELEASED
+        IDLE, PREPARING, PREPARED, PAUSED, PLAYING, STOPPING, STOPPED, RELEASED, ERROR
     }
 
     private final long mNativePlayer;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private GAudioTrack mGAudioTrack;
     private String mUrl;
     private State mPlayState = State.IDLE;
     private State mTargetState = State.IDLE;
     private int mCurrentPositionUs;
-    private GAudioTrack mGAudioTrack;
+    private boolean mIsSeeking = false;
     private final Object mStateLock = new Object();
 
     private OnPreparedListener mOnPreparedListener;
@@ -42,14 +97,16 @@ public class GPlayer {
     private OnStateChangedListener mOnStateChangedListener;
     private OnPositionChangedListener mOnPositionChangedListener;
     private OnBufferChangedListener mOnBufferChangedListener;
+    private OnSeekStateChangedListener mOnSeekStateChangedListener;
+    private OnCompletedListener mOnCompletedListener;
 
     public GPlayer() {
-        this(false);
+        this(enableMediaCodec);
     }
 
     public GPlayer(boolean mediaCodec) {
-        LogUtils.i(TAG, "CoreFlow : new GPlayer " + mediaCodec);
-        mNativePlayer = nInit(mediaCodec ? USE_MEDIA_CODEC : 0, this);
+        Log.i(TAG, "CoreFlow : mediaCodec " + mediaCodec);
+        mNativePlayer = nInit(mediaCodec ? AV_FLAG_SOURCE_MEDIA_CODEC : 0, this);
     }
 
     public void setSurface(Surface surface) {
@@ -68,23 +125,35 @@ public class GPlayer {
         mUrl = url;
     }
 
-    /**
-     * start to play
-     */
     public synchronized void prepare() {
         if (mPlayState != State.IDLE && mPlayState != State.STOPPED) {
-            LogUtils.e(TAG, "CoreFlow : not idle");
+            Log.e(TAG, "CoreFlow : can not prepare in " + mPlayState);
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
+            }
             return;
         }
         if (TextUtils.isEmpty(mUrl)) {
-            LogUtils.e(TAG, "CoreFlow : invalid data source");
+            Log.e(TAG, "CoreFlow : invalid data source : " + mUrl);
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_INVALID_SOURCE, "Invalid url");
+            }
             return;
         }
+        mIsSeeking = false;
         setPlayState(State.PREPARING);
+        setFlags(enableMediaCodec ? AV_FLAG_SOURCE_MEDIA_CODEC : 0);
         nPrepare(mNativePlayer, mUrl);
     }
 
     public synchronized void start() {
+        if (mPlayState != State.PREPARED && mPlayState != State.PAUSED) {
+            Log.e(TAG, "can not start in " + mPlayState);
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
+            }
+            return;
+        }
         if (mPlayState == State.PREPARED) {
             if (mGAudioTrack == null) {
                 mGAudioTrack = new DefaultGAudioTrack();
@@ -98,9 +167,11 @@ public class GPlayer {
     }
 
     public synchronized void stop() {
-        if (mPlayState != State.PREPARING && mPlayState != State.PREPARED &&
-                mPlayState != State.PAUSED && mPlayState != State.PLAYING) {
-            LogUtils.e(TAG, "CoreFlow : not playing");
+        if (!isPlaying() && mPlayState != State.ERROR) {
+            Log.e(TAG, "CoreFlow : can not stop in " + mPlayState);
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
+            }
             return;
         }
         setPlayState(State.STOPPING);
@@ -108,28 +179,47 @@ public class GPlayer {
     }
 
     public synchronized void pause() {
-        LogUtils.i(TAG, "CoreFlow : pause");
+        if (mPlayState != State.PLAYING) {
+            Log.e(TAG, "CoreFlow : can not pause in " + mPlayState);
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
+            }
+            return;
+        }
         nPause(mNativePlayer);
         setPlayState(State.PAUSED);
     }
 
     public synchronized void release() {
         if (mPlayState == State.STOPPED) {
-            LogUtils.i(TAG, "CoreFlow : release channelId " + mNativePlayer);
+            Log.i(TAG, "CoreFlow : release native player " + mNativePlayer);
             nRelease(mNativePlayer);
         } else {
-            LogUtils.i(TAG, "CoreFlow : target to release");
+            Log.i(TAG, "CoreFlow : target to release");
             mTargetState = State.RELEASED;
         }
     }
 
     public synchronized void seekTo(int secondMs) {
-        LogUtils.i(TAG, "CoreFlow : seekTo " + secondMs);
+        if (mPlayState != State.PLAYING) {
+            Log.e(TAG, "CoreFlow : can not seek in " + mPlayState);
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
+            }
+            return;
+        }
+        if (mIsSeeking) {
+            Log.e(TAG, "CoreFlow : seeking now");
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_SEEK, "Seeking now");
+            }
+            return;
+        }
         nSeekTo(mNativePlayer, secondMs);
     }
 
     public boolean isPlaying() {
-        return mPlayState == State.PLAYING;
+        return mPlayState == State.PREPARED || mPlayState == State.PAUSED || mPlayState == State.PLAYING;
     }
 
     public void setFlags(int flags) {
@@ -138,6 +228,18 @@ public class GPlayer {
 
     public int getCurrentPosition() {
         return mCurrentPositionUs;
+    }
+
+    public int getDuration() {
+        return nGetDuration(mNativePlayer);
+    }
+
+    public int getVideoWidth() {
+        return nGetVideoWidth(mNativePlayer);
+    }
+
+    public int getVideoHeight() {
+        return nGetVideoHeight(mNativePlayer);
     }
 
     public State getState() {
@@ -172,15 +274,7 @@ public class GPlayer {
         mOnPositionChangedListener = listener;
     }
 
-    /**
-     * playing timestamp
-     */
     public interface OnPositionChangedListener {
-        /**
-         * video timestamp changed
-         *
-         * @param timeMs timestamp
-         */
         void onPositionChanged(int timeMs);
     }
 
@@ -188,37 +282,24 @@ public class GPlayer {
         mOnBufferChangedListener = listener;
     }
 
-    /**
-     * media buffer size listener
-     */
     public interface OnBufferChangedListener {
-        /**
-         * audio decoded frame size changed
-         *
-         * @param size frame size
-         */
-        void onAudioFrameSizeChanged(int size);
+        void onBufferChanged(int percent);
+    }
 
-        /**
-         * video decoded frame size changed
-         *
-         * @param size frame size
-         */
-        void onVideoFrameSizeChanged(int size);
+    public interface OnSeekStateChangedListener {
+        void onSeekStateChanged(int state);
+    }
 
-        /**
-         * audio compressed frame size changed
-         *
-         * @param size frame size
-         */
-        void onAudioPacketSizeChanged(int size);
+    public void setOnSeekStateChangedListener(OnSeekStateChangedListener listener) {
+        mOnSeekStateChangedListener = listener;
+    }
 
-        /**
-         * video compressed frame size changed
-         *
-         * @param size frame size
-         */
-        void onVideoPacketSizeChanged(int size);
+    public interface OnCompletedListener {
+        void onCompleted();
+    }
+
+    public void setOnCompletedListener(OnCompletedListener listener) {
+        mOnCompletedListener = listener;
     }
 
     public String getUrl() {
@@ -230,7 +311,7 @@ public class GPlayer {
             if (mPlayState == state) {
                 return;
             }
-            LogUtils.e(TAG, "CoreFlow : setPlayState from " + mPlayState + " to " + state);
+            Log.e(TAG, "CoreFlow : setPlayState from " + mPlayState + " to " + state);
             mPlayState = state;
         }
         switch (state) {
@@ -268,6 +349,7 @@ public class GPlayer {
     //call by jni
     public void onMessageCallback(final int what, final int arg1, final long arg2, final String msg1,
                                   final String msg2, final Object object) {
+        Log.d(TAG, "onMessageCallback " + what + ", " + arg1 + ", " + arg2);
         mHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -282,7 +364,13 @@ public class GPlayer {
                         handleTimeMsg(arg1);
                         break;
                     case MSG_TYPE_SIZE:
-                        handleSizeMsg(arg1, (int) arg2);
+                        handleSizeMsg(arg1);
+                        break;
+                    case MSG_TYPE_COMPLETE:
+                        handleCompleteMsg();
+                        break;
+                    case MSG_TYPE_SEEK:
+                        handleSeekMsg(arg1);
                         break;
                 }
             }
@@ -290,15 +378,20 @@ public class GPlayer {
     }
 
     private void handleErrorMsg(int code, String errorMsg) {
+        Log.i(TAG, "CoreFlow : handleErrorMsg " + code + ", " + errorMsg);
+        setPlayState(State.ERROR);
         if (mOnErrorListener != null) {
             mOnErrorListener.onError(code, errorMsg);
         }
-        stop();
+        if (code == ERROR_SEEK) {
+            mIsSeeking = false;
+        } else {
+            stop();
+        }
     }
 
     private void handleStateMsg(int state) {
         State playState = State.values()[state];
-        LogUtils.i(TAG, "CoreFlow : handleStateMsg " + playState);
         setPlayState(playState);
     }
 
@@ -312,26 +405,76 @@ public class GPlayer {
         }
     }
 
-    private void handleSizeMsg(int type, int size) {
+    private void handleSizeMsg(int state) {
         if (mOnBufferChangedListener != null) {
-            if (type == 1) {
-                mOnBufferChangedListener.onAudioPacketSizeChanged(size);
-            } else if (type == 2) {
-                mOnBufferChangedListener.onVideoPacketSizeChanged(size);
-            } else if (type == 3) {
-                mOnBufferChangedListener.onAudioFrameSizeChanged(size);
-            } else if (type == 4) {
-                mOnBufferChangedListener.onVideoFrameSizeChanged(size);
+            if (state == 0) {
+                mOnBufferChangedListener.onBufferChanged(0);
+            } else {
+                mOnBufferChangedListener.onBufferChanged(100);
             }
         }
     }
 
+    private void handleCompleteMsg() {
+        Log.i(TAG, "CoreFlow : handleCompleteMsg");
+        stop();
+        if (mOnCompletedListener != null) {
+            mOnCompletedListener.onCompleted();
+        }
+    }
+
+    private void handleSeekMsg(int state) {
+        Log.i(TAG, "CoreFlow : handleSeekMsg " + state);
+        mIsSeeking = state == 0;
+        if (mOnSeekStateChangedListener != null) {
+            mOnSeekStateChangedListener.onSeekStateChanged(state);
+        }
+    }
+
     interface GAudioTrack {
-        void openAudioTrack(int sampleRate, int sampleFormat, int channels, int bytesPerSample);
+        void open(int sampleRate, int fmt, int channels, int bytesPerSample);
 
         int write(@NonNull ByteBuffer buffer, int size);
 
-        void stopAudioTrack();
+        void close();
+    }
+
+    private static class DefaultGAudioTrack implements GPlayer.GAudioTrack {
+        private static final String TAG = "AudioTrackWrap";
+        private AudioTrack mAudioTrack;
+
+        @Override
+        public void open(int sampleRate, int fmt, int channels, int bytesPerSample) {
+            Log.i(TAG, "openAudioTrack " + sampleRate + " " + fmt + " " + channels + " " + bytesPerSample);
+            try {
+                int sampleFormat = sSampleFmtMap.get(fmt);
+                int channelLayout = sChannelFmtMap.get(channels);
+                int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelLayout, sampleFormat);
+                int bufferSizeInBytes = Math.round(minBufferSize * 1.0f / bytesPerSample + 0.5f) * bytesPerSample;
+                mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, channelLayout,
+                        sampleFormat, minBufferSize * 2, AudioTrack.MODE_STREAM);
+                mAudioTrack.play();
+                Log.i(TAG, "openAudioTrack min buffer size:" + minBufferSize + ", bufferSizeInBytes:" + bufferSizeInBytes);
+            } catch (Exception e) {
+                Log.e(TAG, "create AudioTrack error: " + e.getMessage());
+            }
+        }
+
+        @Override
+        public int write(@NonNull ByteBuffer buffer, int size) {
+            return mAudioTrack.write(buffer, size, AudioTrack.WRITE_BLOCKING);
+        }
+
+        @Override
+        public void close() {
+            if (mAudioTrack != null) {
+                mAudioTrack.flush();
+                mAudioTrack.stop();
+                mAudioTrack.release();
+                mAudioTrack = null;
+                Log.i(TAG, "stopAudioTrack");
+            }
+        }
     }
 
     // 创建GPlayer.c实例
@@ -366,4 +509,13 @@ public class GPlayer {
 
     // 设置播放器属性
     private native void nSetFlags(long nativePlayer, int flags);
+
+    // 获取视频时长
+    private native int nGetDuration(long nativePlayer);
+
+    // 获取视频宽度
+    private native int nGetVideoWidth(long nativePlayer);
+
+    // 获取视频高度
+    private native int nGetVideoHeight(long nativePlayer);
 }

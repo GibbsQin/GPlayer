@@ -1,10 +1,12 @@
-//
-// Created by qinshenghua on 2020/12/4.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_MEDIADATA_H
 #define GPLAYER_MEDIADATA_H
 
+#include <string>
 
 class MediaData {
 public:
@@ -16,7 +18,7 @@ public:
 
     ~MediaData();
 
-    void print();
+    void print() const;
 
 public:
     uint8_t *data = nullptr;

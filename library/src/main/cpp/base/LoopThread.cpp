@@ -1,14 +1,13 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include "LoopThread.h"
 
 #include <utility>
 
 LoopThread::LoopThread() {
-    this->maxValue = MAX_VALUE;
-    setFunction(std::bind(&LoopThread::handleRunning, this));
-}
-
-LoopThread::LoopThread(int maxSize) {
-    this->maxValue = maxSize;
     setFunction(std::bind(&LoopThread::handleRunning, this));
 }
 
@@ -17,6 +16,9 @@ LoopThread::~LoopThread()= default;
 void LoopThread::handleRunning() {
     if (startFunc) {
         startFunc();
+    }
+    if (notifyFunc) {
+        notifyFunc(NOTIFY_START);
     }
     isStarted = true;
 
@@ -29,25 +31,22 @@ void LoopThread::handleRunning() {
         if (!updateFunc) {
             break;
         }
-        int count = updateFunc(arg1, arg2);
-        arg1 = -1;
-        arg2 = -1;
-        if (count == ERROR_EXIST) {
+        bool hasParams = arg1 > 0 || arg2 > 0;
+        if (updateFunc(arg1, arg2) == ERROR_EXIST) {
             mRunning = false;
             continue;
         }
-        if (count > maxValue) {
-            sleepTimeMs += SLEEP_TIME_GAP;
-        } else {
-            sleepTimeMs = 0;
-        }
-        if (sleepTimeMs > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(sleepTimeMs));
+        if (hasParams) {
+            arg1 = -1;
+            arg2 = -1;
         }
     }
 
     if (endFunc) {
         endFunc();
+    }
+    if (notifyFunc) {
+        notifyFunc(NOTIFY_END);
     }
     isStarted = false;
 }
@@ -64,9 +63,12 @@ void LoopThread::setEndFunc(std::function<void(void)> func) {
     endFunc = std::move(func);
 }
 
+void LoopThread::setNotifyFunc(std::function<void(int)> func) {
+    notifyFunc = std::move(func);
+}
+
 void LoopThread::resume() {
     XThread::resume();
-    std::unique_lock<std::mutex> lck(threadLock);
     conVar.notify_all();
 }
 

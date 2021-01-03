@@ -1,12 +1,16 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 package com.gibbs.gplayer;
 
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
 
-public class GPlayerView extends SurfaceView implements SurfaceHolder.Callback, View.OnClickListener {
+public class GPlayerView extends SurfaceView implements SurfaceHolder.Callback {
     private GPlayer mGPlayer;
 
     public GPlayerView(Context context) {
@@ -15,13 +19,11 @@ public class GPlayerView extends SurfaceView implements SurfaceHolder.Callback, 
 
     public GPlayerView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        setOnClickListener(this);
         initGPlayer();
     }
 
     private void initGPlayer() {
         if (mGPlayer != null) {
-            LogUtils.e("GPlayerView", "initGPlayer has been init");
             return;
         }
         mGPlayer = new GPlayer();
@@ -68,6 +70,18 @@ public class GPlayerView extends SurfaceView implements SurfaceHolder.Callback, 
         return mGPlayer.getCurrentPosition();
     }
 
+    public int getDuration() {
+        return mGPlayer.getDuration();
+    }
+
+    public int getVideoWidth() {
+        return mGPlayer.getVideoWidth();
+    }
+
+    public int getVideoHeight() {
+        return mGPlayer.getVideoHeight();
+    }
+
     public GPlayer.State getState() {
         return mGPlayer.getState();
     }
@@ -92,13 +106,12 @@ public class GPlayerView extends SurfaceView implements SurfaceHolder.Callback, 
         mGPlayer.setOnBufferChangedListener(listener);
     }
 
-    @Override
-    public void onClick(View v) {
-        if (getState() == GPlayer.State.PAUSED) {
-            start();
-        } else if (getState() == GPlayer.State.PLAYING) {
-            pause();
-        }
+    public void setOnSeekStateChangedListener(GPlayer.OnSeekStateChangedListener listener) {
+        mGPlayer.setOnSeekStateChangedListener(listener);
+    }
+
+    public void setOnCompletedListener(GPlayer.OnCompletedListener listener) {
+        mGPlayer.setOnCompletedListener(listener);
     }
 
     @Override

@@ -14,42 +14,39 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories(
         .
-        media
         base
         codec
         codec/ffmpeg
         demuxing
+        j4a
+        media
         player
         render
         sender
-        source
-        j4a)
+        source)
 
 # 定义源码所在目录
 aux_source_directory(. SRC)
-aux_source_directory(media SRC_MEDIA)
 aux_source_directory(base SRC_BASE)
 aux_source_directory(codec SRC_CODEC)
 aux_source_directory(codec/ffmpeg SRC_CODEC_FFMPEG)
 aux_source_directory(demuxing SRC_DEMUXING)
+aux_source_directory(j4a SRC_J4A)
+aux_source_directory(media SRC_MEDIA)
 aux_source_directory(player SRC_PLAYER)
 aux_source_directory(render SRC_RENDER)
 aux_source_directory(source SRC_SOURCE)
-aux_source_directory(j4a SRC_UTILS)
 
 list(APPEND SRC
-        ${SRC_MEDIA}
         ${SRC_BASE}
         ${SRC_CODEC}
         ${SRC_CODEC_FFMPEG}
         ${SRC_DEMUXING}
+        ${SRC_J4A}
+        ${SRC_MEDIA}
         ${SRC_PLAYER}
         ${SRC_RENDER}
-        ${SRC_SOURCE}
-        ${SRC_UTILS})
-
-message("路径 ${SRC}")
-message("平台 ${ANDROID_ABI}")
+        ${SRC_SOURCE})
 
 add_library( # Sets the name of the library.
         gplayer

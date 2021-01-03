@@ -1,14 +1,20 @@
-//
-// Created by Gibbs on 2020/12/20.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <base/LoopThread.h>
+#include <render/SurfaceVideoRenderer.h>
 #include "RenderHelper.h"
 
-RenderHelper::RenderHelper(FrameSource *source, MessageQueue *messageQueue) {
+RenderHelper::RenderHelper(FrameSource *source, MessageSource *messageSource, int mediaCodecFlag) {
     audioRenderer = new AudioRenderer(source);
-    videoRenderer = new VideoRenderer(source);
-    this->messageQueue = messageQueue;
+    if (mediaCodecFlag) {
+        videoRenderer = new SurfaceVideoRenderer(source);
+    } else {
+        videoRenderer = new YuvVideoRenderer(source);
+    }
+    this->messageSource = messageSource;
 }
 
 RenderHelper::~RenderHelper() {
@@ -16,7 +22,7 @@ RenderHelper::~RenderHelper() {
     delete videoRenderer;
 }
 
-void RenderHelper::setSurface(ANativeWindow *window) {
+void RenderHelper::setNativeWindow(ANativeWindow *window) {
     nativeWindow = window;
 }
 
@@ -39,15 +45,24 @@ void RenderHelper::initAudioRenderer() {
 
 void RenderHelper::initVideoRenderer() {
     videoRenderer->surfaceCreated(nativeWindow, videoWidth, videoHeight);
+    hasNotifyFirstFrame = false;
 }
 
 int RenderHelper::renderAudio(int arg1, long arg2) {
     uint64_t temp = audioRenderer->render(nowPts);
     if (temp > 0) {
-        if (nowPts == 0) {
-            messageQueue->pushMessage(MSG_DOMAIN_STATE, STATE_PLAYING, 0);
+        if (!hasNotifyFirstFrame) {
+            hasNotifyFirstFrame = true;
+            messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_PLAYING, 0);
         }
         nowPts = temp;
+        int nowPtsSecond = nowPts / 1000 / 1000;
+        messageSource->pushMessage(MSG_DOMAIN_TIME, nowPtsSecond, 0);
+    } else {
+        if (stopWhenEmpty) {
+            stopWhenEmpty = false;
+            return ERROR_EXIST;
+        }
     }
     return 0;
 }
@@ -56,7 +71,12 @@ int RenderHelper::renderVideo(int arg1, long arg2) {
     if (!videoRenderer->isRenderValid()) {
         return ERROR_EXIST;
     }
-    videoRenderer->render(nowPts);
+    if (!videoRenderer->render(nowPts)) {
+        if (stopWhenEmpty) {
+            stopWhenEmpty = false;
+            return ERROR_EXIST;
+        }
+    }
     return 0;
 }
 

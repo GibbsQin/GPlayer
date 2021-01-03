@@ -1,6 +1,7 @@
-//
-// Created by qinshenghua on 2020/12/18.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_LOOPTHREADHELPER_H
 #define GPLAYER_LOOPTHREADHELPER_H
@@ -13,14 +14,17 @@ class LoopThreadHelper {
 public:
     static LoopThread *createLoopThread(const std::function<int(int, long)>& updateFunc);
 
-    static LoopThread *createLoopThread(int maxValue, const std::function<int(int, long)>& updateFunc);
+    static LoopThread *createLoopThread(const std::function<int(int, long)>& updateFunc,
+                                        const std::function<void(int)>& notifyFunc);
 
-    static LoopThread *createLoopThread(int maxValue,
-                                        const std::function<void(void)>& startFunc,
+    static LoopThread *createLoopThread(const std::function<void(void)>& startFunc,
                                         const std::function<int(int, long)>& updateFunc,
                                         const std::function<void(void)>& endFunc);
 
-    static void destroyThread(LoopThread **thread);
+    static LoopThread *createLoopThread(const std::function<void(void)>& startFunc,
+                                        const std::function<int(int, long)>& updateFunc,
+                                        const std::function<void(void)>& endFunc,
+                                        const std::function<void(int)>& notifyFunc);
 };
 
 

@@ -1,3 +1,8 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include <cstdlib>
 #include "YuvGlesProgram.h"
 
@@ -230,6 +235,8 @@ void YuvGlesProgram::buildTextures(uint8_t *y, uint8_t *u, uint8_t *v, uint32_t 
 }
 
 void YuvGlesProgram::drawFrame() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glUseProgram(_program);
     checkGlError("glUseProgram");
 

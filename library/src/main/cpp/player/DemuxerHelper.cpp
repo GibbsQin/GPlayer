@@ -1,6 +1,7 @@
-//
-// Created by qinshenghua on 2020/12/15.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <base/LoopThread.h>
 #include "DemuxerHelper.h"
@@ -18,12 +19,12 @@ static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, co
          pkt->size);
 }
 
-DemuxerHelper::DemuxerHelper(const std::string &url, PacketSource *input, MessageQueue *messageQueue) {
+DemuxerHelper::DemuxerHelper(const std::string &url, PacketSource *input, MessageSource *messageSource) {
     filename = static_cast<char *>(malloc(url.length() + 1));
     memcpy(filename, url.c_str(), url.length());
     filename[url.length()] = '\0';
     inputSource = input;
-    this->messageQueue = messageQueue;
+    this->messageSource = messageSource;
 }
 
 DemuxerHelper::~DemuxerHelper() {
@@ -97,9 +98,10 @@ void DemuxerHelper::init() {
          audio_stream_index, video_stream_index, stream_mapping_size);
     LOGI(TAG, "extensions %s", ifmt_ctx->iformat->extensions);
 
-    LOGI(TAG, "CoreFlow : av_init\n");
-    formatInfo->duration = (int) (ifmt_ctx->duration);
-    inputSource->queueInfo(formatInfo);
+    LOGI(TAG, "av_init\n");
+    formatInfo->duration = ifmt_ctx->duration > 0 ? (int) (ifmt_ctx->duration / 1000 / 1000) : 0;
+    LOGI(TAG, "duration %d", formatInfo->duration);
+    inputSource->setFormatInfo(formatInfo);
 
     AVCodecParameters *video_codecpar = ifmt_ctx->streams[video_stream_index]->codecpar;
     needVideoStreamFilter = ifmt_ctx->iformat->extensions != nullptr &&
@@ -123,19 +125,26 @@ void DemuxerHelper::init() {
         create_adts_context(&mADTSContext, audio_codecpar->extradata,
                             audio_codecpar->extradata_size);
     }
-    LOGI(TAG, "CoreFlow : needVideoStreamFilter %d, needAudioStreamFilter %d\n",
+    LOGI(TAG, "needVideoStreamFilter %d, needAudioStreamFilter %d\n",
          needVideoStreamFilter, needAudioStreamFilter);
-    messageQueue->pushMessage(MSG_DOMAIN_DEMUXING, MSG_DEMUXING_INIT, 0);
+    messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_PREPARED, 0);
 }
 
 int DemuxerHelper::readPacket(int type, long extra) {
     if (errorExist) {
         return ERROR_EXIST;
     }
-    if (extra > 0) {
-        int64_t seekUs = extra;
-        LOGI(TAG, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekUs);
-        av_seek_frame(ifmt_ctx, -1, seekUs * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
+    if (extra > 0 && seekFrameUs == 0) {
+        AVRational time_base = ifmt_ctx->streams[video_stream_index]->time_base;
+        seekFrameUs = extra / av_q2d(time_base);
+        LOGI(TAG, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekFrameUs);
+        if (av_seek_frame(ifmt_ctx, -1, seekFrameUs, AVSEEK_FLAG_FRAME) < 0) {
+            LOGE(TAG, "seek fail");
+            seekFrameUs = 0;
+            messageSource->pushMessage(MSG_DOMAIN_ERROR, MSG_ERROR_SEEK, 0);
+        } else {
+            messageSource->pushMessage(MSG_DOMAIN_SEEK, MSG_SEEK_START, 0);
+        }
     }
 
     AVPacket pkt;
@@ -143,7 +152,7 @@ int DemuxerHelper::readPacket(int type, long extra) {
     if (ret < 0) {
         notifyError(ret);
         av_packet_unref(&pkt);
-        return 0;
+        return ERROR_EXIST;
     }
 
     if (pkt.flags & AV_PKT_FLAG_DISCARD) {
@@ -151,7 +160,17 @@ int DemuxerHelper::readPacket(int type, long extra) {
         return 0;
     }
 
-    int size = 0;
+    if (seekFrameUs > 0) {
+        if (needDiscardPkt(pkt)) {
+            av_packet_unref(&pkt);
+            return 0;
+        } else {
+            seekFrameUs = 0;
+            messageSource->pushMessage(MSG_DOMAIN_SEEK, MSG_SEEK_END, 0);
+        }
+    }
+
+    unsigned long size = 0;
     if (pkt.stream_index == audio_stream_index) {
         print_packet(ifmt_ctx, &pkt, "audio");
         if (needAudioStreamFilter) {
@@ -162,12 +181,11 @@ int DemuxerHelper::readPacket(int type, long extra) {
             audPkt->data = static_cast<uint8_t *>(av_malloc(static_cast<size_t>(audPkt->size)));
             memcpy(audPkt->data, mADTSHeader, ADTS_HEADER_SIZE);
             memcpy(audPkt->data + ADTS_HEADER_SIZE, pkt.data, (size_t) pkt.size);
-            size = inputSource->queueAudPkt(audPkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            size = inputSource->pushAudPkt(audPkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
             av_packet_free(&audPkt);
         } else {
-            size = inputSource->queueAudPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            size = inputSource->pushAudPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
         }
-        messageQueue->pushMessage(MSG_DOMAIN_BUFFER, MSG_BUFFER_AUDIO_PACKET, size);
     } else if (pkt.stream_index == video_stream_index) {
         print_packet(ifmt_ctx, &pkt, "video");
         if (needVideoStreamFilter) {
@@ -176,30 +194,46 @@ int DemuxerHelper::readPacket(int type, long extra) {
                 if (pkt.size <= 0) {
                     continue;
                 }
-                size = inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+                size = inputSource->pushVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
             }
         } else {
-            size = inputSource->queueVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
+            size = inputSource->pushVidPkt(&pkt, ifmt_ctx->streams[pkt.stream_index]->time_base);
         }
-        messageQueue->pushMessage(MSG_DOMAIN_BUFFER, MSG_BUFFER_VIDEO_PACKET, size);
+    }
+    if (size >= MAX_BUFFER_PACKET_SIZE - 1) {
+        messageSource->pushMessage(MSG_DOMAIN_BUFFER, 1, 1);
     }
 
     av_packet_unref(&pkt);
-    return size;
+    return (int)size;
 }
 
 void DemuxerHelper::release() {
-    LOGI(TAG, "CoreFlow : av_destroy\n");
+    LOGI(TAG, "av_destroy\n");
     avformat_close_input(&ifmt_ctx);
 
     if (needVideoStreamFilter) {
         av_bsf_free(&video_abs_ctx);
         video_abs_ctx = nullptr;
     }
-
-    messageQueue->pushMessage(MSG_DOMAIN_DEMUXING, MSG_DEMUXING_DESTROY, 0);
 }
 
 void DemuxerHelper::notifyError(int ret) {
-    messageQueue->pushMessage(MSG_DOMAIN_ERROR, MSG_ERROR_DEMUXING, ret);
+    if (ret != AVERROR_EOF) {
+        messageSource->pushMessage(MSG_DOMAIN_ERROR, MSG_ERROR_DEMUXING, ret);
+    } else {
+        messageSource->pushMessage(MSG_DOMAIN_DEMUXING, MSG_DEMUXING_EOF, ret);
+    }
+}
+
+bool DemuxerHelper::needDiscardPkt(AVPacket pkt) {
+    if (pkt.pts < seekFrameUs) {
+        return true;
+    }
+    if (pkt.stream_index == video_stream_index && (pkt.flags & AV_PKT_FLAG_KEY) != AV_PKT_FLAG_KEY) {
+        return true;
+    } else if (pkt.stream_index == audio_stream_index || pkt.stream_index == subtitle_stream_index) {
+        return true;
+    }
+    return false;
 }

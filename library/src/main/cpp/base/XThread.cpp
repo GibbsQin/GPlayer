@@ -1,13 +1,16 @@
-﻿#include "XThread.h"
+﻿/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
+#include "XThread.h"
 #include "Log.h"
 
 #define TAG "Thread"
 
-XThread::XThread() {
-}
+XThread::XThread() = default;
 
-XThread::~XThread() {
-}
+XThread::~XThread() = default;
 
 bool XThread::start() {
     if (mRunning){

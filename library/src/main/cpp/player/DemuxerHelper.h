@@ -1,12 +1,13 @@
-//
-// Created by qinshenghua on 2020/12/15.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_DEMUXERHELPER_H
 #define GPLAYER_DEMUXERHELPER_H
 
 #include <source/PacketSource.h>
-#include <source/MessageQueue.h>
+#include <source/MessageSource.h>
 
 extern "C" {
 #include "adtsenc.h"
@@ -15,7 +16,7 @@ extern "C" {
 
 class DemuxerHelper {
 public:
-    DemuxerHelper(const std::string &url, PacketSource *input, MessageQueue *messageQueue);
+    DemuxerHelper(const std::string &url, PacketSource *input, MessageSource *messageSource);
 
     ~DemuxerHelper();
 
@@ -27,15 +28,18 @@ public:
 
     void notifyError(int ret);
 
+    bool needDiscardPkt(AVPacket pkt);
+
 private:
     char *filename;
     PacketSource *inputSource;
-    MessageQueue *messageQueue;
+    MessageSource *messageSource;
 
     AVFormatContext *ifmt_ctx = nullptr;
     int audio_stream_index = -1;
     int video_stream_index = -1;
     int subtitle_stream_index = -1;
+    int64_t seekFrameUs = 0;
     bool errorExist = false;
 
     int needVideoStreamFilter = 0;

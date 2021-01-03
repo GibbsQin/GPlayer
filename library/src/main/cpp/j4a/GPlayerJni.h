@@ -1,14 +1,14 @@
-//
-// Created by Gibbs on 2020/7/16.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_GPLAYERJNI_H
 #define GPLAYER_GPLAYERJNI_H
 
-using namespace std;
-
 #include <jni.h>
 #include <string>
+
 extern "C" {
 #include <demuxing/avformat_def.h>
 }
@@ -19,9 +19,9 @@ public:
 
     ~GPlayerJni();
 
-    void onMessageCallback(int msgId, int arg1, long arg2, char* msg1, char* msg2);
+    void onMessageCallback(int msgId, int arg1, long arg2, const char *msg1, const char *msg2);
 
-    void onMessageCallback(int msgId, int arg1, long arg2, char* msg1, char* msg2, jobject obj);
+    void onMessageCallback(int msgId, int arg1, long arg2, const char *msg1, const char *msg2, jobject obj);
 
 private:
     jobject playerJObj;

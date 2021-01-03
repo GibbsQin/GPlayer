@@ -1,51 +1,50 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #ifndef GPLAYER_FRAMESOURCE_H
 #define GPLAYER_FRAMESOURCE_H
 
 
-#include <jni.h>
-#include <string>
-#include <deque>
-#include <mutex>
 #include "media/MediaData.h"
+#include "ConcurrentQueue.h"
+
 extern "C" {
 #include <demuxing/avformat_def.h>
 }
 
-#define AV_SOURCE_EMPTY -2
-
 class FrameSource {
 
 public:
-    FrameSource();
+    FrameSource(int audioMaxSize, int videoMaxSize);
 
     ~FrameSource();
 
 public:
-    uint32_t onReceiveAudio(MediaData *inPacket);
+    unsigned long pushAudFrame(MediaData *frame);
 
-    uint32_t onReceiveVideo(MediaData *inPacket);
+    unsigned long pushVidFrame(MediaData *frame);
 
-public:
-    int readAudioBuffer(MediaData **avData);
+    unsigned long readAudFrame(MediaData **frame);
 
-    int readVideoBuffer(MediaData **avData);
+    unsigned long readVidFrame(MediaData **frame);
 
-    void popAudioBuffer();
+    void popAudFrame(MediaData *frame);
 
-    void popVideoBuffer();
+    void popVidFrame(MediaData *frame);
 
     void flush();
 
-private:
-    void flushAudioBuffer();
+    void reset();
 
-    void flushVideoBuffer();
+    unsigned long audioSize();
+
+    unsigned long videoSize();
 
 private:
-    std::deque<MediaData *> videoPacketQueue;
-    std::deque<MediaData *> audioPacketQueue;
-    std::mutex mAudioLock;
-    std::mutex mVideoLock;
+    ConcurrentQueue<MediaData *> *audioPacketQueue;
+    ConcurrentQueue<MediaData *> *videoPacketQueue;
 };
 
 

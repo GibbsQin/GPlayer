@@ -1,6 +1,7 @@
-//
-// Created by Gibbs on 2020/7/16.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <base/Log.h>
 #include <j4a/JniHelper.h>
@@ -32,12 +33,12 @@ GPlayerJni::~GPlayerJni() {
 }
 
 void
-GPlayerJni::onMessageCallback(int msgId, int arg1, long arg2, char *msg1, char *msg2) {
+GPlayerJni::onMessageCallback(int msgId, int arg1, long arg2, const char *msg1, const char *msg2) {
     onMessageCallback(msgId, arg1, arg2, msg1, msg2, (jobject)nullptr);
 }
 
 void
-GPlayerJni::onMessageCallback(int msgId, int arg1, long arg2, char *msg1, char *msg2, jobject obj) {
+GPlayerJni::onMessageCallback(int msgId, int arg1, long arg2, const char *msg1, const char *msg2, jobject obj) {
     if (playerJObj != nullptr && onMessageCallbackMethod != nullptr) {
         bool attach = JniHelper::attachCurrentThread();
 

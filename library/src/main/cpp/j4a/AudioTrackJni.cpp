@@ -1,6 +1,7 @@
-//
-// Created by Gibbs on 2020/12/20.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <base/Log.h>
 #include "AudioTrackJni.h"
@@ -12,9 +13,9 @@ AudioTrackJni::AudioTrackJni(jobject obj) {
     JNIEnv *env = JniHelper::getJNIEnv();
     audioTrackObj = env->NewGlobalRef(obj);
     audioTrackClass = env->GetObjectClass(obj);
-    audioTrackStart = env->GetMethodID(audioTrackClass, "openAudioTrack", "(IIII)V");
+    audioTrackStart = env->GetMethodID(audioTrackClass, "open", "(IIII)V");
     audioTrackWrite = env->GetMethodID(audioTrackClass, "write", "(Ljava/nio/ByteBuffer;I)I");
-    audioTrackStop = env->GetMethodID(audioTrackClass, "stopAudioTrack", "()V");
+    audioTrackStop = env->GetMethodID(audioTrackClass, "close", "()V");
 }
 
 AudioTrackJni::~AudioTrackJni() = default;

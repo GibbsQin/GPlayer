@@ -1,7 +1,11 @@
-#include <string.h>
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include <malloc.h>
 #include "JniHelper.h"
-#include "../base/Log.h"
+#include "base/Log.h"
 
 #define TAG "JniHelper"
 

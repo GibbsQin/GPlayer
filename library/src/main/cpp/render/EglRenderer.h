@@ -1,3 +1,8 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #ifndef EGL_RENDERER_H
 #define EGL_RENDERER_H
 
@@ -22,12 +27,9 @@ public:
 
     void destroy();
 
-    void buildTextures(uint8_t *y, uint8_t *u, uint8_t *v, uint32_t width, uint32_t height);
-
-    void drawFrame();
+    void swapBuffers();
 
 private:
-    YuvGlesProgram *_glProgram;
     ANativeWindow *_window{};
     int videoWidth = 0;
     int videoHeight = 0;

@@ -1,24 +1,28 @@
-//
-// Created by Gibbs on 2020/7/18.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <base/Log.h>
 #include <codec/FfmpegAudioDecoder.h>
 #include <codec/FfmpegVideoDecoder.h>
 #include <codec/MediaCodecVideoDecoder.h>
 #include <codec/MediaCodecAudioDecoder.h>
+#include <thread>
+#include <base/LoopThread.h>
 #include "DecoderHelper.h"
 
 extern "C" {
 #include <demuxing/avformat_def.h>
 }
 
-#define TAG "CodecInterceptor"
+#define TAG "DecoderHelper"
 
-DecoderHelper::DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageQueue *messageQueue) {
+DecoderHelper::DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageSource *messageSource) {
     this->inputSource = inputSource;
     this->outputSource = outputSource;
-    this->messageQueue = messageQueue;
+    this->messageSource = messageSource;
+    mediaCodecFirst = false;
     hasInit = false;
 }
 
@@ -61,6 +65,7 @@ int DecoderHelper::onInit() {
     if (mediaCodecFirst) {
         if (mediaCodecSupport) {
             videoDecoder = new MediaCodecVideoDecoder();
+            videoDecoder->setNativeWindow(nativeWindow);
         } else {
             videoDecoder = new FfmpegVideoDecoder();
         }
@@ -83,74 +88,65 @@ int DecoderHelper::onInit() {
 
 int DecoderHelper::processAudioBuffer(int type, long extra) {
     AVPacket *inPacket = nullptr;
-    int ret = inputSource->dequeAudPkt(&inPacket);
-    if (ret <= 0) {
+    unsigned long size = inputSource->readAudPkt(&inPacket);
+    if (size <= 0) {
+        if (stopWhenEmpty) {
+            stopWhenEmpty = false;
+            return ERROR_EXIST;
+        }
+        messageSource->pushMessage(MSG_DOMAIN_BUFFER, 0, 0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
         return 0;
     }
-    int mediaSize = 0;
-    int inputResult = inputBuffer(inPacket, AV_TYPE_AUDIO);
-    MediaData *outBuffer = nullptr;
-    ret = outputBuffer(&outBuffer, AV_TYPE_AUDIO);
-    if (ret >= 0) {
-        mediaSize = outputSource->onReceiveAudio(outBuffer);
-    }
-    if (inputResult >= 0) {
+    audioLock.lock();
+    int mediaSize = audioDecoder->send_packet(inPacket);
+    if (mediaSize >= 0) {
         inputSource->popAudPkt(inPacket);
+    } else if (mediaSize == INVALID_CODEC) {
+        messageSource->pushMessage(MSG_DOMAIN_ERROR, MSG_ERROR_DECODING, 0);
+        audioLock.unlock();
+        return ERROR_EXIST;
     }
+    if (audioDecoder->receive_frame(audioOutFrame) >= 0) {
+        mediaSize = (int)outputSource->pushAudFrame(audioOutFrame);
+    } else {
+        mediaSize = 0;
+    }
+    audioLock.unlock();
 
-    messageQueue->pushMessage(MSG_DOMAIN_BUFFER, MSG_BUFFER_AUDIO_FRAME, mediaSize);
     return mediaSize;
 }
 
 int DecoderHelper::processVideoBuffer(int type, long extra) {
     AVPacket *inPacket = nullptr;
-    int ret = inputSource->dequeVidPkt(&inPacket);
-    if (ret <= 0) {
+    unsigned long size = inputSource->readVidPkt(&inPacket);
+    if (size <= 0) {
+        if (stopWhenEmpty) {
+            stopWhenEmpty = false;
+            return ERROR_EXIST;
+        }
+        messageSource->pushMessage(MSG_DOMAIN_BUFFER, 0, 0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
         return 0;
     }
-    int mediaSize = 0;
-    int inputResult = inputBuffer(inPacket, AV_TYPE_VIDEO);
-    MediaData *outBuffer = nullptr;
-    ret = outputBuffer(&outBuffer, AV_TYPE_VIDEO);
-    if (ret >= 0) {
-        mediaSize = outputSource->onReceiveVideo(outBuffer);
-    }
-    if (inputResult >= 0) {
+    videoLock.lock();
+    int mediaSize = videoDecoder->send_packet(inPacket);
+    if (mediaSize >= 0) {
         inputSource->popVidPkt(inPacket);
+    } else if (mediaSize == INVALID_CODEC) {
+        messageSource->pushMessage(MSG_DOMAIN_ERROR, MSG_ERROR_DECODING, 0);
+        videoLock.unlock();
+        return ERROR_EXIST;
     }
+    if (videoDecoder->receive_frame(videoOutFrame) >= 0) {
+        mediaSize = (int)outputSource->pushVidFrame(videoOutFrame);
+        videoDecoder->release_buffer();
+    } else {
+        mediaSize = 0;
+    }
+    videoLock.unlock();
 
-    messageQueue->pushMessage(MSG_DOMAIN_BUFFER, MSG_BUFFER_VIDEO_FRAME, mediaSize);
     return mediaSize;
-}
-
-int DecoderHelper::inputBuffer(AVPacket *buffer, int type) {
-    int ret = -1;
-    if (type == AV_TYPE_AUDIO) {
-        audioLock.lock();
-        ret = audioDecoder->send_packet(buffer);
-        audioLock.unlock();
-    } else if (type == AV_TYPE_VIDEO) {
-        videoLock.lock();
-        ret = videoDecoder->send_packet(buffer);
-        videoLock.unlock();
-    }
-    return ret;
-}
-
-int DecoderHelper::outputBuffer(MediaData **buffer, int type) {
-    int ret = -1;
-    if (type == AV_TYPE_AUDIO) {
-        audioLock.lock();
-        ret = audioDecoder->receive_frame(audioOutFrame);
-        *buffer = audioOutFrame;
-        audioLock.unlock();
-    } else if (type == AV_TYPE_VIDEO) {
-        videoLock.lock();
-        ret = videoDecoder->receive_frame(videoOutFrame);
-        *buffer = videoOutFrame;
-        videoLock.unlock();
-    }
-    return ret;
 }
 
 void DecoderHelper::onRelease() {
@@ -175,6 +171,15 @@ void DecoderHelper::onRelease() {
         videoDecoder = nullptr;
     }
     delete videoOutFrame;
+    videoLock.unlock();
+    audioLock.unlock();
+}
+
+void DecoderHelper::reset() {
+    audioLock.lock();
+    videoLock.lock();
+    audioDecoder->reset();
+    videoDecoder->reset();
     videoLock.unlock();
     audioLock.unlock();
 }

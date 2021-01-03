@@ -1,3 +1,8 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include "adtsenc.h"
 
 int create_adts_context(ADTSContext *adts, unsigned char *pbuf, int bufsize) {

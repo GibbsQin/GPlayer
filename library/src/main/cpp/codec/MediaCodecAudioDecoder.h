@@ -1,6 +1,7 @@
-//
-// Created by Gibbs on 2020/7/21.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #ifndef GPLAYER_MEDIACODECAUDIODECODER_H
 #define GPLAYER_MEDIACODECAUDIODECODER_H
@@ -19,18 +20,20 @@ public:
 
     ~MediaCodecAudioDecoder();
 
-    void init(AVCodecParameters *codecParameters);
+    void init(AVCodecParameters *codecParameters) override;
 
-    int send_packet(AVPacket *inPacket);
+    int send_packet(AVPacket *inPacket) override;
 
-    int receive_frame(MediaData *outFrame);
+    int receive_frame(MediaData *outFrame) override;
 
-    void extractFrame(uint8_t *outputBuf, MediaData *outFrame, AMediaCodecBufferInfo info);
+    void release() override;
 
-    void release();
+    void reset() override;
+
+    static void extractFrame(uint8_t *outputBuf, MediaData *outFrame, AMediaCodecBufferInfo info);
 
 protected:
-    AMediaCodec *mAMediaCodec{};
+    AMediaCodec *mAMediaCodec = nullptr;
 };
 
 

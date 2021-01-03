@@ -1,3 +1,8 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #include "base/Log.h"
 #include "FfmpegAudioDecoder.h"
 
@@ -30,14 +35,14 @@ void FfmpegAudioDecoder::init(AVCodecParameters *codecParameters) {
 }
 
 int FfmpegAudioDecoder::send_packet(AVPacket *inPacket) {
+    if (!isInitSuccess) {
+        LOGE(TAG, "Error: decoder init error");
+        return INVALID_CODEC;
+    }
+
     if (inPacket == nullptr) {
         LOGE(TAG, "Error: decode the param is nullptr");
         return -1;
-    }
-
-    if (!isInitSuccess) {
-        LOGE(TAG, "Error: decoder init error");
-        return -2;
     }
 
     int ret = avcodec_send_packet(mCodecContext, inPacket);
@@ -52,16 +57,16 @@ int FfmpegAudioDecoder::send_packet(AVPacket *inPacket) {
 }
 
 int FfmpegAudioDecoder::receive_frame(MediaData *outFrame) {
+    if (!isInitSuccess) {
+        LOGE(TAG, "Error: decoder init error");
+        return INVALID_CODEC;
+    }
+
     if (outFrame == nullptr) {
         LOGE(TAG, "Error: decode the param is nullptr");
         return -1;
     }
     outFrame->size = 0;
-
-    if (!isInitSuccess) {
-        LOGE(TAG, "Error: decoder init error");
-        return -2;
-    }
 
     int data_size = av_get_bytes_per_sample(mCodecContext->sample_fmt);
     if (data_size < 0) {
@@ -110,4 +115,8 @@ void FfmpegAudioDecoder::release() {
         avcodec_free_context(&mCodecContext);
         mCodecContext = nullptr;
     }
+}
+
+void FfmpegAudioDecoder::reset() {
+    avcodec_flush_buffers(mCodecContext);
 }

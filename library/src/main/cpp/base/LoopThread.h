@@ -1,3 +1,8 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #ifndef GPLAYER_LOOPTHREAD_H
 #define GPLAYER_LOOPTHREAD_H
 
@@ -6,17 +11,16 @@
 #include <mutex>
 #include <condition_variable>
 
-#define MAX_VALUE 5
-#define SLEEP_TIME_GAP 10
 #define ERROR_EXIST -100
+
+#define NOTIFY_START 0
+#define NOTIFY_END   1
 
 using namespace std;
 
 class LoopThread : public XThread {
 public:
     LoopThread();
-
-    LoopThread(int maxSize);
 
 	virtual ~LoopThread();
 
@@ -26,6 +30,8 @@ public:
 
     void setEndFunc(std::function<void(void)> func);
 
+    void setNotifyFunc(std::function<void(int)> func);
+
     void resume() override ;
 
     bool stop() override ;
@@ -34,26 +40,25 @@ public:
 		return isStarted;
     }
 
-    void setArgs(int arg1, long arg2) {
-		this->arg1 = arg1;
-		this->arg2 = arg2;
+    void setArgs(int a, long b) {
+		this->arg1 = a;
+		this->arg2 = b;
     }
 
 protected:
     void handleRunning();
 
 private:
-    int maxValue;
-    int64_t sleepTimeMs = 0;
 	std::function<void(void)> startFunc;
 	std::function<int(int, long)> updateFunc;
-    std::function<void(void)> endFunc;
-    bool isStarted = false;
+	std::function<void(void)> endFunc;
+	std::function<void(int)> notifyFunc;
+	bool isStarted = false;
 	std::mutex threadLock;
 	std::condition_variable conVar;
 
-    int arg1 = -1;
-    long arg2 = -1;
+	int arg1 = -1;
+	long arg2 = -1;
 };
 
 #endif //GPLAYER_LOOPTHREAD_H

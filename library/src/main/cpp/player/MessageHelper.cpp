@@ -1,15 +1,18 @@
-//
-// Created by qinshenghua on 2020/12/18.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <base/Log.h>
+#include <thread>
 #include "MessageHelper.h"
+
 extern "C" {
 #include <codec/ffmpeg/libavutil/error.h>
 }
 
-MessageHelper::MessageHelper(MessageQueue *messageQueue, jobject obj) {
-    this->messageQueue = messageQueue;
+MessageHelper::MessageHelper(MessageSource *messageSource, jobject obj) {
+    this->messageSource = messageSource;
     playerJni = new GPlayerJni(obj);
 }
 
@@ -18,34 +21,29 @@ MessageHelper::~MessageHelper() {
     delete playerJni;
 }
 
-int MessageHelper::processMessage(int arg1, long arg2) {
-    Message *message;
-    if (messageQueue->dequeMessage(&message) < 0) {
-        return 0;
-    }
-    LOGI("MessageHelper", "processMessage %d, %d, %lld", message->from, message->type, message->extra);
-    handleMessage(message);
-    messageQueue->popMessage();
-    return 0;
+void MessageHelper::handleErrorMessage(Message *message) {
+    const char *errorMsg = error2String(message->type, (int)message->extra);
+    playerJni->onMessageCallback(MSG_DOMAIN_ERROR, message->type, message->extra, errorMsg, nullptr);
 }
 
-void MessageHelper::handleMessage(Message *message) {
-    if (message->from == MSG_DOMAIN_STATE) {
-        playerJni->onMessageCallback(MSG_DOMAIN_STATE, message->type, message->extra, nullptr, nullptr);
-    } else if (message->from == MSG_DOMAIN_BUFFER) {
-        playerJni->onMessageCallback(MSG_DOMAIN_BUFFER, message->type, message->extra, nullptr, nullptr);
-    } else if (message->from == MSG_DOMAIN_ERROR) {
-        if (message->type == MSG_ERROR_DEMUXING) {
-            playerJni->onMessageCallback(MSG_DOMAIN_ERROR, message->type, message->extra,
-                                         av_err2str((int)message->extra), nullptr);
-        }
-    } else if (message->from == MSG_DOMAIN_DEMUXING) {
-        if (message->type == MSG_DEMUXING_INIT) {
-            playerJni->onMessageCallback(MSG_DOMAIN_STATE, STATE_PREPARED, 0, nullptr, nullptr);
+const char *MessageHelper::error2String(int errorCode, int errorExtra) {
+    const char *errorMsg = nullptr;
+    if (errorCode == MSG_ERROR_DEMUXING || errorCode == MSG_ERROR_DECODING) {
+        if (errorExtra < 0) {
+            errorMsg = av_err2str(errorExtra);
+        } else if (errorExtra == MSG_ERROR_DEMUXING) {
+            errorMsg = "demuxing error";
+        } else if (errorExtra == MSG_ERROR_DECODING) {
+            errorMsg = "decoding error";
+        } else if (errorExtra == MSG_ERROR_SEEK) {
+            errorMsg = "seek error";
+        } else {
+            errorMsg = "unknown error";
         }
     }
+    return errorMsg;
 }
 
-void MessageHelper::notifyJava(int msgId, int arg1, long arg2, char *msg1, char *msg2) {
+void MessageHelper::notifyJava(int msgId, int arg1, long arg2, const char *msg1, const char *msg2) {
     playerJni->onMessageCallback(msgId, arg1, arg2, msg1, msg2);
 }

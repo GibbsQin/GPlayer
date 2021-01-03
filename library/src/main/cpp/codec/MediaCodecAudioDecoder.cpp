@@ -1,10 +1,12 @@
-//
-// Created by Gibbs on 2020/7/21.
-//
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
 
 #include <cstring>
 #include <base/Log.h>
 #include "MediaCodecAudioDecoder.h"
+
 extern "C" {
 #include <demuxing/avformat_def.h>
 }
@@ -26,7 +28,8 @@ void MediaCodecAudioDecoder::init(AVCodecParameters *codecParameters) {
     int sampleRate = codecParameters->sample_rate;
     int channelCount = codecParameters->channels;
     int profile = 2;
-    LOGI(TAG, "CoreFlow : init mine=%s,sampleRate=%d,channelCount=%d", mine, sampleRate, channelCount);
+    LOGI(TAG, "CoreFlow : init mine=%s,sampleRate=%d,channelCount=%d", mine, sampleRate,
+         channelCount);
 
     AMediaFormat *audioFormat = AMediaFormat_new();
     AMediaFormat_setString(audioFormat, AMEDIAFORMAT_KEY_MIME, mine);
@@ -34,7 +37,8 @@ void MediaCodecAudioDecoder::init(AVCodecParameters *codecParameters) {
     AMediaFormat_setInt32(audioFormat, AMEDIAFORMAT_KEY_CHANNEL_COUNT, channelCount);
     AMediaFormat_setInt32(audioFormat, AMEDIAFORMAT_KEY_AAC_PROFILE, profile);
     AMediaFormat_setInt32(audioFormat, AMEDIAFORMAT_KEY_IS_ADTS, 1);
-    AMediaFormat_setBuffer(audioFormat, "csd-0", codecParameters->extradata, codecParameters->extradata_size);
+    AMediaFormat_setBuffer(audioFormat, "csd-0", codecParameters->extradata,
+                           codecParameters->extradata_size);
 
     media_status_t status = AMediaCodec_configure(mAMediaCodec, audioFormat, nullptr, nullptr, 0);
     if (status != AMEDIA_OK) {
@@ -56,7 +60,7 @@ void MediaCodecAudioDecoder::init(AVCodecParameters *codecParameters) {
 
 int MediaCodecAudioDecoder::send_packet(AVPacket *inPacket) {
     if (!mAMediaCodec) {
-        return -1;
+        return INVALID_CODEC;
     }
 
     ssize_t bufferId = AMediaCodec_dequeueInputBuffer(mAMediaCodec, 2000);
@@ -72,7 +76,8 @@ int MediaCodecAudioDecoder::send_packet(AVPacket *inPacket) {
             // 将待解码的数据copy到硬件中
             memcpy(inputBuf, inPacket->data, inPacket->size);
             media_status_t status = AMediaCodec_queueInputBuffer(mAMediaCodec, bufferId, 0,
-                                                                 inPacket->size, inPacket->pts, flag);
+                                                                 inPacket->size, inPacket->pts,
+                                                                 flag);
             return (status == AMEDIA_OK ? 0 : -2);
         }
     }
@@ -81,7 +86,7 @@ int MediaCodecAudioDecoder::send_packet(AVPacket *inPacket) {
 
 int MediaCodecAudioDecoder::receive_frame(MediaData *outFrame) {
     if (!mAMediaCodec) {
-        return -1;
+        return INVALID_CODEC;
     }
 
     AMediaCodecBufferInfo info;
@@ -105,15 +110,6 @@ int MediaCodecAudioDecoder::receive_frame(MediaData *outFrame) {
     return -3;
 }
 
-void
-MediaCodecAudioDecoder::extractFrame(uint8_t *outputBuf, MediaData *outFrame, AMediaCodecBufferInfo info) {
-    outFrame->pts = info.presentationTimeUs;
-    outFrame->dts = outFrame->pts;
-    uint32_t frameSize = info.size;
-    memcpy(outFrame->data, outputBuf, frameSize);
-    outFrame->size = frameSize;
-}
-
 void MediaCodecAudioDecoder::release() {
     if (mAMediaCodec) {
         AMediaCodec_flush(mAMediaCodec);
@@ -121,4 +117,17 @@ void MediaCodecAudioDecoder::release() {
         AMediaCodec_delete(mAMediaCodec);
         mAMediaCodec = nullptr;
     }
+}
+
+void MediaCodecAudioDecoder::reset() {
+    AMediaCodec_flush(mAMediaCodec);
+}
+
+void MediaCodecAudioDecoder::extractFrame(uint8_t *outputBuf, MediaData *outFrame,
+                                     AMediaCodecBufferInfo info) {
+    outFrame->pts = info.presentationTimeUs;
+    outFrame->dts = outFrame->pts;
+    uint32_t frameSize = info.size;
+    memcpy(outFrame->data, outputBuf, frameSize);
+    outFrame->size = frameSize;
 }

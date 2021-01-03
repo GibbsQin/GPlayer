@@ -1,43 +1,43 @@
+/*
+ * Created by Gibbs on 2021/1/1.
+ * Copyright (c) 2021 Gibbs. All rights reserved.
+ */
+
 #ifndef GPLAYER_PACKETSOURCE_H
 #define GPLAYER_PACKETSOURCE_H
 
 
-#include <jni.h>
-#include <string>
-#include <deque>
-#include <mutex>
+#include "MessageSource.h"
+#include "ConcurrentQueue.h"
 
 extern "C" {
 #include <demuxing/avformat_def.h>
-#include "../codec/ffmpeg/libavcodec/avcodec.h"
+#include "codec/ffmpeg/libavcodec/avcodec.h"
 }
-
-#define AV_SOURCE_EMPTY -2
 
 class PacketSource {
 
 public:
-    PacketSource();
+    PacketSource(int audioMaxSize, int videoMaxSize);
 
     ~PacketSource();
 
 public:
-    void queueInfo(FormatInfo *formatInfo);
+    void setFormatInfo(FormatInfo *formatInfo);
 
-    uint32_t queueAudPkt(AVPacket *pkt, AVRational time_base);
-
-    uint32_t queueVidPkt(AVPacket *pkt, AVRational time_base);
-
-public:
     FormatInfo* getFormatInfo();
 
     AVCodecParameters* getAudioAVCodecParameters();
 
     AVCodecParameters* getVideoAVCodecParameters();
 
-    int dequeAudPkt(AVPacket **pkt);
+    unsigned long pushAudPkt(AVPacket *pkt, AVRational time_base);
 
-    int dequeVidPkt(AVPacket **pkt);
+    unsigned long pushVidPkt(AVPacket *pkt, AVRational time_base);
+
+    unsigned long readAudPkt(AVPacket **pkt);
+
+    unsigned long readVidPkt(AVPacket **pkt);
 
     void popAudPkt(AVPacket *pkt);
 
@@ -45,17 +45,16 @@ public:
 
     void flush();
 
-private:
-    void flushAudioBuffer();
+    void reset();
 
-    void flushVideoBuffer();
+    unsigned long audioSize();
+
+    unsigned long videoSize();
 
 private:
     FormatInfo *mFormatInfo;
-    std::deque<AVPacket*> videoPacketQueue;
-    std::deque<AVPacket*> audioPacketQueue;
-    std::mutex mAudioLock;
-    std::mutex mVideoLock;
+    AvConcurrentQueue *videoPacketQueue;
+    AvConcurrentQueue *audioPacketQueue;
 };
 
 
