@@ -33,14 +33,15 @@
 #define MSG_SEEK_END          1
 
 #define STATE_IDLE            0
-#define STATE_PREPARING       1
-#define STATE_PREPARED        2
-#define STATE_PAUSED          3
-#define STATE_PLAYING         4
-#define STATE_STOPPING        5
+#define STATE_INITIALIZED     1
+#define STATE_PREPARING       2
+#define STATE_PREPARED        3
+#define STATE_STARTED         4
+#define STATE_PAUSED          5
 #define STATE_STOPPED         6
-#define STATE_RELEASED        7
-#define STATE_ERROR           8
+#define STATE_COMPLETED       7
+#define STATE_END             8
+#define STATE_ERROR           9
 
 
 class Message {

@@ -80,7 +80,7 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
     private fun startPlay(videoItem: VideoItem) {
         LogUtils.i("PlayListActivity", "startPlay $videoItem")
         if (gl_surface_view.isPlaying) {
-            gl_surface_view.stop()
+            gl_surface_view.reset()
             mPendingStart = true
             mPendingUrl = videoItem.videoPath
         } else {
@@ -104,7 +104,7 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
     }
 
     override fun onStateChanged(state: GPlayer.State?) {
-        if (state == GPlayer.State.STOPPED) {
+        if (state == GPlayer.State.IDLE) {
             if (mPendingStart) {
                 mPendingStart = false
                 gl_surface_view.setDataSource(mPendingUrl)

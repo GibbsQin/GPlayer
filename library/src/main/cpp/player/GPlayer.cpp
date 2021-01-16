@@ -86,7 +86,7 @@ void GPlayer::pause() {
 }
 
 void GPlayer::resume() {
-    onPlayStateChanged(STATE_PLAYING);
+    onPlayStateChanged(STATE_STARTED);
     resumeThreads(true, true, true, true);
 }
 
@@ -97,7 +97,6 @@ void GPlayer::seekTo(uint32_t secondUs) {
 }
 
 void GPlayer::stop() {
-    onPlayStateChanged(STATE_STOPPING);
     LOGI(TAG, "CoreFlow : stop playing");
     stopDemuxing();
     stopDecoding();
@@ -185,7 +184,7 @@ void GPlayer::onSeekStateChanged(int state) {
 
 void GPlayer::onBufferStateChanged(int state) {
     playerLock.lock();
-    if (state == bufferState || playState != STATE_PLAYING) {
+    if (state == bufferState || playState != STATE_STARTED) {
         playerLock.unlock();
         return;
     }

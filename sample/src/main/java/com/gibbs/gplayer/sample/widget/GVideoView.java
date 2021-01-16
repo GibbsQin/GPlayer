@@ -69,6 +69,10 @@ public class GVideoView extends ConstraintLayout implements View.OnClickListener
         playerView.setDataSource(url);
     }
 
+    public void prepareAsync() {
+        playerView.prepareAsync();
+    }
+
     public void prepare() {
         playerView.prepare();
     }
@@ -87,6 +91,10 @@ public class GVideoView extends ConstraintLayout implements View.OnClickListener
 
     public void release() {
         playerView.release();
+    }
+
+    public void reset() {
+        playerView.reset();
     }
 
     public void seekTo(int secondMs) {
@@ -168,12 +176,12 @@ public class GVideoView extends ConstraintLayout implements View.OnClickListener
 
     @Override
     public void onStateChanged(GPlayer.State state) {
-        playBtn.setVisibility(state == GPlayer.State.PLAYING ? GONE : VISIBLE);
-        pauseBtn.setVisibility(state != GPlayer.State.PLAYING ? GONE : VISIBLE);
+        playBtn.setVisibility(state == GPlayer.State.STARTED ? GONE : VISIBLE);
+        pauseBtn.setVisibility(state != GPlayer.State.STARTED ? GONE : VISIBLE);
         if (mOnStateChangedListener != null) {
             mOnStateChangedListener.onStateChanged(state);
         }
-        if (state == GPlayer.State.PREPARING || state == GPlayer.State.PAUSED || state == GPlayer.State.STOPPING) {
+        if (state == GPlayer.State.PREPARING || state == GPlayer.State.PAUSED) {
             progressBar.setVisibility(VISIBLE);
         } else if (state == GPlayer.State.PREPARED) {
             progressBar.setVisibility(VISIBLE);

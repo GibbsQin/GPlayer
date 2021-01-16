@@ -53,7 +53,7 @@ int RenderHelper::renderAudio(int arg1, long arg2) {
     if (temp > 0) {
         if (!hasNotifyFirstFrame) {
             hasNotifyFirstFrame = true;
-            messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_PLAYING, 0);
+            messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_STARTED, 0);
         }
         nowPts = temp;
         int nowPtsSecond = nowPts / 1000 / 1000;
