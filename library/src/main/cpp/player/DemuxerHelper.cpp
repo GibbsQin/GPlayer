@@ -127,7 +127,10 @@ void DemuxerHelper::init() {
     }
     LOGI(TAG, "needVideoStreamFilter %d, needAudioStreamFilter %d\n",
          needVideoStreamFilter, needAudioStreamFilter);
-    messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_PREPARED, 0);
+    long mediaFlag = 0;
+    mediaFlag += (audio_stream_index == -1 ? 0 : HAS_AUDIO);
+    mediaFlag += (video_stream_index == -1 ? 0 : HAS_VIDEO);
+    messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_PREPARED, mediaFlag);
 }
 
 int DemuxerHelper::readPacket(int type, long extra) {

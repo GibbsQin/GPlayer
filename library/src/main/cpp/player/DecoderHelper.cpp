@@ -18,10 +18,13 @@ extern "C" {
 
 #define TAG "DecoderHelper"
 
-DecoderHelper::DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageSource *messageSource) {
+DecoderHelper::DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageSource *messageSource,
+                             bool hasAudio, bool hasVideo) {
     this->inputSource = inputSource;
     this->outputSource = outputSource;
     this->messageSource = messageSource;
+    this->hasAudio = hasAudio;
+    this->hasVideo = hasVideo;
     mediaCodecFirst = false;
     hasInit = false;
 }
@@ -29,7 +32,6 @@ DecoderHelper::DecoderHelper(PacketSource *inputSource, FrameSource *outputSourc
 DecoderHelper::~DecoderHelper() = default;
 
 int DecoderHelper::onInit() {
-    FormatInfo *formatInfo = inputSource->getFormatInfo();
     audioLock.lock();
     videoLock.lock();
     if (hasInit) {
@@ -38,11 +40,22 @@ int DecoderHelper::onInit() {
         return -1;
     }
     hasInit = true;
+    if (hasAudio) {
+        createAudioDecoder();
+    }
+    if (hasVideo) {
+        createVideoDecoder();
+    }
+    videoLock.unlock();
+    audioLock.unlock();
+    return 0;
+}
 
+void DecoderHelper::createAudioDecoder() {
+    FormatInfo *formatInfo = inputSource->getFormatInfo();
     AVCodecParameters *audioParameters = avcodec_parameters_alloc();
     avcodec_parameters_copy(audioParameters, formatInfo->audcodecpar);
-    bool mediaCodecSupport = static_cast<bool>(get_mime_by_codec_id(
-            (CODEC_TYPE) audioParameters->codec_id));
+    bool mediaCodecSupport = static_cast<bool>(get_mime_by_codec_id((CODEC_TYPE) audioParameters->codec_id));
     if (/*mediaCodecFirst*/false) {
         if (mediaCodecSupport) {
             audioDecoder = new MediaCodecAudioDecoder();
@@ -57,11 +70,14 @@ int DecoderHelper::onInit() {
     audioOutFrame = new MediaData(nullptr, static_cast<uint32_t>(audioDataSize), nullptr, 0,
                                   nullptr, 0);
     audioDecoder->init(audioParameters);
+    avcodec_parameters_free(&audioParameters);
+}
 
+void DecoderHelper::createVideoDecoder() {
+    FormatInfo *formatInfo = inputSource->getFormatInfo();
     AVCodecParameters *videoParameters = avcodec_parameters_alloc();
     avcodec_parameters_copy(videoParameters, formatInfo->vidcodecpar);
-    mediaCodecSupport = static_cast<bool>(get_mime_by_codec_id(
-            (CODEC_TYPE) audioParameters->codec_id));
+    bool mediaCodecSupport = static_cast<bool>(get_mime_by_codec_id((CODEC_TYPE) videoParameters->codec_id));
     if (mediaCodecFirst) {
         if (mediaCodecSupport) {
             videoDecoder = new MediaCodecVideoDecoder();
@@ -77,13 +93,7 @@ int DecoderHelper::onInit() {
                                   nullptr, static_cast<uint32_t>(videoDataSize / 4),
                                   nullptr, static_cast<uint32_t>(videoDataSize / 4));
     videoDecoder->init(videoParameters);
-
-    videoLock.unlock();
-    audioLock.unlock();
-
-    avcodec_parameters_free(&audioParameters);
     avcodec_parameters_free(&videoParameters);
-    return 0;
 }
 
 int DecoderHelper::processAudioBuffer(int type, long extra) {
@@ -178,8 +188,8 @@ void DecoderHelper::onRelease() {
 void DecoderHelper::reset() {
     audioLock.lock();
     videoLock.lock();
-    audioDecoder->reset();
-    videoDecoder->reset();
+    if (hasAudio) audioDecoder->reset();
+    if (hasVideo) videoDecoder->reset();
     videoLock.unlock();
     audioLock.unlock();
 }

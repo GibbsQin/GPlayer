@@ -14,6 +14,9 @@ extern "C" {
 #include <codec/ffmpeg/libavutil/timestamp.h>
 }
 
+#define HAS_AUDIO 0x1
+#define HAS_VIDEO 0x2
+
 class DemuxerHelper {
 public:
     DemuxerHelper(const std::string &url, PacketSource *input, MessageSource *messageSource);

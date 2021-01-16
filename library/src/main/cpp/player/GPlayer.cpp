@@ -62,7 +62,7 @@ void GPlayer::prepare(const std::string &url) {
     seekState = -1;
     bufferState = -1;
     isEof = false;
-    onPlayStateChanged(STATE_PREPARING);
+    onPlayStateChanged(STATE_PREPARING, 0);
     LOGI(TAG, "CoreFlow : prepare %s", url.c_str());
     startMessageLoop();
     startDemuxing(url);
@@ -81,12 +81,12 @@ void GPlayer::start() {
 }
 
 void GPlayer::pause() {
-    onPlayStateChanged(STATE_PAUSED);
+    onPlayStateChanged(STATE_PAUSED, 0);
     pauseThreads(true, true, true, true);
 }
 
 void GPlayer::resume() {
-    onPlayStateChanged(STATE_STARTED);
+    onPlayStateChanged(STATE_STARTED, 0);
     resumeThreads(true, true, true, true);
 }
 
@@ -109,7 +109,7 @@ void GPlayer::stop() {
 
     LOGI(TAG, "CoreFlow : player stopped %d %d %d %d %d", packetSource->audioSize(), packetSource->videoSize(),
             frameSource->audioSize(), frameSource->videoSize(), messageSource->size());
-    onPlayStateChanged(STATE_STOPPED);
+    onPlayStateChanged(STATE_STOPPED, 0);
 }
 
 int GPlayer::getDuration() {
@@ -201,7 +201,7 @@ void GPlayer::onBufferStateChanged(int state) {
     playerLock.unlock();
 }
 
-void GPlayer::onPlayStateChanged(int state) {
+void GPlayer::onPlayStateChanged(int state, long extra) {
     playerLock.lock();
     if (state == playState) {
         playerLock.unlock();
@@ -209,6 +209,11 @@ void GPlayer::onPlayStateChanged(int state) {
     }
     LOGI(TAG, "onPlayStateChanged %d-->%d", playState, state);
     playState = state;
+    if (playState == STATE_PREPARED) {
+        hasAudio = (extra & HAS_AUDIO) == HAS_AUDIO;
+        hasVideo = (extra & HAS_VIDEO) == HAS_VIDEO;
+        LOGI(TAG, "hasAudio %d, hasVideo %d", hasAudio, hasVideo);
+    }
     messageHelper->notifyJava(MSG_DOMAIN_STATE, playState, 0, nullptr, nullptr);
     playerLock.unlock();
 }
@@ -219,7 +224,7 @@ int GPlayer::processMessage(int arg1, long arg2) {
         if (message->from == MSG_DOMAIN_ERROR) {
             messageHelper->handleErrorMessage(message);
         } else if (message->from == MSG_DOMAIN_STATE) {
-            onPlayStateChanged(message->type);
+            onPlayStateChanged(message->type, message->extra);
         } else if (message->from == MSG_DOMAIN_BUFFER) {
             onBufferStateChanged(message->type);
         } else if (message->from == MSG_DOMAIN_DEMUXING) {
@@ -279,7 +284,7 @@ void GPlayer::stopDemuxing() {
 void GPlayer::startDecoding() {
     LOGI(TAG, "startDecode");
     int mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
-    decoderHelper = new DecoderHelper(packetSource, frameSource, messageSource);
+    decoderHelper = new DecoderHelper(packetSource, frameSource, messageSource, hasAudio, hasVideo);
     decoderHelper->setMediaCodec(static_cast<bool>(mediaCodecFlag));
     decoderHelper->setANativeWindow(nativeWindow);
     if (decoderHelper->onInit() < 0) {
@@ -287,13 +292,17 @@ void GPlayer::startDecoding() {
         return;
     }
 
-    audioDecodeThread = LoopThreadHelper::createLoopThread(
-            std::bind(&DecoderHelper::processAudioBuffer, decoderHelper, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&GPlayer::onDecodingChanged, this, std::placeholders::_1));
+    if (hasAudio) {
+        audioDecodeThread = LoopThreadHelper::createLoopThread(
+                std::bind(&DecoderHelper::processAudioBuffer, decoderHelper, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&GPlayer::onDecodingChanged, this, std::placeholders::_1));
+    }
 
-    videoDecodeThread = LoopThreadHelper::createLoopThread(
-            std::bind(&DecoderHelper::processVideoBuffer, decoderHelper, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&GPlayer::onDecodingChanged, this, std::placeholders::_1));
+    if (hasVideo) {
+        videoDecodeThread = LoopThreadHelper::createLoopThread(
+                std::bind(&DecoderHelper::processVideoBuffer, decoderHelper, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&GPlayer::onDecodingChanged, this, std::placeholders::_1));
+    }
 }
 
 void GPlayer::stopDecoding() {
@@ -323,29 +332,33 @@ void GPlayer::stopDecoding() {
 
 void GPlayer::startRendering() {
     LOGI(TAG, "startRender");
-    int width = packetSource->getVideoAVCodecParameters()->width;
-    int height = packetSource->getVideoAVCodecParameters()->height;
-    int sampleRate = packetSource->getAudioAVCodecParameters()->sample_rate;
-    int channels = packetSource->getAudioAVCodecParameters()->channels;
-    int format = packetSource->getAudioAVCodecParameters()->format;
-    int bytesPerSample = packetSource->getAudioAVCodecParameters()->frame_size;
     int mediaCodecFlag = (mFlags & AV_FLAG_SOURCE_MEDIA_CODEC) == AV_FLAG_SOURCE_MEDIA_CODEC;
-    renderHelper = new RenderHelper(frameSource, messageSource, mediaCodecFlag);
-    renderHelper->setNativeWindow(nativeWindow);
-    renderHelper->setAudioTrack(audioTrackJni);
-    renderHelper->setVideoParams(width, height);
-    renderHelper->setAudioParams(sampleRate, channels, format, bytesPerSample);
-    audioRenderThread = LoopThreadHelper::createLoopThread(
-            std::bind(&RenderHelper::initAudioRenderer, renderHelper),
-            std::bind(&RenderHelper::renderAudio, renderHelper, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&RenderHelper::releaseAudioRenderer, renderHelper),
-            std::bind(&GPlayer::onRenderingChanged, this, std::placeholders::_1));
+    renderHelper = new RenderHelper(frameSource, messageSource, mediaCodecFlag, hasAudio, hasVideo);
+    if (hasAudio) {
+        int sampleRate = packetSource->getAudioAVCodecParameters()->sample_rate;
+        int channels = packetSource->getAudioAVCodecParameters()->channels;
+        int format = packetSource->getAudioAVCodecParameters()->format;
+        int bytesPerSample = packetSource->getAudioAVCodecParameters()->frame_size;
+        renderHelper->setAudioTrack(audioTrackJni);
+        renderHelper->setAudioParams(sampleRate, channels, format, bytesPerSample);
+        audioRenderThread = LoopThreadHelper::createLoopThread(
+                std::bind(&RenderHelper::initAudioRenderer, renderHelper),
+                std::bind(&RenderHelper::renderAudio, renderHelper, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&RenderHelper::releaseAudioRenderer, renderHelper),
+                std::bind(&GPlayer::onRenderingChanged, this, std::placeholders::_1));
+    }
 
-    videoRenderThread = LoopThreadHelper::createLoopThread(
-            std::bind(&RenderHelper::initVideoRenderer, renderHelper),
-            std::bind(&RenderHelper::renderVideo, renderHelper, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&RenderHelper::releaseVideoRenderer, renderHelper),
-            std::bind(&GPlayer::onRenderingChanged, this, std::placeholders::_1));
+    if (hasVideo) {
+        int width = packetSource->getVideoAVCodecParameters()->width;
+        int height = packetSource->getVideoAVCodecParameters()->height;
+        renderHelper->setNativeWindow(nativeWindow);
+        renderHelper->setVideoParams(width, height);
+        videoRenderThread = LoopThreadHelper::createLoopThread(
+                std::bind(&RenderHelper::initVideoRenderer, renderHelper),
+                std::bind(&RenderHelper::renderVideo, renderHelper, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&RenderHelper::releaseVideoRenderer, renderHelper),
+                std::bind(&GPlayer::onRenderingChanged, this, std::placeholders::_1));
+    }
 }
 
 void GPlayer::stopRendering() {
@@ -373,12 +386,12 @@ void GPlayer::pauseThreads(bool demuxing, bool decoding, bool rendering, bool me
         demuxerThread->pause();
     }
     if (decoding) {
-        audioDecodeThread->pause();
-        videoDecodeThread->pause();
+        if (hasAudio) audioDecodeThread->pause();
+        if (hasVideo) videoDecodeThread->pause();
     }
     if (rendering) {
-        audioRenderThread->pause();
-        videoRenderThread->pause();
+        if (hasAudio) audioRenderThread->pause();
+        if (hasVideo) videoRenderThread->pause();
     }
     if (messaging) {
         messageThread->pause();
@@ -390,12 +403,12 @@ void GPlayer::resumeThreads(bool demuxing, bool decoding, bool rendering, bool m
         demuxerThread->resume();
     }
     if (decoding) {
-        audioDecodeThread->resume();
-        videoDecodeThread->resume();
+        if (hasAudio) audioDecodeThread->resume();
+        if (hasVideo) videoDecodeThread->resume();
     }
     if (rendering) {
-        audioRenderThread->resume();
-        videoRenderThread->resume();
+        if (hasAudio) audioRenderThread->resume();
+        if (hasVideo) videoRenderThread->resume();
     }
     if (messaging) {
         messageThread->resume();

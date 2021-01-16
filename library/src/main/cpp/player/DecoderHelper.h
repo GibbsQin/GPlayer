@@ -16,7 +16,8 @@
 
 class DecoderHelper {
 public:
-    DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageSource *messageSource);
+    DecoderHelper(PacketSource *inputSource, FrameSource *outputSource,MessageSource *messageSource,
+                  bool hasAudio, bool hasVideo);
 
     ~DecoderHelper();
 
@@ -43,9 +44,16 @@ public:
     }
 
 private:
+    void createAudioDecoder();
+
+    void createVideoDecoder();
+
+private:
     bool hasInit;
     bool mediaCodecFirst;
     bool stopWhenEmpty = false;
+    bool hasAudio = false;
+    bool hasVideo = false;
     PacketSource *inputSource;
     FrameSource *outputSource;
     MessageSource *messageSource;
@@ -55,7 +63,7 @@ private:
     MediaData *audioOutFrame{};
     std::mutex audioLock;
     std::mutex videoLock;
-    ANativeWindow  *nativeWindow{};
+    ANativeWindow *nativeWindow{};
 };
 
 
