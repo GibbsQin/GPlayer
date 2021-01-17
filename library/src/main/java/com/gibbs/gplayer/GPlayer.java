@@ -79,7 +79,7 @@ public class GPlayer {
     }
 
     public enum State {
-        IDLE, PREPARING, PREPARED, PAUSED, PLAYING, STOPPING, STOPPED, RELEASED, ERROR
+        IDLE, INITIALIZED, PREPARING, PREPARED, STARTED, PAUSED, STOPPED, COMPLETED, END, ERROR
     }
 
     private final long mNativePlayer;
@@ -87,10 +87,12 @@ public class GPlayer {
     private GAudioTrack mGAudioTrack;
     private String mUrl;
     private State mPlayState = State.IDLE;
-    private State mTargetState = State.IDLE;
+    private State mTargetState;
     private int mCurrentPositionUs;
     private boolean mIsSeeking = false;
+    private boolean mIsLooping = false;
     private final Object mStateLock = new Object();
+    private final Object mPrepareLock = new Object();
 
     private OnPreparedListener mOnPreparedListener;
     private OnErrorListener mOnErrorListener;
@@ -122,21 +124,42 @@ public class GPlayer {
     }
 
     public void setDataSource(String url) {
-        mUrl = url;
-    }
-
-    public synchronized void prepare() {
-        if (mPlayState != State.IDLE && mPlayState != State.STOPPED) {
-            Log.e(TAG, "CoreFlow : can not prepare in " + mPlayState);
+        if (mPlayState != State.IDLE) {
+            Log.e(TAG, "CoreFlow : can not setDataSource in " + mPlayState);
             if (mOnErrorListener != null) {
                 mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
             }
             return;
         }
-        if (TextUtils.isEmpty(mUrl)) {
-            Log.e(TAG, "CoreFlow : invalid data source : " + mUrl);
+        if (TextUtils.isEmpty(url)) {
+            Log.e(TAG, "CoreFlow : invalid data source : " + url);
             if (mOnErrorListener != null) {
                 mOnErrorListener.onError(ERROR_INVALID_SOURCE, "Invalid url");
+            }
+            return;
+        }
+        mUrl = url;
+        setPlayState(State.INITIALIZED);
+    }
+
+    public synchronized void prepareAsync() {
+        if (mPlayState != State.INITIALIZED && mPlayState != State.STOPPED) {
+            Log.e(TAG, "CoreFlow : can not prepareAsync in " + mPlayState);
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
+            }
+            return;
+        }
+        mIsSeeking = false;
+        setFlags(enableMediaCodec ? AV_FLAG_SOURCE_MEDIA_CODEC : 0);
+        nPrepare(mNativePlayer, mUrl);
+    }
+
+    public synchronized void prepare() {
+        if (mPlayState != State.INITIALIZED && mPlayState != State.STOPPED) {
+            Log.e(TAG, "CoreFlow : can not prepare in " + mPlayState);
+            if (mOnErrorListener != null) {
+                mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
             }
             return;
         }
@@ -144,6 +167,14 @@ public class GPlayer {
         setPlayState(State.PREPARING);
         setFlags(enableMediaCodec ? AV_FLAG_SOURCE_MEDIA_CODEC : 0);
         nPrepare(mNativePlayer, mUrl);
+        synchronized (mPrepareLock) {
+            try {
+                mPrepareLock.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        start();
     }
 
     public synchronized void start() {
@@ -162,24 +193,23 @@ public class GPlayer {
             nStart(mNativePlayer);
         } else if (mPlayState == State.PAUSED) {
             nResume(mNativePlayer);
-            setPlayState(GPlayer.State.PLAYING);
+            setPlayState(State.STARTED);
         }
     }
 
     public synchronized void stop() {
-        if (!isPlaying() && mPlayState != State.ERROR) {
+        if (!isPlaying()) {
             Log.e(TAG, "CoreFlow : can not stop in " + mPlayState);
             if (mOnErrorListener != null) {
                 mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
             }
             return;
         }
-        setPlayState(State.STOPPING);
         nStop(mNativePlayer, true);
     }
 
     public synchronized void pause() {
-        if (mPlayState != State.PLAYING) {
+        if (mPlayState != State.STARTED) {
             Log.e(TAG, "CoreFlow : can not pause in " + mPlayState);
             if (mOnErrorListener != null) {
                 mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
@@ -191,17 +221,30 @@ public class GPlayer {
     }
 
     public synchronized void release() {
+        if (mPlayState == State.END) {
+            return;
+        }
         if (mPlayState == State.STOPPED) {
             Log.i(TAG, "CoreFlow : release native player " + mNativePlayer);
             nRelease(mNativePlayer);
         } else {
             Log.i(TAG, "CoreFlow : target to release");
-            mTargetState = State.RELEASED;
+            mTargetState = State.END;
+            nStop(mNativePlayer, true);
         }
     }
 
+    public synchronized void reset() {
+        if (mPlayState == State.IDLE) {
+            return;
+        }
+        Log.i(TAG, "CoreFlow : target to idle");
+        mTargetState = State.IDLE;
+        nStop(mNativePlayer, true);
+    }
+
     public synchronized void seekTo(int secondMs) {
-        if (mPlayState != State.PLAYING) {
+        if (!isPlaying()) {
             Log.e(TAG, "CoreFlow : can not seek in " + mPlayState);
             if (mOnErrorListener != null) {
                 mOnErrorListener.onError(ERROR_ILLEGAL_STATE, "Illegal state");
@@ -218,8 +261,12 @@ public class GPlayer {
         nSeekTo(mNativePlayer, secondMs);
     }
 
+    public void setLooping(boolean looping) {
+        mIsLooping = looping;
+    }
+
     public boolean isPlaying() {
-        return mPlayState == State.PREPARED || mPlayState == State.PAUSED || mPlayState == State.PLAYING;
+        return mPlayState == State.PREPARED || mPlayState == State.PAUSED || mPlayState == State.STARTED;
     }
 
     public void setFlags(int flags) {
@@ -321,7 +368,7 @@ public class GPlayer {
             case STOPPED:
                 onStopped();
                 break;
-            case RELEASED:
+            case END:
                 onReleased();
                 break;
         }
@@ -337,19 +384,34 @@ public class GPlayer {
     }
 
     private void onStopped() {
-        if (mTargetState == State.RELEASED) {
+        if (mTargetState == State.END) {
             release();
+        } else if (mTargetState == State.IDLE) {
+            setPlayState(State.IDLE);
+        } else if (mTargetState == State.STARTED) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    prepare();
+                }
+            });
         }
+        mTargetState = null;
     }
 
     private void onReleased() {
-        setPlayState(State.IDLE);
+
     }
 
     //call by jni
     public void onMessageCallback(final int what, final int arg1, final long arg2, final String msg1,
                                   final String msg2, final Object object) {
         Log.d(TAG, "onMessageCallback " + what + ", " + arg1 + ", " + arg2);
+        if (mPlayState == State.PREPARING) {
+            synchronized (mPrepareLock) {
+                mPrepareLock.notifyAll();
+            }
+        }
         mHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -386,7 +448,7 @@ public class GPlayer {
         if (code == ERROR_SEEK) {
             mIsSeeking = false;
         } else {
-            stop();
+            nStop(mNativePlayer, true);
         }
     }
 
@@ -417,7 +479,10 @@ public class GPlayer {
 
     private void handleCompleteMsg() {
         Log.i(TAG, "CoreFlow : handleCompleteMsg");
-        stop();
+        if (mIsLooping) {
+            mTargetState = State.STARTED;
+        }
+        nStop(mNativePlayer, true);
         if (mOnCompletedListener != null) {
             mOnCompletedListener.onCompleted();
         }

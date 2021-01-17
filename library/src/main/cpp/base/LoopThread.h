@@ -12,6 +12,7 @@
 #include <condition_variable>
 
 #define ERROR_EXIST -100
+#define ERROR_PAUSE -101
 
 #define NOTIFY_START 0
 #define NOTIFY_END   1

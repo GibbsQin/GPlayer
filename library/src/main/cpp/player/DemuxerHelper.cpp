@@ -127,23 +127,28 @@ void DemuxerHelper::init() {
     }
     LOGI(TAG, "needVideoStreamFilter %d, needAudioStreamFilter %d\n",
          needVideoStreamFilter, needAudioStreamFilter);
-    messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_PREPARED, 0);
+    long mediaFlag = 0;
+    mediaFlag += (audio_stream_index == -1 ? 0 : HAS_AUDIO);
+    mediaFlag += (video_stream_index == -1 ? 0 : HAS_VIDEO);
+    messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_PREPARED, mediaFlag);
 }
 
 int DemuxerHelper::readPacket(int type, long extra) {
     if (errorExist) {
         return ERROR_EXIST;
     }
-    if (extra > 0 && seekFrameUs == 0) {
+    if (extra >= 0 && seekFrameUs == -1) {
         AVRational time_base = ifmt_ctx->streams[video_stream_index]->time_base;
         seekFrameUs = extra / av_q2d(time_base);
         LOGI(TAG, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekFrameUs);
         if (av_seek_frame(ifmt_ctx, -1, seekFrameUs, AVSEEK_FLAG_FRAME) < 0) {
             LOGE(TAG, "seek fail");
-            seekFrameUs = 0;
+            seekFrameUs = -1;
             messageSource->pushMessage(MSG_DOMAIN_ERROR, MSG_ERROR_SEEK, 0);
         } else {
             messageSource->pushMessage(MSG_DOMAIN_SEEK, MSG_SEEK_START, 0);
+            //先暂停，等旧数据flush之后再恢复
+            return ERROR_PAUSE;
         }
     }
 
@@ -160,12 +165,12 @@ int DemuxerHelper::readPacket(int type, long extra) {
         return 0;
     }
 
-    if (seekFrameUs > 0) {
+    if (seekFrameUs >= 0) {
         if (needDiscardPkt(pkt)) {
             av_packet_unref(&pkt);
             return 0;
         } else {
-            seekFrameUs = 0;
+            seekFrameUs = -1;
             messageSource->pushMessage(MSG_DOMAIN_SEEK, MSG_SEEK_END, 0);
         }
     }

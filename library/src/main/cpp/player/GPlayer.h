@@ -63,7 +63,7 @@ public:
 
     void onBufferStateChanged(int state);
 
-    void onPlayStateChanged(int state);
+    void onPlayStateChanged(int state, long extra);
 
 private:
     int processMessage(int arg1, long arg2);
@@ -112,6 +112,8 @@ private:
     int bufferState = -1;
     int seekState = -1;
     bool isEof = false;
+    bool hasAudio = false;
+    bool hasVideo = false;
     std::mutex playerLock;
 };
 

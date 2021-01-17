@@ -11,9 +11,15 @@
 #include <render/YuvVideoRenderer.h>
 #include <source/MessageSource.h>
 
+#define FELLOW_AUDIO 0
+#define FELLOW_CLOCK 1
+
+#define MAX_PTS 9223372036854775807
+
 class RenderHelper {
 public:
-    RenderHelper(FrameSource *source, MessageSource *messageSource, int mediaCodecFlag);
+    RenderHelper(FrameSource *source, MessageSource *messageSource, int mediaCodecFlag,
+                 bool hasAudio, bool hasVideo);
 
     ~RenderHelper();
 
@@ -42,15 +48,20 @@ public:
     }
 
 private:
-    AudioRenderer *audioRenderer;
-    VideoRenderer *videoRenderer;
-    MessageSource *messageSource;
+    AudioRenderer *audioRenderer = nullptr;
+    VideoRenderer *videoRenderer = nullptr;
+    MessageSource *messageSource = nullptr;
     ANativeWindow *nativeWindow = nullptr;
     int videoWidth = 0;
     int videoHeight = 0;
     uint64_t nowPts = 0;
+    uint64_t startPts = 0;
+    uint64_t firstFramePts = 0;
     bool hasNotifyFirstFrame = false;
     bool stopWhenEmpty = false;
+    bool hasAudio = false;
+    bool hasVideo = false;
+    int avSyncMethod = FELLOW_AUDIO;
 };
 
 

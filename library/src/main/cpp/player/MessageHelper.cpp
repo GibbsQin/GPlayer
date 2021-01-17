@@ -17,7 +17,7 @@ MessageHelper::MessageHelper(MessageSource *messageSource, jobject obj) {
 }
 
 MessageHelper::~MessageHelper() {
-    notifyJava(MSG_DOMAIN_STATE, STATE_RELEASED, 0, nullptr, nullptr);
+    notifyJava(MSG_DOMAIN_STATE, STATE_END, 0, nullptr, nullptr);
     delete playerJni;
 }
 

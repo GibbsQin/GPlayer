@@ -31,6 +31,7 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
         setContentView(R.layout.activity_play_list)
         gl_surface_view.setOnPreparedListener(this)
         gl_surface_view.setOnStateChangedListener(this)
+        gl_surface_view.setLooping(true)
 
         mAdapter = object : RecyclerView.Adapter<VideoItemHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoItemHolder {
@@ -80,7 +81,7 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
     private fun startPlay(videoItem: VideoItem) {
         LogUtils.i("PlayListActivity", "startPlay $videoItem")
         if (gl_surface_view.isPlaying) {
-            gl_surface_view.stop()
+            gl_surface_view.reset()
             mPendingStart = true
             mPendingUrl = videoItem.videoPath
         } else {
@@ -104,7 +105,7 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
     }
 
     override fun onStateChanged(state: GPlayer.State?) {
-        if (state == GPlayer.State.STOPPED) {
+        if (state == GPlayer.State.IDLE) {
             if (mPendingStart) {
                 mPendingStart = false
                 gl_surface_view.setDataSource(mPendingUrl)

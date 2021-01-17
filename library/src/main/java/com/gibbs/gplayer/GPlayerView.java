@@ -34,6 +34,10 @@ public class GPlayerView extends SurfaceView implements SurfaceHolder.Callback {
         mGPlayer.setDataSource(url);
     }
 
+    public void prepareAsync() {
+        mGPlayer.prepareAsync();
+    }
+
     public void prepare() {
         mGPlayer.prepare();
     }
@@ -54,8 +58,16 @@ public class GPlayerView extends SurfaceView implements SurfaceHolder.Callback {
         mGPlayer.release();
     }
 
+    public void reset() {
+        mGPlayer.reset();
+    }
+
     public void seekTo(int secondMs) {
         mGPlayer.seekTo(secondMs);
+    }
+
+    public void setLooping(boolean looping) {
+        mGPlayer.setLooping(looping);
     }
 
     public boolean isPlaying() {

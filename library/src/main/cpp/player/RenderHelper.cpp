@@ -5,15 +5,24 @@
 
 #include <base/LoopThread.h>
 #include <render/SurfaceVideoRenderer.h>
+#include <base/XTick.h>
 #include "RenderHelper.h"
 
-RenderHelper::RenderHelper(FrameSource *source, MessageSource *messageSource, int mediaCodecFlag) {
-    audioRenderer = new AudioRenderer(source);
-    if (mediaCodecFlag) {
-        videoRenderer = new SurfaceVideoRenderer(source);
-    } else {
-        videoRenderer = new YuvVideoRenderer(source);
+RenderHelper::RenderHelper(FrameSource *source, MessageSource *messageSource, int mediaCodecFlag,
+                           bool hasAudio, bool hasVideo) {
+    this->hasAudio = hasAudio;
+    this->hasVideo = hasVideo;
+    if (hasAudio) {
+        audioRenderer = new AudioRenderer(source);
     }
+    if (hasVideo) {
+        if (mediaCodecFlag) {
+            videoRenderer = new SurfaceVideoRenderer(source);
+        } else {
+            videoRenderer = new YuvVideoRenderer(source);
+        }
+    }
+    avSyncMethod = hasAudio ? FELLOW_AUDIO : FELLOW_CLOCK;
     this->messageSource = messageSource;
 }
 
@@ -41,11 +50,13 @@ void RenderHelper::setAudioParams(int sampleRate, int channels, int format, int 
 
 void RenderHelper::initAudioRenderer() {
     audioRenderer->init();
+    hasNotifyFirstFrame = false;
 }
 
 void RenderHelper::initVideoRenderer() {
     videoRenderer->surfaceCreated(nativeWindow, videoWidth, videoHeight);
     hasNotifyFirstFrame = false;
+    startPts = getTickCount64();
 }
 
 int RenderHelper::renderAudio(int arg1, long arg2) {
@@ -53,7 +64,7 @@ int RenderHelper::renderAudio(int arg1, long arg2) {
     if (temp > 0) {
         if (!hasNotifyFirstFrame) {
             hasNotifyFirstFrame = true;
-            messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_PLAYING, 0);
+            messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_STARTED, 0);
         }
         nowPts = temp;
         int nowPtsSecond = nowPts / 1000 / 1000;
@@ -71,7 +82,23 @@ int RenderHelper::renderVideo(int arg1, long arg2) {
     if (!videoRenderer->isRenderValid()) {
         return ERROR_EXIST;
     }
-    if (!videoRenderer->render(nowPts)) {
+    uint64_t temp;
+    if (avSyncMethod == FELLOW_CLOCK) {
+        nowPts = (getTickCount64() - startPts) * 1000 + firstFramePts;
+        int nowPtsSecond = nowPts / 1000 / 1000;
+        messageSource->pushMessage(MSG_DOMAIN_TIME, nowPtsSecond, 0);
+        //确保第一帧快速被渲染
+        temp = videoRenderer->render(firstFramePts != 0 ? nowPts : MAX_PTS);
+    } else {
+        temp = videoRenderer->render(nowPts);
+    }
+    if (temp > 0) {
+        if (!hasNotifyFirstFrame) {
+            firstFramePts = temp;
+            hasNotifyFirstFrame = true;
+            messageSource->pushMessage(MSG_DOMAIN_STATE, STATE_STARTED, 0);
+        }
+    } else {
         if (stopWhenEmpty) {
             stopWhenEmpty = false;
             return ERROR_EXIST;
