@@ -90,6 +90,7 @@ public class GPlayer {
     private State mTargetState;
     private int mCurrentPositionUs;
     private boolean mIsSeeking = false;
+    private boolean mIsLooping = false;
     private final Object mStateLock = new Object();
     private final Object mPrepareLock = new Object();
 
@@ -138,7 +139,6 @@ public class GPlayer {
             return;
         }
         mUrl = url;
-        mTargetState = null;
         setPlayState(State.INITIALIZED);
     }
 
@@ -259,6 +259,10 @@ public class GPlayer {
             return;
         }
         nSeekTo(mNativePlayer, secondMs);
+    }
+
+    public void setLooping(boolean looping) {
+        mIsLooping = looping;
     }
 
     public boolean isPlaying() {
@@ -384,7 +388,15 @@ public class GPlayer {
             release();
         } else if (mTargetState == State.IDLE) {
             setPlayState(State.IDLE);
+        } else if (mTargetState == State.STARTED) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    prepare();
+                }
+            });
         }
+        mTargetState = null;
     }
 
     private void onReleased() {
@@ -467,6 +479,9 @@ public class GPlayer {
 
     private void handleCompleteMsg() {
         Log.i(TAG, "CoreFlow : handleCompleteMsg");
+        if (mIsLooping) {
+            mTargetState = State.STARTED;
+        }
         nStop(mNativePlayer, true);
         if (mOnCompletedListener != null) {
             mOnCompletedListener.onCompleted();

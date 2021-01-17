@@ -31,6 +31,7 @@ class PlayListActivity : BaseActivity(), GPlayer.OnPreparedListener, GPlayer.OnS
         setContentView(R.layout.activity_play_list)
         gl_surface_view.setOnPreparedListener(this)
         gl_surface_view.setOnStateChangedListener(this)
+        gl_surface_view.setLooping(true)
 
         mAdapter = object : RecyclerView.Adapter<VideoItemHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoItemHolder {

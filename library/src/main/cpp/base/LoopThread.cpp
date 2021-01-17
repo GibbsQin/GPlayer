@@ -31,14 +31,18 @@ void LoopThread::handleRunning() {
         if (!updateFunc) {
             break;
         }
-        bool hasParams = arg1 > 0 || arg2 > 0;
-        if (updateFunc(arg1, arg2) == ERROR_EXIST) {
-            mRunning = false;
-            continue;
-        }
+        bool hasParams = arg1 >= 0 || arg2 >= 0;
+        int updateResult = updateFunc(arg1, arg2);
         if (hasParams) {
             arg1 = -1;
             arg2 = -1;
+        }
+        if (updateResult == ERROR_EXIST) {
+            mRunning = false;
+            continue;
+        } else if (updateResult == ERROR_PAUSE) {
+            mPausing = true;
+            continue;
         }
     }
 

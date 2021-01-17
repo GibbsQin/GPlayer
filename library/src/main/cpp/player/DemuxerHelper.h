@@ -42,7 +42,7 @@ private:
     int audio_stream_index = -1;
     int video_stream_index = -1;
     int subtitle_stream_index = -1;
-    int64_t seekFrameUs = 0;
+    int64_t seekFrameUs = -1;
     bool errorExist = false;
 
     int needVideoStreamFilter = 0;

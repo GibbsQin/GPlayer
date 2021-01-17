@@ -101,6 +101,10 @@ public class GVideoView extends ConstraintLayout implements View.OnClickListener
         playerView.seekTo(secondMs);
     }
 
+    public void setLooping(boolean looping) {
+        playerView.setLooping(looping);
+    }
+
     public boolean isPlaying() {
         return playerView.isPlaying();
     }

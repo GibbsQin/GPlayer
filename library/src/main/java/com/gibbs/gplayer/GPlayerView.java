@@ -66,6 +66,10 @@ public class GPlayerView extends SurfaceView implements SurfaceHolder.Callback {
         mGPlayer.seekTo(secondMs);
     }
 
+    public void setLooping(boolean looping) {
+        mGPlayer.setLooping(looping);
+    }
+
     public boolean isPlaying() {
         return mGPlayer.isPlaying();
     }
