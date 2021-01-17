@@ -3,9 +3,6 @@
 #### Introduce
 GPlayer is a video player frame base on ffmpeg and mediacodec。GPlayer support software decoding and hardware decoding, then render via AudioTrack and OpenGL。
 
-#### Software architecture
-![](https://images.gitee.com/uploads/images/2020/0727/182413_fc543975_5383286.png "components.png")
-
 #### Download
 [![](https://www.jitpack.io/v/GibbsQin/GPlayer.svg)](https://www.jitpack.io/#GibbsQin/GPlayer)
 
@@ -33,23 +30,5 @@ GPlayer is a video player frame base on ffmpeg and mediacodec。GPlayer support 
 
     private GPlayerView mVideoView;
     mVideoView = findViewById(R.id.gl_surface_view);
-    mVideoView.setUrl(url);
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mVideoView != null) {
-            mVideoView.onResume();
-            mVideoView.startPlay();
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mVideoView != null) {
-            mVideoView.onPause();
-            mVideoView.stopPlay();
-        }
-    }
-
+    mVideoView.setDataSource(url);
+    mVideoView.prepare()
