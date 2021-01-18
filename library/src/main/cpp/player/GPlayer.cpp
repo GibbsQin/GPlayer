@@ -174,6 +174,7 @@ void GPlayer::onSeekStateChanged(int state) {
         packetSource->reset();
         frameSource->reset();
         messageSource->pushMessage(MSG_DOMAIN_BUFFER, 0, 0);
+        decoderHelper->seekTo(demuxerHelper->getSeekUs());
         decoderHelper->reset();
         resumeThreads(true, true, true, false);
     } else if (state == MSG_SEEK_END) {

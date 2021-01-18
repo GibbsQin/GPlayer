@@ -14,9 +14,13 @@ static void print_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, co
 
     LOGD(TAG, "%s, flags:%d, pts:%lld pts_time:%s dts_time:%s size:%d\n",
          tag, pkt->flags,
-         (uint64_t) (av_q2d(*time_base) * pkt->pts * 1000000),
+         (uint64_t) (av_q2d(*time_base) * pkt->pts * AV_TIME_BASE),
          av_ts2timestr(pkt->pts, time_base), av_ts2timestr(pkt->dts, time_base),
          pkt->size);
+}
+
+static long max(long a, long b) {
+    return a > b ? a : b;
 }
 
 DemuxerHelper::DemuxerHelper(const std::string &url, PacketSource *input, MessageSource *messageSource) {
@@ -139,13 +143,14 @@ int DemuxerHelper::readPacket(int type, long extra) {
     }
     if (extra >= 0 && seekFrameUs == -1) {
         AVRational time_base = ifmt_ctx->streams[video_stream_index]->time_base;
-        seekFrameUs = extra / av_q2d(time_base);
+        seekFrameUs = max(0, extra - MAX_DURATION_KEY_FRAME) / av_q2d(time_base);
         LOGI(TAG, "start time %lld, seekUs %lld", ifmt_ctx->start_time, seekFrameUs);
         if (av_seek_frame(ifmt_ctx, -1, seekFrameUs, AVSEEK_FLAG_FRAME) < 0) {
             LOGE(TAG, "seek fail");
             seekFrameUs = -1;
             messageSource->pushMessage(MSG_DOMAIN_ERROR, MSG_ERROR_SEEK, 0);
         } else {
+            realSeekFrameUs = extra * AV_TIME_BASE;
             messageSource->pushMessage(MSG_DOMAIN_SEEK, MSG_SEEK_START, 0);
             //先暂停，等旧数据flush之后再恢复
             return ERROR_PAUSE;
@@ -231,7 +236,7 @@ void DemuxerHelper::notifyError(int ret) {
     }
 }
 
-bool DemuxerHelper::needDiscardPkt(AVPacket pkt) {
+bool DemuxerHelper::needDiscardPkt(AVPacket pkt) const {
     if (pkt.pts < seekFrameUs) {
         return true;
     }

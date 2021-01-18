@@ -16,7 +16,7 @@
 
 class DecoderHelper {
 public:
-    DecoderHelper(PacketSource *inputSource, FrameSource *outputSource,MessageSource *messageSource,
+    DecoderHelper(PacketSource *inputSource, FrameSource *outputSource, MessageSource *messageSource,
                   bool hasAudio, bool hasVideo);
 
     ~DecoderHelper();
@@ -43,6 +43,10 @@ public:
         stopWhenEmpty = enable;
     }
 
+    void seekTo(uint64_t secondUs) {
+        seekPts = secondUs;
+    }
+
 private:
     void createAudioDecoder();
 
@@ -54,6 +58,7 @@ private:
     bool stopWhenEmpty = false;
     bool hasAudio = false;
     bool hasVideo = false;
+    uint64_t seekPts = 0;
     PacketSource *inputSource;
     FrameSource *outputSource;
     MessageSource *messageSource;

@@ -117,14 +117,22 @@ int DecoderHelper::processAudioBuffer(int type, long extra) {
         audioLock.unlock();
         return ERROR_EXIST;
     }
-    if (audioDecoder->receive_frame(audioOutFrame) >= 0) {
-        mediaSize = (int)outputSource->pushAudFrame(audioOutFrame);
+    bool decodeSuccess = audioDecoder->receive_frame(audioOutFrame) >= 0;
+    if (!decodeSuccess) {
+        audioLock.unlock();
+        return 0;
+    }
+    if (seekPts > 0) {
+        if (seekPts <= audioOutFrame->pts) {
+            outputSource->pushAudFrame(audioOutFrame);
+            seekPts = 0;
+        }
     } else {
-        mediaSize = 0;
+        outputSource->pushAudFrame(audioOutFrame);
     }
     audioLock.unlock();
 
-    return mediaSize;
+    return 0;
 }
 
 int DecoderHelper::processVideoBuffer(int type, long extra) {
@@ -148,12 +156,20 @@ int DecoderHelper::processVideoBuffer(int type, long extra) {
         videoLock.unlock();
         return ERROR_EXIST;
     }
-    if (videoDecoder->receive_frame(videoOutFrame) >= 0) {
-        mediaSize = (int)outputSource->pushVidFrame(videoOutFrame);
-        videoDecoder->release_buffer();
-    } else {
-        mediaSize = 0;
+    bool decodeSuccess = videoDecoder->receive_frame(videoOutFrame) >= 0;
+    if (!decodeSuccess) {
+        videoLock.unlock();
+        return 0;
     }
+    if (seekPts > 0) {
+        if (seekPts <= videoOutFrame->pts) {
+            outputSource->pushVidFrame(videoOutFrame);
+            seekPts = 0;
+        }
+    } else {
+        outputSource->pushVidFrame(videoOutFrame);
+    }
+    videoDecoder->release_buffer();
     videoLock.unlock();
 
     return mediaSize;

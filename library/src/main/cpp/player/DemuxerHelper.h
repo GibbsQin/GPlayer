@@ -17,6 +17,9 @@ extern "C" {
 #define HAS_AUDIO 0x1
 #define HAS_VIDEO 0x2
 
+//关键帧的间隔，秒
+#define MAX_DURATION_KEY_FRAME 10
+
 class DemuxerHelper {
 public:
     DemuxerHelper(const std::string &url, PacketSource *input, MessageSource *messageSource);
@@ -31,7 +34,11 @@ public:
 
     void notifyError(int ret);
 
-    bool needDiscardPkt(AVPacket pkt);
+    bool needDiscardPkt(AVPacket pkt) const;
+
+    uint64_t getSeekUs() {
+        return realSeekFrameUs;
+    }
 
 private:
     char *filename;
@@ -43,6 +50,7 @@ private:
     int video_stream_index = -1;
     int subtitle_stream_index = -1;
     int64_t seekFrameUs = -1;
+    int64_t realSeekFrameUs = -1;
     bool errorExist = false;
 
     int needVideoStreamFilter = 0;
